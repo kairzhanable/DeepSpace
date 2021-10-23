@@ -84,7 +84,7 @@ Material:
     - _SpecularHighlights: 1
     - _SpreadFactor: 3
     - _SrcBlend: 1
-    - _UVOffsetY: -24.193052
+    - _UVOffsetY: -49.165855
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
@@ -111,3 +111,4 @@ Material:
     - _EffectPosition9: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 0.66251194, g: 1, b: 0.46600002, a: 1}
+  m_BuildTextureStacks: []
