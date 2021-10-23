@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class Thruster : MonoBehaviour
 {
-
     public float maxTrust = 0;
     public GameObject flame;
     public Vector3 force;

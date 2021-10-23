@@ -1,39 +1,58 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using DeepSpace;
 
-public class ShipEcosystem : MonoBehaviour
+namespace DeepSpace
 {
-    private List<ShipSystem> systems;
-    void Start()
+    public class ShipEcosystem : MonoBehaviour
     {
-        systems.Add(new ArmorySystem());
-        systems.Add(new CargoSystem());
-        systems.Add(new DetachSystem());
-        systems.Add(new EnergySystem());
-        systems.Add(new HeatSystem());
-        systems.Add(new ManeurSystem());
-    }
+        private List<ShipSystem> systems;
 
-    void Update()
-    {
-        
-    }
+        private ArmorySystem armorySystem;
+        private CargoSystem cargoSystem;
+        private DetachSystem detachSystem;
+        private EnergySystem energySystem;
+        private HeatSystem heatSystem;
+        private ManeurSystem maneurSystem;
 
-    void AddModule(Module module, Slot slot) 
-    {
-        foreach(ShipSystem sys in systems)
+        void Start()
         {
-            sys.AddModule(module);
+            systems = new List<ShipSystem>();
+            Rigidbody rb = gameObject.GetComponent<Rigidbody>();
+
+            armorySystem = new ArmorySystem();
+            cargoSystem = new CargoSystem();
+            detachSystem = new DetachSystem();
+            energySystem = new EnergySystem();
+            heatSystem = new HeatSystem();
+            maneurSystem = new ManeurSystem(rb);
+
+            systems.Add(armorySystem);
+            systems.Add(cargoSystem);
+            systems.Add(detachSystem);
+            systems.Add(energySystem);
+            systems.Add(heatSystem);
+            systems.Add(maneurSystem);
         }
-    }
 
-    void RemoveModule(Module module)
-    {
-        foreach(ShipSystem sys in systems)
+        void Update()
         {
-            sys.RemoveModule(module);
+            
+        }
+
+        void AddModule(Module module, Slot slot) 
+        {
+            foreach(ShipSystem sys in systems)
+            {
+                sys.AddModule(module);
+            }
+        }
+
+        void RemoveModule(Module module)
+        {
+            foreach(ShipSystem sys in systems)
+            {
+                sys.RemoveModule(module);
+            }
         }
     }
 }
