@@ -5,7 +5,8 @@ namespace DeepSpace
     public enum ModuleType 
     {
         EXTERNAL,
-        INTERNAL
+        INTERNAL,
+        ENGINE
     }
 
     public class SystemElements<T>
@@ -34,6 +35,14 @@ namespace DeepSpace
                 return true;
             }
             return false;
+        }
+
+        public int Length{
+            get{ return elements.Capacity; }
+        }
+
+        public T get(int idx){
+            return elements[idx];
         }
     }
 }
