@@ -1,18 +1,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DeepSpace;
 
 public class NewBehaviourScript : MonoBehaviour
 {
-    // Start is called before the first frame update
+    public GameObject engine;
+    public GameObject slot;
+    public ShipEcosystem ship;
     void Start()
     {
         
     }
 
-    // Update is called once per frame
     void Update()
     {
-        gameObject.transform.position = gameObject.transform.position + new Vector3(0, 0, 1);
+        if(Input.GetKey(KeyCode.Space)){
+            ship.AddModule(engine, slot);
+        }
     }
 }

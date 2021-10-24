@@ -2,15 +2,17 @@ using UnityEngine;
 
 namespace DeepSpace
 {
-    public class Module : MonoBehaviour
+    public abstract class Module : MonoBehaviour
     {
-        public ModuleType moduleType {get;}
-        public int moduleSize {get;}
+        private ModuleType _moduleType;
+        public ModuleType moduleType {get{ return _moduleType;}}
+        private int _moduleSize;
+        public int moduleSize {get{ return _moduleSize;}}
 
-        public Module(ModuleType moduleType, int moduleSize)
+        public void init(ModuleType moduleType, int moduleSize)
         {
-            this.moduleType = moduleType;
-            this.moduleSize = moduleSize;
+            this._moduleType = moduleType;
+            this._moduleSize = moduleSize;
         }
     }
 }

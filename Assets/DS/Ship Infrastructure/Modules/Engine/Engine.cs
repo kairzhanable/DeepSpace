@@ -9,12 +9,7 @@ namespace DeepSpace{
         private Vector3 _torque;
         private Rigidbody rigidbody;
 
-        public float maxTrust = 1; //TODO ВЫНЕСТИ В ПАРАМЕТРЫ ИЗ СКРИПТ.ОБДЖ
-
-        public Engine(ModuleType moduleType, int moduleSize) : base(moduleType, moduleSize)
-        {
-
-        }
+        public EngineStat statsData;
 
         public Vector3 force 
         {
@@ -34,7 +29,7 @@ namespace DeepSpace{
         {
             Vector3 direction = gameObject.transform.forward;
             Vector3 position = gameObject.transform.position;
-            Vector3 force = -direction * (maxTrust * coefficient);
+            Vector3 force = -direction * (statsData.maxTrust * coefficient);
             Rigidbody.AddForceAtPosition(force, position);
         }
 
@@ -42,8 +37,8 @@ namespace DeepSpace{
         {
             Vector3 direction = gameObject.transform.forward;
             Vector3 position = gameObject.transform.position - Rigidbody.transform.position + Rigidbody.transform.rotation * Rigidbody.centerOfMass;
-            _force = -direction * maxTrust;
-            _torque = Vector3.Cross(position, -direction * maxTrust);
+            _force = -direction * statsData.maxTrust;
+            _torque = Vector3.Cross(position, -direction * statsData.maxTrust);
         }
 
         public void SetRigidbody(Rigidbody rigidbody)
@@ -53,7 +48,7 @@ namespace DeepSpace{
 
         void Start()
         {
-            
+            base.init(statsData.moduleType, statsData.moduleSize);
         }
 
         void Update()

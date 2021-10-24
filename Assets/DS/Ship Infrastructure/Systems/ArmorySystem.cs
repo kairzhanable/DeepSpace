@@ -24,6 +24,6 @@ namespace DeepSpace
 
     public interface IShooter
     {
-        public bool Shoot();
+        public bool Shoot(int actionGroup);
     }
 }
