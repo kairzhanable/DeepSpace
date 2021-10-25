@@ -8,6 +8,8 @@ namespace DeepSpace
         public ModuleType moduleType {get{ return _moduleType;}}
         private int _moduleSize;
         public int moduleSize {get{ return _moduleSize;}}
+        private bool _detachable;
+        public bool detachable{ get{return _detachable;}}
 
         public void init(ModuleType moduleType, int moduleSize)
         {

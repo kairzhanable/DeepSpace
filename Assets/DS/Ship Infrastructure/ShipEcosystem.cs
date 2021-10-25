@@ -6,56 +6,44 @@ namespace DeepSpace
     public class ShipEcosystem : MonoBehaviour
     {
         private List<ShipSystem> systems;
-
-        private ArmorySystem armorySystem;
-        private CargoSystem cargoSystem;
-        private DetachSystem detachSystem;
-        private EnergySystem energySystem;
-        private HeatSystem heatSystem;
-        private ManeurSystem maneurSystem;
-
-        private List<Slot> engines;
-        private List<Slot> externalModules;
-        private List<Slot> internalModules;
+        private List<Slot> engineSlots;
+        private List<Slot> externalModuleSlots;
+        private List<Slot> internalModuleSlots;
 
         void Start()
         {
-            systems = new List<ShipSystem>();
-            Rigidbody rb = gameObject.GetComponent<Rigidbody>();
-            engines = new List<Slot>();
-            externalModules = new List<Slot>();
-            internalModules = new List<Slot>();
-
-            armorySystem = new ArmorySystem();
-            cargoSystem = new CargoSystem();
-            detachSystem = new DetachSystem();
-            energySystem = new EnergySystem();
-            heatSystem = new HeatSystem();
-            maneurSystem = new ManeurSystem(rb);
-
-            systems.Add(armorySystem);
-            systems.Add(cargoSystem);
-            systems.Add(detachSystem);
-            systems.Add(energySystem);
-            systems.Add(heatSystem);
-            systems.Add(maneurSystem);
-
+            systems = new List<ShipSystem>(gameObject.GetComponents<ShipSystem>());
             Slot[] allSlots = gameObject.GetComponentsInChildren<Slot>();
+
+            engineSlots = new List<Slot>();
+            externalModuleSlots = new List<Slot>();
+            internalModuleSlots = new List<Slot>();
+
+            foreach(ShipSystem system in systems){
+                system.sendEvent = SendEvent;
+            }
+
             foreach(Slot slot in allSlots){
                 switch(slot.moduleType){
                     case ModuleType.ENGINE:
-                        engines.Add(slot);
+                        engineSlots.Add(slot);
                         break;
                     case ModuleType.EXTERNAL:
-                        externalModules.Add(slot);
+                        externalModuleSlots.Add(slot);
                         break;
                     case ModuleType.INTERNAL:
-                        internalModules.Add(slot);
+                        internalModuleSlots.Add(slot);
                         break;
                     default:
                         Debug.LogError("Неизвестный модуль.");
                         break;
                 }
+            }
+        }
+
+        public void SendEvent(ShipEvent _event){
+            foreach(ShipSystem system in systems){
+                system.ApplyEvent(_event);
             }
         }
 
@@ -82,9 +70,9 @@ namespace DeepSpace
         }
 
         public void RemoveModule(Module module)
-        {
-            if(!detachSystem.RemoveModule(module))
-                return;                                                 // если модуль не удаляемый, мы его не удаляем. логично.
+        {                       
+            if(!module.detachable)    
+                return;         
             foreach(ShipSystem sys in systems)
             {
                 sys.RemoveModule(module);
