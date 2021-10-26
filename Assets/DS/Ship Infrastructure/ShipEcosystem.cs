@@ -10,7 +10,7 @@ namespace DeepSpace
         private List<Slot> externalModuleSlots;
         private List<Slot> internalModuleSlots;
 
-        void Start()
+        void Awake()
         {
             systems = new List<ShipSystem>(gameObject.GetComponents<ShipSystem>());
             Slot[] allSlots = gameObject.GetComponentsInChildren<Slot>();
@@ -60,6 +60,11 @@ namespace DeepSpace
             {
                 sys.AddModule(module);
             }
+        }
+
+        public void AddModule(GameObject module, Slot _slot){
+            Module _module = module.GetComponent<Module>();
+            AddModule(_module, _slot);
         }
 
         public void AddModule(GameObject module, GameObject slot) 

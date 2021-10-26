@@ -1,6 +1,7 @@
 using UnityEngine;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Optimization;
+using System.Collections.Generic;
 using System;
 
 namespace DeepSpace
@@ -10,16 +11,25 @@ namespace DeepSpace
         private SystemElements<IEngine> IEngins;
         private Rigidbody rigidbody;
         private RCS rcs;
+        private VPID vPID;
+        private QPID qPID;
 
-        void Start() {
+        void Awake() {
             rigidbody = gameObject.GetComponent<Rigidbody>();
             rcs = new RCS(rigidbody);
+            qPID = new QPID(rigidbody);
+            vPID = new VPID(rigidbody);
+            
             IEngins = new SystemElements<IEngine>();
         }
 
-        public void ApplyManeur(Vector3 desiredForce, Vector3 desiredTorque){
+        public void ApplyManeur(Vector3 desired_speed, Quaternion desiredRotation){
             rcs.Refresh(IEngins);
-            rcs.Update(desiredForce, desiredTorque);
+            Vector3 desiredForce = vPID.calcForce(desired_speed);
+            Vector3 desiredTorque = qPID.calcTorque(desiredRotation);
+            //rigidbody.AddRelativeForce(desiredForce);
+            //rigidbody.AddRelativeTorque(desiredTorque);
+            rcs.Update(desiredForce, desiredTorque * 1000f);
         }
 
         public override bool AddModule(Module module)
@@ -55,7 +65,7 @@ namespace DeepSpace
     }
 
     public interface IEngine:IPhysical{
-        void ApplyForce(float coefficient);
+        void ApplyForce(float force_coefficient, float throttle_coefficient);
         void Recalculation();
 
         Vector3 force {get;}
@@ -77,6 +87,9 @@ namespace DeepSpace
 
         public void Refresh(SystemElements<IEngine> IEngins){
             this.IEngins = IEngins;
+            forces = new Vector3[IEngins.Length];
+            torques = new Vector3[IEngins.Length];
+            initialGuess = Vector<double>.Build.Dense(IEngins.Length);
         }
 
         private Vector<double> OfFunction(Func<Vector<double>, double> function, Vector<double> initialGuess, double tolerance = 1e-100, int maxIterations = 100000)
@@ -118,18 +131,26 @@ namespace DeepSpace
             {
                 IEngine engine = IEngins.get(i);
                 engine.Recalculation();
-                forces[i] = engine.force;
-                torques[i] = engine.torque;
-            }
 
+                this.forces[i] = engine.force;
+                this.torques[i] = engine.torque;
+                
+            }
             Func<Vector<double>, double> f_delegate = calculate;
             Vector<double> results = OfFunction(f_delegate, initialGuess);
+            float max = 0;
+            foreach(float result in results){
+                if(result > max){
+                    max = result;
+                }
+            }
+
 
             for (int i = 0; i < IEngins.Length; i++)
             {
                 IEngine engine = IEngins.get(i);
                 double result = results[i];
-                engine.ApplyForce((float)result);
+                engine.ApplyForce((float)result, (float)result / max);
             }
         }
     }
@@ -142,18 +163,14 @@ namespace DeepSpace
             this.rigidbody = rigidbody;
         }
 
-        public Vector3 calcForce(Vector3 targetPosition){
-            return Vector3.Normalize(targetPosition - rigidbody.transform.position);
-        }
-
         private double old_angle = 0;
         private double old_speed = 0;
         private double old_torque = 0;
         private double ema_k = 0;
 
         public double alpfa = 0.001f;
-        public double langle = 30f;
-        public double soft = 1;
+        public double langle = 180f;
+        public double soft = 0.1;
 
         public Vector3 calcTorque(Quaternion targetRotation){
             Quaternion current_rotation = rigidbody.transform.rotation;
@@ -168,14 +185,14 @@ namespace DeepSpace
             old_angle = angle;
 
             double time = angle / Mathf.Abs((float)speed);
-            if(speed > time){
+            if(speed/acceleration > time * 0.8){
                 ema_k = ema_k * (1-alpfa) + alpfa;
 
             } else {
                 ema_k = ema_k * (1-alpfa) - alpfa;
             }
             if(angle < langle && angularVelocity.sqrMagnitude != 0f){
-                local_diff_torque += (angularVelocity * (float)(langle-angle)/(float)langle) / (float)soft;
+                //local_diff_torque += (angularVelocity * (float)(langle-angle)/(float)langle) / (float)soft;
             }
             if(angle < 1 && speed < 0.1){
                 rigidbody.angularVelocity = new Vector3(0.0001f,0.0001f,0.0001f);
@@ -185,6 +202,16 @@ namespace DeepSpace
         }
     }
 
-    
+    public class VPID{
+        private Rigidbody rigidbody;
+
+        public VPID(Rigidbody rigidbody){
+            this.rigidbody = rigidbody;
+        }
+
+        public Vector3 calcForce(Vector3 desired_speed){
+            return Vector3.Normalize(desired_speed - rigidbody.transform.InverseTransformDirection(rigidbody.velocity));
+        }
+    }
 
 }

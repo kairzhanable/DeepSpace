@@ -12,12 +12,6 @@ namespace DeepSpace
 
         private Module installedModule;
 
-        public Slot (ModuleType moduleType, int moduleSize)
-        {
-            this.moduleType = moduleType;
-            this.moduleSize = moduleSize;
-        }
-
         public bool RemoveModule(){
             if ((_free))
                 return false;
