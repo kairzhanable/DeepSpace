@@ -134,183 +134,57 @@ namespace DeepSpace
         }
     }
 
-    public class SAS{
+    public class QPID{
 
         private Rigidbody rigidbody;
-        private Vector3 desiredForce;
-        private Vector3 desiredTorque;
-        private PID pidX;
-        private PID pidY;
-        private PID pidZ;
 
-        public SAS(Rigidbody rigidbody){
+        public QPID(Rigidbody rigidbody){
             this.rigidbody = rigidbody;
         }
 
-        public void Update(Vector3 desiredVelocity, Quaternion desiredDirection)
-        {
-            Vector3 currentVelocity = rigidbody.velocity;
-            Quaternion currentDirection = rigidbody.gameObject.transform.rotation;
+        public Vector3 calcForce(Vector3 targetPosition){
+            return Vector3.Normalize(targetPosition - rigidbody.transform.position);
+        }
 
-            //pitch 
-            //roll 
-            //yaw
-            //axis
+        private double old_angle = 0;
+        private double old_speed = 0;
+        private double old_torque = 0;
+        private double ema_k = 0;
 
-            /*
-            Quaternion up = new Quaternion(-v,0,0,1);
-            Quaternion down = new Quaternion(v,0,0,1);
-            Quaternion left = new Quaternion(0,-v,0,1);
-            Quaternion right = new Quaternion(0,v,0,1);
-            Quaternion roll_left = new Quaternion(0,0,v,1);
-            Quaternion roll_right = new Quaternion(0,0,-v,1);
-            */
+        public double alpfa = 0.001f;
+        public double langle = 30f;
+        public double soft = 1;
 
-            Quaternion current = rigidbody.gameObject.transform.rotation;
-            Quaternion diff = desiredDirection * Quaternion.Inverse(current);
+        public Vector3 calcTorque(Quaternion targetRotation){
+            Quaternion current_rotation = rigidbody.transform.rotation;
+            Quaternion diff = targetRotation * Quaternion.Inverse(current_rotation);
+            Vector3 angularVelocity = rigidbody.angularVelocity;
             Vector3 local_diff_torque = new Vector3(diff.x, diff.y, diff.z);
+            local_diff_torque = Vector3.Normalize(local_diff_torque);
+            double angle = Quaternion.Angle(targetRotation, current_rotation);
+            double speed = (old_angle - angle) / Time.deltaTime;
+            double acceleration = (old_speed - speed) / Time.deltaTime;
+            old_speed = speed;
+            old_angle = angle;
 
-            
+            double time = angle / Mathf.Abs((float)speed);
+            if(speed > time){
+                ema_k = ema_k * (1-alpfa) + alpfa;
 
-
-
-            //gameObject.GetComponent<Rigidbody>().AddTorque(local_diff_torque, ForceMode.Impulse);
-
-            desiredForce = (desiredVelocity - currentVelocity) * rigidbody.mass;
-            //desiredTorque = 
+            } else {
+                ema_k = ema_k * (1-alpfa) - alpfa;
+            }
+            if(angle < langle && angularVelocity.sqrMagnitude != 0f){
+                local_diff_torque += (angularVelocity * (float)(langle-angle)/(float)langle) / (float)soft;
+            }
+            if(angle < 1 && speed < 0.1){
+                rigidbody.angularVelocity = new Vector3(0.0001f,0.0001f,0.0001f);
+                return Vector3.zero;
+            }
+            return Quaternion.Inverse(rigidbody.transform.rotation) * local_diff_torque * (float)ema_k;
         }
-
     }
 
-    public class PID
-    {
-        private double Ts;                  // Sample period in seconds
-        private double K;                   // Rollup parameter
-        private double b0, b1, b2;          // Rollup parameters
-        private double a0, a1, a2;          // Rollup parameters
-        private double y0 = 0;              // Current output
-        private double y1 = 0;              // Output one iteration old
-        private double y2 = 0;              // Output two iterations old
-        private double e0 = 0;              // Current error
-        private double e1 = 0;              // Error one iteration old
-        private double e2 = 0;              // Error two iterations old
-
-        /// <summary>
-        /// PID Constructor
-        /// </summary>
-        /// <param name="Kp">Proportional Gain</param>
-        /// <param name="Ki">Integral Gain</param>
-        /// <param name="Kd">Derivative Gain</param>
-        /// <param name="N">Derivative Filter Coefficient</param>
-        /// <param name="OutputUpperLimit">Controller Upper Output Limit</param>
-        /// <param name="OutputLowerLimit">Controller Lower Output Limit</param>
-        public PID(double Kp, double Ki, double Kd, double N, double OutputUpperLimit, double OutputLowerLimit)
-        {
-            this.Kp = Kp;
-            this.Ki = Ki;
-            this.Kd = Kd;
-            this.N = N;
-            this.OutputUpperLimit = OutputUpperLimit;
-            this.OutputLowerLimit = OutputLowerLimit;
-        }
-
-        /// <summary>
-        /// PID iterator, call this function every sample period to get the current controller output.
-        /// setpoint and processValue should use the same units.
-        /// </summary>
-        /// <param name="setPoint">Current Desired Setpoint</param>
-        /// <param name="processValue">Current Process Value</param>
-        /// <param name="ts">Timespan Since Last Iteration, Use Default Sample Period for First Call</param>
-        /// <returns>Current Controller Output</returns>
-        public double PID_iterate(double setPoint, double processValue, TimeSpan ts)
-        {
-            // Ensure the timespan is not too small or zero.
-            Ts = (ts.TotalSeconds >= TsMin) ? ts.TotalSeconds : TsMin;
-
-            // Calculate rollup parameters
-            K = 2 / Ts;
-            b0 = Math.Pow(K, 2) * Kp + K * Ki + Ki * N + K * Kp * N + Math.Pow(K, 2) * Kd * N;
-            b1 = 2 * Ki * N - 2 * Math.Pow(K, 2) * Kp - 2 * Math.Pow(K, 2) * Kd * N;
-            b2 = Math.Pow(K, 2) * Kp - K * Ki + Ki * N - K * Kp * N + Math.Pow(K, 2) * Kd * N;
-            a0 = Math.Pow(K, 2) + N * K;
-            a1 = -2 * Math.Pow(K, 2);
-            a2 = Math.Pow(K, 2) - K * N;
-
-            // Age errors and output history
-            e2 = e1;                        // Age errors one iteration
-            e1 = e0;                        // Age errors one iteration
-            e0 = setPoint - processValue;   // Compute new error
-            y2 = y1;                        // Age outputs one iteration
-            y1 = y0;                        // Age outputs one iteration
-            y0 = -a1 / a0 * y1 - a2 / a0 * y2 + b0 / a0 * e0 + b1 / a0 * e1 + b2 / a0 * e2; // Calculate current output
-
-            // Clamp output if needed
-            if (y0 > OutputUpperLimit)
-            {
-                y0 = OutputUpperLimit;
-            }
-            else if (y0 < OutputLowerLimit)
-            {
-                y0 = OutputLowerLimit;
-            }
-
-            return y0;
-        }
-
-        /// <summary>
-        /// Reset controller history effectively resetting the controller.
-        /// </summary>
-        public void ResetController()
-        {
-            e2 = 0;
-            e1 = 0;
-            e0 = 0;
-            y2 = 0;
-            y1 = 0;
-            y0 = 0;
-        }
-
-        /// <summary>
-        /// Proportional Gain, consider resetting controller if this parameter is drastically changed.
-        /// </summary>
-        public double Kp { get; set; }
-
-        /// <summary>
-        /// Integral Gain, consider resetting controller if this parameter is drastically changed.
-        /// </summary>
-        public double Ki { get; set; }
-
-        /// <summary>
-        /// Derivative Gain, consider resetting controller if this parameter is drastically changed.
-        /// </summary>
-        public double Kd { get; set; }
-
-        /// <summary>
-        /// Derivative filter coefficient.
-        /// A smaller N for more filtering.
-        /// A larger N for less filtering.
-        /// Consider resetting controller if this parameter is drastically changed.
-        /// </summary>
-        public double N { get; set; }
-
-        /// <summary>
-        /// Minimum allowed sample period to avoid dividing by zero!
-        /// The Ts value can be mistakenly set to too low of a value or zero on the first iteration.
-        /// TsMin by default is set to 1 millisecond.
-        /// </summary>
-        public double TsMin { get; set; } = 0.001;
-
-        /// <summary>
-        /// Upper output limit of the controller.
-        /// This should obviously be a numerically greater value than the lower output limit.
-        /// </summary>
-        public double OutputUpperLimit { get; set; }
-
-        /// <summary>
-        /// Lower output limit of the controller
-        /// This should obviously be a numerically lesser value than the upper output limit.
-        /// </summary>
-        public double OutputLowerLimit { get; set; }
-    }
+    
 
 }

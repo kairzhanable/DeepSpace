@@ -21,27 +21,11 @@ public class NewBehaviourScript : MonoBehaviour
     void Update()
     {
         Vector3 local_diff_torque = calc( 1 );
-        //local_diff_torque = ema_vector3(local_diff_torque, 0.5f);
         ind.transform.position = pos + local_diff_torque;
         Debug.Log(local_diff_torque);
-        gameObject.GetComponent<Rigidbody>().AddTorque(local_diff_torque, ForceMode.Force);
+        //gameObject.GetComponent<Rigidbody>().AddTorque(local_diff_torque, ForceMode.Force);
+        gameObject.GetComponent<Rigidbody>().AddRelativeTorque(Quaternion.Inverse(transform.rotation) * local_diff_torque, ForceMode.Force);
     }
-
-    /*private float x = 0;
-    private float y = 0;
-    private float z = 0;
-
-    private Vector3 ema_vector3(Vector3 vector, float _alpfa){
-        x = ema(vector.x, x, _alpfa);
-        y = ema(vector.y, y, _alpfa);
-        z = ema(vector.z, z, _alpfa);
-        return new Vector3(x,y,z);
-
-    }
-
-    private float ema (float value, float ema, float _alpfa){
-        return ema * (1 - _alpfa) + value * _alpfa;
-    }*/
 
     private double old_angle = 0;
     private double old_speed = 0;
@@ -66,34 +50,20 @@ public class NewBehaviourScript : MonoBehaviour
         old_speed = speed;
         old_angle = angle;
 
-        /*float expected_acceleration = (acceleration / old_torque);
-        float max_available_torque = (expected_acceleration * max_torque);
-        float distance = (speed * speed) / (2 * max_available_torque);
-        float torque = 0;
-
-        if(distance < angle){
-            torque = max_torque;
-        } else {
-            torque = -max_torque;
-        }
-        old_torque = torque;
-        return local_diff_torque * torque;*/
-
         double time = angle / Mathf.Abs((float)speed);
-        if(speed > time){
+        if(speed/acceleration > time){
             ema_k = ema_k * (1-alpfa) + alpfa;
 
         } else {
             ema_k = ema_k * (1-alpfa) - alpfa;
         }
-        if(angle < langle){
+        if(angle < langle && angularVelocity.sqrMagnitude != 0f){
             local_diff_torque += (angularVelocity * (float)(langle-angle)/(float)langle) / (float)soft;
         }
-        /*if(angle < 1 && speed < 0.0001){
-            gameObject.GetComponent<Rigidbody>().angularVelocity = new Vector3(0,0,0);
-            gameObject.transform.rotation = target_rotation;
+        if(angle < 1 && speed < 0.1){
+            gameObject.GetComponent<Rigidbody>().angularVelocity = new Vector3(0.0001f,0.0001f,0.0001f);
             return Vector3.zero;
-        }*/
+        }
         return local_diff_torque * (float)ema_k;
     }
 }
