@@ -13,6 +13,11 @@ namespace DeepSpace
     public class SystemElements<T>
     {
         private List<T> elements {get; set;}
+
+        public List<T> get_list(){
+            return elements;
+        }
+
         public SystemElements()
         {
             this.elements = new List<T>();

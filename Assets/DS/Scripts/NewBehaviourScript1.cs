@@ -47,16 +47,16 @@ public class NewBehaviourScript1 : MonoBehaviour
         Quaternion desiredRotation = camera.transform.rotation;
 
         if(Input.GetKey(KeyCode.W)){
-            desired_speed += Vector3.forward * 10 * Time.deltaTime;
+            desired_speed += Vector3.forward * 1000 * Time.deltaTime;
         }
         if(Input.GetKey(KeyCode.S)){
-            desired_speed += Vector3.back * 10 * Time.deltaTime;
+            desired_speed += Vector3.back * 1000 * Time.deltaTime;
         }
         if(Input.GetKey(KeyCode.D)){
-            desired_speed += Vector3.left * 10 * Time.deltaTime;
+            desired_speed += Vector3.left * 1000 * Time.deltaTime;
         }
         if(Input.GetKey(KeyCode.A)){
-            desired_speed += Vector3.right * 10 * Time.deltaTime;
+            desired_speed += Vector3.right * 1000 * Time.deltaTime;
         }
         if(Input.GetKeyDown(KeyCode.Space)){
             desired_speed = Vector3.zero;

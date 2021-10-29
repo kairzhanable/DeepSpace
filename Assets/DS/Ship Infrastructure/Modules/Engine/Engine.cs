@@ -8,52 +8,50 @@ namespace DeepSpace{
     {
         private Vector3 _force;
         private Vector3 _torque;
+
+        private float _limit = 1;
         private float _throttle;
+
         private Rigidbody rigidbody;
         private SgtThruster throttleController;
+        private float _force_coefficient;
 
         public EngineStat statsData;
-        
 
-        public Vector3 force 
-        {
-            get {return _force;}
-            set {}
-        }
+        public Vector3    max_force             {get{return _force;}}
+        public Vector3    max_torque             {get{return _torque;}}
 
-        public Vector3 torque 
-        {
-            get {return _torque;}
-            set {}
-        }
+        public Vector3    currentForce     {get{return _force * _force_coefficient;}}
+        public Vector3    currentTorque     {get{return _torque * _force_coefficient;}}
 
-        public float throttle{
-            get { return _throttle; }
-            set { _throttle = value; throttleController.Throttle = value; }
-        }
+        public float      limit             {get{return _limit;}        set{_limit = value;}}
+        public float      throttle          {get{return _throttle; }    set{_throttle = value; throttleController.Throttle = value; }}
+        public float      force_coefficient {get{return _force_coefficient;}}
 
-        public Rigidbody Rigidbody { get => rigidbody; set => rigidbody = value; }
+        public Vector3 possible_force(float coefficient){return  _force * coefficient;}
+        public Vector3 possible_torque(float coefficient){return  _torque * coefficient;}
 
         public void ApplyForce(float force_coefficient, float throttle_coefficient)
         {
+            this._force_coefficient = force_coefficient;
             Vector3 direction = gameObject.transform.forward;
             Vector3 position = gameObject.transform.position;
-            Vector3 force = -direction * (statsData.maxTrust * force_coefficient);
-            throttle = force_coefficient;
-            Rigidbody.AddForceAtPosition(force, position);
+            Vector3 force = -direction * (statsData.maxTrust * _force_coefficient * _limit);
+            throttle = throttle_coefficient * _limit;
+            rigidbody.AddForceAtPosition(force, position);
         }
 
         public void Recalculation()
         {
             Vector3 direction = gameObject.transform.forward;
-            Vector3 position = gameObject.transform.position - Rigidbody.transform.position + Rigidbody.transform.rotation * Rigidbody.centerOfMass;
+            Vector3 position = gameObject.transform.position - rigidbody.transform.position + rigidbody.transform.rotation * rigidbody.centerOfMass;
             _force = -direction * statsData.maxTrust;
-            _torque = Vector3.Cross(position, -direction * statsData.maxTrust);  //TODO учесть массу и момент инерции
+            _torque = Vector3.Cross(position, -direction * statsData.maxTrust);
         }
 
         public void SetRigidbody(Rigidbody rigidbody)
         {
-            this.Rigidbody = rigidbody;
+            this.rigidbody = rigidbody;
         }
 
         void Awake()
