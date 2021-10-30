@@ -31,6 +31,8 @@ namespace DeepSpace{
         public Vector3 possible_force(float coefficient){return  _force * coefficient;}
         public Vector3 possible_torque(float coefficient){return  _torque * coefficient;}
 
+        private Vector3 final_force;
+
         public void ApplyForce(float force_coefficient, float throttle_coefficient)
         {
             this._force_coefficient = force_coefficient;
@@ -38,7 +40,7 @@ namespace DeepSpace{
             Vector3 position = gameObject.transform.position;
             Vector3 force = -direction * (statsData.maxTrust * _force_coefficient * _limit);
             throttle = throttle_coefficient * _limit;
-            rigidbody.AddForceAtPosition(force, position);
+            final_force = force;
         }
 
         public void Recalculation()
@@ -63,6 +65,10 @@ namespace DeepSpace{
         void Update()
         {
             
+        }
+
+        public void FixedUpdate() {
+            rigidbody.AddForceAtPosition(final_force, gameObject.transform.position);
         }
     }
 }

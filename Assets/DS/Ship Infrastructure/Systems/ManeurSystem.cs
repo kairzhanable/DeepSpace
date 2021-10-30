@@ -114,12 +114,13 @@ namespace DeepSpace
             Vector3 local_diff_torque_norm = Vector3.Normalize(local_diff_torque);
             float angle = Quaternion.Angle(targetRotation, current_rotation);
 
+            float drag_k =  (360-angle) / 360;
+            rigidbody.angularDrag = 2 * drag_k * drag_k * drag_k;
+
             if(local_diff_torque.magnitude < 0.0005){
                 rigidbody.angularVelocity = Vector3.zero;
                 return Vector3.zero;
             }
-
-            Debug.Log(local_diff_torque.magnitude);
 
             float k = pid.GetOutput((float)angle, Time.fixedDeltaTime);
 
@@ -342,154 +343,3 @@ namespace DeepSpace
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-public class RCS{
-        private Vector<double> initialGuess; // вектор начальных значений тяги ([0] * кол-во двиг.)
-        private Vector3[] forces;            // вектор значений сил
-        private Vector3[] torques;           // вектор значений моментов
-        private Rigidbody rigidbody;
-        private SystemElements<IEngine> IEngins;
-        private Vector3 desiredForce;
-        private Vector3 desiredTorque;
-
-        private Vector<double> X1, X2, X3, X4, X5, X6;
-
-        public RCS(Rigidbody rigidbody){
-            this.rigidbody = rigidbody;
-        }
-
-        
-
-        public void Refresh(SystemElements<IEngine> IEngins){
-            this.IEngins = IEngins;
-            forces = new Vector3[IEngins.Length];
-            torques = new Vector3[IEngins.Length];
-            initialGuess = Vector<double>.Build.Dense(IEngins.Length);
-            X1 = Calc(Vector3.right, Vector3.zero);
-            X2 = Calc(Vector3.up, Vector3.zero);
-            X3 = Calc(Vector3.forward, Vector3.zero);
-            X4 = Calc(Vector3.zero, Vector3.right);
-            X5 = Calc(Vector3.zero, Vector3.up);
-            X6 = Calc(Vector3.zero, Vector3.forward);
-        }
-
-        private Vector<double> OfFunction(Func<Vector<double>, double> function, Vector<double> initialGuess, double tolerance = 1e-100, int maxIterations = 100000)
-        {
-            var objective = ObjectiveFunction.Value(function);
-            var result = NelderMeadSimplex.Minimum(objective, initialGuess, tolerance, maxIterations);
-            return result.MinimizingPoint;
-        }
-
-        private double calculate(Vector<double> coeff)
-        {
-            Vector3 totalForces = new Vector3(0, 0, 0);
-            Vector3 totalTorques = new Vector3(0, 0, 0);
-            double d = 0;                                                                       // фактор гашения
-            for (int trusterId = 0; trusterId < IEngins.Length; trusterId++)
-            {
-                totalForces += forces[trusterId] * (float)coeff[trusterId];
-                totalTorques += torques[trusterId] * (float)coeff[trusterId];
-                if (coeff[trusterId] > 1 || coeff[trusterId] < 0)
-                {
-                    d += 999 + coeff[trusterId] * 999;
-                }
-            }
-            Vector3 errorLinear = (totalForces - rigidbody.transform.rotation * desiredForce);
-            Vector3 errorAngle = (totalTorques - rigidbody.transform.rotation * desiredTorque);
-            return (double)(errorLinear.x * errorLinear.x +
-                            errorLinear.y * errorLinear.y +
-                            errorLinear.z * errorLinear.z +
-                            errorAngle.x * errorAngle.x +
-                            errorAngle.y * errorAngle.y +
-                            errorAngle.z * errorAngle.z + d);
-        }
-
-        private Vector<double> Calc(Vector3 desiredForce, Vector3 desiredTorque)
-        {
-            this.desiredForce = desiredForce;
-            this.desiredTorque = desiredTorque;
-            for (int i = 0; i < IEngins.Length; i++)
-            {
-                IEngine engine = IEngins.get(i);
-                engine.Recalculation();
-                this.forces[i] = engine.force;
-                this.torques[i] = engine.Torque(1);
-            }
-            Func<Vector<double>, double> f_delegate = calculate;
-            Vector<double> results = OfFunction(f_delegate, initialGuess);
-            
-            return results;
-        }
-
-
-        public void Apply(Vector3 desiredForce, Vector3 desiredTorque){
-            double[][] biglist = new double[6][];
-            biglist[0] = X1.ToArray();
-            biglist[1] = X2.ToArray();
-            biglist[2] = X3.ToArray();
-            biglist[3] = X4.ToArray();
-            biglist[4] = X5.ToArray();
-            biglist[5] = X6.ToArray();
-            Matrix<double> A = Matrix<double>.Build.DenseOfColumns(biglist);
-            Matrix<double> b = Matrix<double>.Build.Dense(6, 1);
-            /*var b = Vector<double>.Build.Dense(new double[] { desiredForce.x, desiredForce.y, desiredForce.z,
-                                                              desiredTorque.x, desiredTorque.y, desiredTorque.z });*//*
-            b[0, 0] = desiredForce.x;
-            b[1, 0] = desiredForce.y;
-            b[2, 0] = desiredForce.z;
-            b[3, 0] = desiredTorque.x;
-            b[4, 0] = desiredTorque.y;
-            b[5, 0] = desiredTorque.z;
-
-            var p = A.Transpose().PseudoInverse();
-            var results_m = p * b;
-
-            double[] results = new double[X1.Count];
-            for(int i = 0; i < X1.Count; i++){
-                results[i] = results_m[i,0];
-            }
-            
-            //var results = A.Solve(b);
-
-            /*Vector<double> results = Calc(desiredForce, desiredTorque);*//*
-            for (int i = 0; i < IEngins.Length; i++)
-            {
-                float max = 0;
-                foreach(float _result in results){
-                    if(_result > max){
-                        max = _result;
-                    }
-                }
-                IEngine engine = IEngins.get(i);
-                double result = results[i];
-                engine.ApplyForce((float)result, (float)result / max);
-            }
-        }
-    }
-
-*/
