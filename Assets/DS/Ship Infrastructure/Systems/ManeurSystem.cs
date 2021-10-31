@@ -99,32 +99,72 @@ namespace DeepSpace
 
         private Rigidbody rigidbody;
         private float max_Velocity = 1; 
-        private PID pid;
+        private PID pID;
 
         public QPID(Rigidbody rigidbody){
             this.rigidbody = rigidbody;
-            pid = new PID(5, 3, 3);
+            pID = new PID(1f,1f,1f);
         }
+
+        private float old_angle = 0;
+        private float old_angularSpeed = 0;
 
         public Vector3 calcTorque(Quaternion targetRotation){
             Quaternion current_rotation = rigidbody.transform.rotation;
             Quaternion diff = targetRotation * Quaternion.Inverse(current_rotation);
-            Vector3 angularVelocity = rigidbody.angularVelocity;
-            Vector3 local_diff_torque = new Vector3(diff.x, diff.y, diff.z);
+            var angle = 2 * Math.Acos(diff.w);
+            var axis =  Vector3.zero;
+            if (angle != 0)
+                axis = (float)(1 / Math.Sin(angle/2)) * new Vector3(diff.x, diff.y, diff.z);
+            var local_diff_torque_norm = axis.normalized;
+
+            float error_angle = Quaternion.Angle(targetRotation, current_rotation);
+            float speed_k =  (float)(1 - ((360-angle) / 360));
+
+            Vector3 disaredSpeed = local_diff_torque_norm * 1000 * speed_k;
+            Vector3 actualSpeed = rigidbody.angularVelocity;
+            Vector3 diffSpeed = disaredSpeed - actualSpeed;
+
+
+            //rigidbody.AddTorque(diffSpeed * 1000 * Time.deltaTime, ForceMode.Impulse);
+
+            return( Quaternion.Inverse(rigidbody.transform.rotation) * diffSpeed * 100000 * Time.deltaTime);
+
+
+
+            /*Vector3 local_diff_torque = new Vector3(diff.x, diff.y, diff.z);
             Vector3 local_diff_torque_norm = Vector3.Normalize(local_diff_torque);
+            
+            Vector3 angularVelocity = rigidbody.angularVelocity;
             float angle = Quaternion.Angle(targetRotation, current_rotation);
 
+            float angularSpeed = (old_angle - angle) / Time.deltaTime;
+            float angularAcseleration = (old_angularSpeed - angularSpeed) / Time.deltaTime;
+
+            old_angularSpeed = angularSpeed;
+            old_angle = angle;
+
+            float time = angle / angularSpeed;*/
+
+            /*
             float drag_k =  (360-angle) / 360;
             rigidbody.angularDrag = 2 * drag_k * drag_k * drag_k;
 
             if(local_diff_torque.magnitude < 0.0005){
                 rigidbody.angularVelocity = Vector3.zero;
                 return Vector3.zero;
-            }
+            }*/
 
-            float k = pid.GetOutput((float)angle, Time.fixedDeltaTime);
+            
 
-            return Quaternion.Inverse(rigidbody.transform.rotation) * (local_diff_torque_norm) * k;
+            //float k = pID.GetOutput((float)error, Time.deltaTime);
+
+            //Debug.Log(k);
+
+            //return Quaternion.Inverse(rigidbody.transform.rotation) * (local_diff_torque_norm) * k;
+
+            //return Vector3.zero;
+
         }
     }
 
@@ -147,8 +187,10 @@ namespace DeepSpace
     public class PID
     {
         private float _p, _i, _d;
+        private Vector3 _pv, _iv, _dv;
         private float _kp, _ki, _kd;
         private float _prevError;
+        private Vector3 _prevErrorv;
 
         /// <summary>
         /// Constant proportion
@@ -217,6 +259,16 @@ namespace DeepSpace
             _prevError = currentError;
             
             return _p * Kp + _i * Ki + _d * Kd;
+        }
+
+        public Vector3 GetOutput(Vector3 currentError, float deltaTime)
+        {
+            _pv = currentError;
+            _iv += _pv * deltaTime;
+            _dv = (_pv - _prevErrorv) / deltaTime;
+            _prevErrorv = currentError;
+            
+            return _pv * Kp + _iv * Ki + _dv * Kd;
         }
     }
 
@@ -303,7 +355,8 @@ namespace DeepSpace
         private void refresh(){
             coefs.Clear();
             for(int i = 0; i < IEngins.Length; i++){
-                coefs.Add(IEngins.get(i).force_coefficient);
+                //coefs.Add(IEngins.get(i).force_coefficient);
+                coefs.Add(0);
             }
         }
 

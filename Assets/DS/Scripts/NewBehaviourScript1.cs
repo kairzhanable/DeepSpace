@@ -7,12 +7,10 @@ public class NewBehaviourScript1 : MonoBehaviour
 {
     
     public GameObject Ship;
-    public GameObject Ship2;
     public GameObject engine;
     public GameObject camera; 
 
     private ManeurSystem SAS;
-    private ManeurSystem SAS2;
     private List<Slot> slots;
     private Vector3 desired_speed;
 
@@ -22,18 +20,6 @@ public class NewBehaviourScript1 : MonoBehaviour
         slots = Ship.transform.GetComponentsInChildrenRecursively<Slot>(slots);
         SAS = Ship.GetComponent<ManeurSystem>();
         ShipEcosystem main = Ship.GetComponent<ShipEcosystem>();
-
-        foreach(Slot slot in slots){
-            if(slot.moduleType == ModuleType.ENGINE){
-                GameObject new_engine = Instantiate(engine, Vector3.zero, Quaternion.identity);
-                main.AddModule(new_engine, slot);
-            }
-        }
-
-        slots = new List<Slot>();
-        slots = Ship2.transform.GetComponentsInChildrenRecursively<Slot>(slots);
-        SAS2 = Ship2.GetComponent<ManeurSystem>();
-        main = Ship2.GetComponent<ShipEcosystem>();
 
         foreach(Slot slot in slots){
             if(slot.moduleType == ModuleType.ENGINE){
@@ -83,7 +69,6 @@ public class NewBehaviourScript1 : MonoBehaviour
         }
 
         SAS.ApplyManeur(desired_speed, desiredRotation);
-        SAS2.ApplyManeur(desired_speed, desiredRotation);
     }
 }
 
