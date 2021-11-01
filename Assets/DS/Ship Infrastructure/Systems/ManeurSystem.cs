@@ -125,45 +125,7 @@ namespace DeepSpace
             Vector3 actualSpeed = rigidbody.angularVelocity;
             Vector3 diffSpeed = disaredSpeed - actualSpeed;
 
-
-            //rigidbody.AddTorque(diffSpeed * 1000 * Time.deltaTime, ForceMode.Impulse);
-
             return( Quaternion.Inverse(rigidbody.transform.rotation) * diffSpeed * 100000 * Time.deltaTime);
-
-
-
-            /*Vector3 local_diff_torque = new Vector3(diff.x, diff.y, diff.z);
-            Vector3 local_diff_torque_norm = Vector3.Normalize(local_diff_torque);
-            
-            Vector3 angularVelocity = rigidbody.angularVelocity;
-            float angle = Quaternion.Angle(targetRotation, current_rotation);
-
-            float angularSpeed = (old_angle - angle) / Time.deltaTime;
-            float angularAcseleration = (old_angularSpeed - angularSpeed) / Time.deltaTime;
-
-            old_angularSpeed = angularSpeed;
-            old_angle = angle;
-
-            float time = angle / angularSpeed;*/
-
-            /*
-            float drag_k =  (360-angle) / 360;
-            rigidbody.angularDrag = 2 * drag_k * drag_k * drag_k;
-
-            if(local_diff_torque.magnitude < 0.0005){
-                rigidbody.angularVelocity = Vector3.zero;
-                return Vector3.zero;
-            }*/
-
-            
-
-            //float k = pID.GetOutput((float)error, Time.deltaTime);
-
-            //Debug.Log(k);
-
-            //return Quaternion.Inverse(rigidbody.transform.rotation) * (local_diff_torque_norm) * k;
-
-            //return Vector3.zero;
 
         }
     }

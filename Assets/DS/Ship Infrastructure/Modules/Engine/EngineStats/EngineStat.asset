@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moduleType: 2
   moduleSize: 1
-  maxTrust: 1
+  maxTrust: 10
