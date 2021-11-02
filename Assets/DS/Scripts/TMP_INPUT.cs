@@ -3,9 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using DeepSpace;
 
+using Rewired;
+
+[RequireComponent(typeof(CharacterController))]
 public class TMP_INPUT : MonoBehaviour
 {
-    
+    // The Rewired player id of this character
+    public int playerId = 0;
+    private Player player; // The Rewired Player
+
     public GameObject Ship;
     public GameObject engine;
     public GameObject camera; 
@@ -13,7 +19,13 @@ public class TMP_INPUT : MonoBehaviour
     private ManeurSystem SAS;
     private List<Slot> slots;
     private Vector3 desired_speed;
+    private Vector3 desired_rotation;
 
+    private void Awake() {
+        // Get the Rewired Player object for this player and keep it for the duration of the character's lifetime
+        player = ReInput.players.GetPlayer(playerId);
+    }
+    
     void Start()
     {
         slots = new List<Slot>();
@@ -33,40 +45,39 @@ public class TMP_INPUT : MonoBehaviour
 
     void Update()
     {
-        float x = 500 * Input.GetAxis ("Mouse X") * Time.deltaTime;
-        float y = 500 * -Input.GetAxis ("Mouse Y") * Time.deltaTime;
-        float z = 0;
-        if(Input.GetKey(KeyCode.Q)){
-            z = 200 * Time.deltaTime;
-        }
-        if(Input.GetKey(KeyCode.E)){
-            z = -200 * Time.deltaTime;
-        }
-        camera.transform.Rotate(y, x, z);
+        GetInput();
+        ProcessInput();
+    }
+
+    private float acceleration_step = 1000;
+    private float roll_step = 200;
+    private float pitch_step = 500;
+    private float yaw_step = 500;
+
+    private void GetInput()
+    {
+        // Get the input from the Rewired Player. All controllers that the Player owns will contribute, so it doesn't matter
+        // whether the input is coming from a joystick, the keyboard, mouse, or a custom controller.
+        desired_speed.x += player.GetAxis("RightLeft") * acceleration_step * Time.deltaTime; // get input by name or action id
+        desired_speed.y += player.GetAxis("UpDown") * acceleration_step * Time.deltaTime;
+        desired_speed.z += player.GetAxis("ForwardBack") * acceleration_step * Time.deltaTime;
+        
+        if(player.GetButton("ResetSpeed"))
+            desired_speed = Vector3.zero;
+
+        desired_rotation.z = player.GetAxis("Roll") * roll_step * Time.deltaTime;
+
+        desired_rotation.y =  player.GetAxis("Yaw") * yaw_step * Time.deltaTime;
+        desired_rotation.x =  player.GetAxis ("Pitch") * pitch_step * Time.deltaTime;
+    }
+
+    private void ProcessInput() 
+    {
+        
+        
+        camera.transform.Rotate(desired_rotation);
         camera.transform.position = Ship.transform.position;
         Quaternion desiredRotation = camera.transform.rotation;
-
-        if(Input.GetKey(KeyCode.W)){
-            desired_speed += Vector3.forward * 1000 * Time.deltaTime;
-        }
-        if(Input.GetKey(KeyCode.S)){
-            desired_speed += Vector3.back * 1000 * Time.deltaTime;
-        }
-        if(Input.GetKey(KeyCode.D)){
-            desired_speed += Vector3.right * 1000 * Time.deltaTime;
-        }
-        if(Input.GetKey(KeyCode.A)){
-            desired_speed += Vector3.left * 1000 * Time.deltaTime;
-        }
-        if(Input.GetKeyDown(KeyCode.Space)){
-            desired_speed = Vector3.zero;
-        }
-        if(Input.GetKeyDown(KeyCode.UpArrow)){
-            desired_speed += Vector3.up * 1000 * Time.deltaTime;
-        }
-        if(Input.GetKeyDown(KeyCode.DownArrow)){
-            desired_speed += Vector3.down * 1000 * Time.deltaTime;
-        }
 
         SAS.ApplyManeur(desired_speed, desiredRotation);
     }

@@ -32,4 +32,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/SpaceCombatKit/SpaceCombat/Demos/Scenes/SimpleDemos/SCK_Basics_Weapons.unity
     guid: 40716a81f1542974ba03105c47fc3569
+  - enabled: 1
+    path: Assets/DS/Scenes/Missile.unity
+    guid: 95bd4d7085fc7724795da09572512d15
   m_configObjects: {}

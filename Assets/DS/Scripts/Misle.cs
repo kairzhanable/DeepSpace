@@ -14,13 +14,14 @@ public class Misle : MonoBehaviour
     {
         rigidbody = gameObject.GetComponent<Rigidbody>();
         target_rigidbody = target.GetComponent<Rigidbody>();
-        target_rigidbody.AddForce(new Vector3(0,0,30), ForceMode.Impulse);
+        target_rigidbody.AddForce(new Vector3(50,50,50), ForceMode.Impulse);
         //rigidbody.AddRelativeForce(Vector3.forward * 35, ForceMode.Impulse);
     }
 
     // Update is called once per frame
     void Update()
     {
+        target_rigidbody.AddForce(new Vector3(0,10,0), ForceMode.Force);
         rigidbody.velocity = (rigidbody.velocity.magnitude + accel * Time.deltaTime) * gameObject.transform.forward;
         Vector3 point = optimize();
         marker.transform.position = point;
