@@ -32,10 +32,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtThruster Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Thruster", layer, parent, localPosition, localRotation, localScale);
-			var thruster   = gameObject.AddComponent<SgtThruster>();
-
-			return thruster;
+			return SgtHelper.CreateGameObject("Thruster", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtThruster>();
 		}
 
 #if UNITY_EDITOR
@@ -92,18 +89,20 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtThruster;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtThruster))]
-	public class SgtThruster_Editor : SgtEditor<SgtThruster>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtThruster_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("throttle", "How active is this thruster? 0 for off, 1 for max power, -1 for max reverse, etc.");
 			Draw("body", "The rigidbody you want to apply the thruster forces to");
 
-			if (Any(t => t.Body != null))
+			if (Any(tgts, t => t.Body != null))
 			{
 				BeginIndent();
 					Draw("forceAtPosition", "The type of force we want to apply to the Rigidbody.");

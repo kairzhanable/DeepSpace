@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -194,16 +194,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingSpawner;
 
-	public abstract class SgtFloatingSpawner_Editor<T> : SgtEditor<T>
-		where T : SgtFloatingSpawner
+	public abstract class SgtFloatingSpawner_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			if (SgtFloatingRoot.InstanceCount == 0)
 			{
-				if (HelpButton("Your scene contains no SgtFloatingRoot component, so all spawned SgtFloatingSpawnable prefabs will be placed in the scene root.", MessageType.Warning, "Add", 35.0f) == true)
+				if (HelpButton("Your scene contains no SgtFloatingRoot component, so all spawned SgtFloatingSpawnable prefabs will be placed in the scene root.", UnityEditor.MessageType.Warning, "Add", 35.0f) == true)
 				{
 					new GameObject("Floating Root").AddComponent<SgtFloatingRoot>();
 				}
@@ -213,12 +214,12 @@ namespace SpaceGraphicsToolkit
 
 			var missing = true;
 
-			if (Any(t => string.IsNullOrEmpty(t.Category) == false))
+			if (Any(tgts, t => string.IsNullOrEmpty(t.Category) == false))
 			{
 				missing = false;
 			}
 
-			if (Any(t => t.Prefabs != null && t.Prefabs.Count > 0))
+			if (Any(tgts, t => t.Prefabs != null && t.Prefabs.Count > 0))
 			{
 				missing = false;
 			}

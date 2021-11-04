@@ -22,7 +22,7 @@ namespace SpaceGraphicsToolkit
 		public float Squash { set { if (squash != value) { squash = value; DirtyMesh(); } } get { return squash; } } [FSA("Squash")] [SerializeField] [Range(0.0f, 1.0f)] private float squash;
 
 		/// <summary>The amount of stars that will be generated in the starfield.</summary>
-		public int StarCount { set { if (starCount != value) { starCount = value; DirtyMesh(); } } get { return starCount; } } [FSA("StarCount")] [SerializeField] private int starCount = 1000; private void SetStarCount(float value) { StarCount = (int)value; }
+		public int StarCount { set { if (starCount != value) { starCount = value; DirtyMesh(); } } get { return starCount; } } [FSA("StarCount")] [SerializeField] private int starCount = 1000; public void SetStarCount(float value) { StarCount = (int)value; }
 
 		/// <summary>Each star is given a random color from this gradient.</summary>
 		public Gradient StarColors { get { if (starColors == null) starColors = new Gradient(); return starColors; } } [FSA("StarColors")] [SerializeField] private Gradient starColors;
@@ -52,15 +52,11 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtBackdrop Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject  = SgtHelper.CreateGameObject("Backdrop", layer, parent, localPosition, localRotation, localScale);
-			var backdrop    = gameObject.AddComponent<SgtBackdrop>();
-			var renderQueue = backdrop.RenderQueue;
+			var instance = SgtHelper.CreateGameObject("Backdrop", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtBackdrop>();
 
-			renderQueue.Offset = -1;
+			instance.RenderQueue = new SgtRenderQueue(instance.RenderQueue.Group, -1);
 
-			backdrop.RenderQueue = renderQueue;
-
-			return backdrop;
+			return instance;
 		}
 
 #if UNITY_EDITOR
@@ -90,22 +86,22 @@ namespace SpaceGraphicsToolkit
 
 			if (powerRgb == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B", material); // PowerRgb
+				SgtHelper.EnableKeyword("_POWER_RGB", material);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B", material); // PowerRgb
+				SgtHelper.DisableKeyword("_POWER_RGB", material);
 			}
 
 			if (clampSize == true)
 			{
-				SgtHelper.EnableKeyword("SGT_C", material); // Clamp Size
+				SgtHelper.EnableKeyword("_CLAMP_SIZE", material);
 
 				material.SetFloat(SgtShader._ClampSizeMin, clampSizeMin * radius);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_C", material); // Clamp Size
+				SgtHelper.DisableKeyword("_CLAMP_SIZE", material);
 			}
 		}
 
@@ -235,14 +231,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtBackdrop;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtBackdrop))]
-	public class SgtBackdrop_Editor : SgtQuads_Editor<SgtBackdrop>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtBackdrop_Editor : SgtQuads_Editor
 	{
 		protected override void OnInspector()
 		{
+
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterial = false;
 			var dirtyMesh     = false;
 
@@ -250,27 +249,27 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			DrawMainTex(ref dirtyMaterial, ref dirtyMesh);
-			DrawLayout(ref dirtyMaterial, ref dirtyMesh);
+			DrawMainTex(ref dirtyMaterial);
+			DrawLayout(ref dirtyMesh);
 
 			Separator();
 
 			Draw("seed", ref dirtyMesh, "This allows you to set the random seed used during procedural generation.");
-			BeginError(Any(t => t.Radius <= 0.0f));
+			BeginError(Any(tgts, t => t.Radius <= 0.0f));
 				Draw("radius", ref dirtyMaterial, ref dirtyMesh, "The radius of the starfield.");
 			EndError();
 			Draw("squash", ref dirtyMesh, "Should more stars be placed near the horizon?");
 
 			Separator();
 
-			BeginError(Any(t => t.StarCount < 0));
+			BeginError(Any(tgts, t => t.StarCount < 0));
 				Draw("starCount", ref dirtyMesh, "The amount of stars that will be generated in the starfield.");
 			EndError();
 			Draw("starColors", ref dirtyMesh, "Each star is given a random color from this gradient.");
-			BeginError(Any(t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMin", ref dirtyMesh, "The minimum radius of stars in the starfield.");
 			EndError();
-			BeginError(Any(t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMax", ref dirtyMesh, "The maximum radius of stars in the starfield.");
 			EndError();
 			Draw("starRadiusBias", ref dirtyMesh, "How likely the size picking will pick smaller stars over larger ones (1 = default/linear).");
@@ -279,15 +278,15 @@ namespace SpaceGraphicsToolkit
 
 			Draw("powerRgb", ref dirtyMaterial, "Instead of just tinting the stars with the colors, should the RGB values be raised to the power of the color?");
 			Draw("clampSize", ref dirtyMaterial, ref dirtyMesh, "Prevent the quads from being too small on screen?");
-			if (Any(t => t.ClampSize == true))
+			if (Any(tgts, t => t.ClampSize == true))
 			{
 				BeginIndent();
 					Draw("clampSizeMin", ref dirtyMaterial, "The minimum size each star can be on screen in pixels. If the star goes below this size, it loses opacity proportional to the amount it would have gone under.");
 				EndIndent();
 			}
 
-			if (dirtyMaterial == true) DirtyEach(t => t.DirtyMaterial());
-			if (dirtyMesh     == true) DirtyEach(t => t.DirtyMesh   ());
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 		}
 	}
 }

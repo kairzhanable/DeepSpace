@@ -116,6 +116,11 @@ namespace SpaceGraphicsToolkit
 			SgtHelper.Destroy(generatedTexture);
 		}
 
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyTexture();
+		}
+
 		private void UpdateTexture()
 		{
 			if (width > 0)
@@ -164,7 +169,7 @@ namespace SpaceGraphicsToolkit
 
 			var color = new Color(lighting, lighting, lighting, 0.0f);
 		
-			generatedTexture.SetPixel(x, 0, color);
+			generatedTexture.SetPixel(x, 0, SgtHelper.ToGamma(color));
 		}
 	}
 }
@@ -172,38 +177,40 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtBeltLightingTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtBeltLightingTex))]
-	public class SgtBeltLightingTex_Editor : SgtEditor<SgtBeltLightingTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtBeltLightingTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
 
 			Separator();
 
-			BeginError(Any(t => t.FrontPower < 0.0f));
+			BeginError(Any(tgts, t => t.FrontPower < 0.0f));
 				Draw("frontPower", ref dirtyTexture, "How sharp the incoming light scatters forward.");
 			EndError();
-			BeginError(Any(t => t.BackPower < 0.0f));
+			BeginError(Any(tgts, t => t.BackPower < 0.0f));
 				Draw("backPower", ref dirtyTexture, "How sharp the incoming light scatters backward.");
 			EndError();
 
-			BeginError(Any(t => t.BackStrength < 0.0f));
+			BeginError(Any(tgts, t => t.BackStrength < 0.0f));
 				Draw("backStrength", ref dirtyTexture, "The strength of the back scattered light.");
 			EndError();
-			BeginError(Any(t => t.BackStrength < 0.0f));
+			BeginError(Any(tgts, t => t.BackStrength < 0.0f));
 				Draw("baseStrength", ref dirtyTexture, "The of the perpendicular scattered light.");
 			EndError();
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true, true);
 		}
 	}
 }

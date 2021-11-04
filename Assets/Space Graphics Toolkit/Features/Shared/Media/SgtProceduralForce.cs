@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -35,14 +35,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtProceduralForce;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtProceduralForce))]
-	public class SgtProceduralForce_Editor : SgtProcedural_Editor<SgtProceduralForce>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtProceduralForce_Editor : SgtProcedural_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 			
 			Draw("direction", "If you want to specify a force direction, set it here.");

@@ -3,7 +3,7 @@ using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
-	/// <summary>This component allows you to render a nebula as a starfield from a single pixture.</summary>
+	/// <summary>This component allows you to render a nebula as a starfield from a single picture.</summary>
 	[ExecuteInEditMode]
 	[HelpURL(SgtHelper.HelpUrlPrefix + "SgtStarfieldNebula")]
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Starfield Nebula")]
@@ -48,7 +48,7 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The brightness of the nebula when viewed from the side (good for galaxies).</summary>
 		public float HorizontalBrightness { set { if (horizontalBrightness != value) { horizontalBrightness = value; DirtyMaterial(); } } get { return horizontalBrightness; } } [FSA("HorizontalBrightness")] [SerializeField] private float horizontalBrightness = 0.25f;
 
-		/// <summary>The relationship between the Brightness and HorizontalBrightness relative to the viweing angle.</summary>
+		/// <summary>The relationship between the Brightness and HorizontalBrightness relative to the viewing angle.</summary>
 		public float HorizontalPower { set { if (horizontalPower != value) { horizontalPower = value; DirtyMaterial(); } } get { return horizontalPower; } } [FSA("HorizontalPower")] [SerializeField] private float horizontalPower = 1.0f;
 
 		/// <summary>The amount of stars that will be generated in the starfield.</summary>
@@ -88,10 +88,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtStarfieldNebula Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject      = SgtHelper.CreateGameObject("Starfield Nebula", layer, parent, localPosition, localRotation, localScale);
-			var starfieldNebula = gameObject.AddComponent<SgtStarfieldNebula>();
-
-			return starfieldNebula;
+			return SgtHelper.CreateGameObject("Starfield Nebula", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtStarfieldNebula>();
 		}
 
 #if UNITY_EDITOR
@@ -105,12 +102,8 @@ namespace SpaceGraphicsToolkit
 		}
 #endif
 
-		protected override void HandleCameraDraw(Camera camera)
+		protected override void HandleDrawMesh(Camera camera, MaterialPropertyBlock properties)
 		{
-			if (SgtHelper.CanDraw(gameObject, camera) == false) return;
-
-			var properties = shaderProperties.GetProperties(material, camera);
-
 			// Change brightness based on viewing angle?
 			var dir    = (transform.position - camera.transform.position).normalized;
 			var theta  = Mathf.Abs(Vector3.Dot(transform.up, dir));
@@ -119,7 +112,7 @@ namespace SpaceGraphicsToolkit
 
 			properties.SetColor(SgtShader._Color, color);
 
-			Graphics.DrawMesh(mesh, transform.localToWorldMatrix, material, gameObject.layer, camera, 0, properties);
+			base.HandleDrawMesh(camera, properties);
 		}
 
 #if UNITY_EDITOR
@@ -231,23 +224,25 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtStarfieldNebula;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtStarfieldNebula))]
-	public class SgtStarfieldNebula_Editor : SgtStarfield_Editor<SgtStarfieldNebula>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtStarfieldNebula_Editor : SgtStarfield_Editor
 	{
 		protected override void OnInspector()
 		{
-			var dirtyMaterial        = false;
-			var dirtyMesh = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			var dirtyMaterial = false;
+			var dirtyMesh     = false;
 
 			DrawMaterial(ref dirtyMaterial);
 
 			Separator();
 
-			DrawMainTex(ref dirtyMaterial, ref dirtyMesh);
-			DrawLayout(ref dirtyMaterial, ref dirtyMesh);
+			DrawMainTex(ref dirtyMaterial);
+			DrawLayout(ref dirtyMesh);
 
 			Separator();
 
@@ -256,7 +251,7 @@ namespace SpaceGraphicsToolkit
 			Separator();
 
 			Draw("seed", ref dirtyMesh, "This allows you to set the random seed used during procedural generation.");
-			BeginError(Any(t => t.SourceTex == null));
+			BeginError(Any(tgts, t => t.SourceTex == null));
 				Draw("sourceTex", ref dirtyMesh, "This texture used to color the nebula particles.");
 			EndError();
 			Draw("threshold", ref dirtyMesh, "This brightness of the sampled SourceTex pixel for a particle to be spawned.");
@@ -264,17 +259,17 @@ namespace SpaceGraphicsToolkit
 			Draw("jitter", ref dirtyMesh, "This allows you to randomly offset each nebula particle position.");
 			Draw("heightSource", ref dirtyMesh, "The calculation used to find the height offset of a particle in the nebula.");
 			Draw("scaleSource", ref dirtyMesh, "The calculation used to find the scale modified of each particle in the nebula.");
-			BeginError(Any(t => t.Size.x <= 0.0f || t.Size.y <= 0.0f || t.Size.z <= 0.0f));
+			BeginError(Any(tgts, t => t.Size.x <= 0.0f || t.Size.y <= 0.0f || t.Size.z <= 0.0f));
 				Draw("size", ref dirtyMesh, "The size of the generated nebula.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.HorizontalBrightness < 0.0f));
+			BeginError(Any(tgts, t => t.HorizontalBrightness < 0.0f));
 				Draw("horizontalBrightness", "The brightness of the nebula when viewed from the side (good for galaxies).");
 			EndError();
-			BeginError(Any(t => t.HorizontalPower < 0.0f));
-				Draw("horizontalPower", "The relationship between the Brightness and HorizontalBrightness relative to the viweing angle.");
+			BeginError(Any(tgts, t => t.HorizontalPower < 0.0f));
+				Draw("horizontalPower", "The relationship between the Brightness and HorizontalBrightness relative to the viewing angle.");
 			EndError();
 
 			Separator();
@@ -283,23 +278,21 @@ namespace SpaceGraphicsToolkit
 			Draw("starColors", ref dirtyMesh, "Each star is given a random color from this gradient.");
 			Draw("starTint", ref dirtyMesh, "This allows you to control how much the underlying nebula pixel color influences the generated star color.\n\n0 = StarColors gradient will be used directly.\n\n1 = Colors will be multiplied together.");
 			Draw("starBoost", ref dirtyMesh, "Should the star color luminosity be boosted?");
-			BeginError(Any(t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMin", ref dirtyMesh, "The minimum radius of stars in the starfield.");
 			EndError();
-			BeginError(Any(t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMax", ref dirtyMesh, "The maximum radius of stars in the starfield.");
 			EndError();
-			BeginError(Any(t => t.StarRadiusBias < 1.0f));
+			BeginError(Any(tgts, t => t.StarRadiusBias < 1.0f));
 				Draw("starRadiusBias", ref dirtyMesh, "How likely the size picking will pick smaller stars over larger ones (1 = default/linear).");
 			EndError();
 			Draw("starPulseMax", ref dirtyMesh, "The maximum amount a star's size can pulse over time. A value of 1 means the star can potentially pulse between its maximum size, and 0.");
 
-			RequireCamera();
+			SgtHelper.RequireCamera();
 
-			serializedObject.ApplyModifiedProperties();
-
-			if (dirtyMaterial == true) DirtyEach(t => t.DirtyMaterial());
-			if (dirtyMesh     == true) DirtyEach(t => t.DirtyMesh    ());
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 		}
 	}
 }

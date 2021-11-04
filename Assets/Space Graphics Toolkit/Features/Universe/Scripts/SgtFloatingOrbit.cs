@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -11,7 +11,7 @@ namespace SpaceGraphicsToolkit
 	public class SgtFloatingOrbit : MonoBehaviour
 	{
 		/// <summary>The radius of the orbit in meters.</summary>
-		public double Radius { set { radius = value; } get { return radius; } } [FSA("Radius")] [SerializeField] private double radius = 1.0f;
+		public SgtLength Radius { set { radius = value; } get { return radius; } } [FSA("Radius")] [SerializeField] private SgtLength radius = 1.0f;
 
 		/// <summary>How squashed the orbit is.</summary>
 		public float Oblateness { set { oblateness = value; } get { return oblateness; } } [FSA("Oblateness")] [SerializeField] [Range(0.0f, 1.0f)] private float oblateness;
@@ -19,7 +19,10 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The local rotation of the orbit in degrees.</summary>
 		public Vector3 Tilt { set { tilt = value; } get { return tilt; } } [FSA("Tilt")] [SerializeField] private Vector3 tilt;
 
-		/// <summary>The curent position along the orbit in degrees.</summary>
+		/// <summary>The local offset of the orbit in meters.</summary>
+		public Vector3 Offset { set { offset = value; } get { return offset; } } [SerializeField] private Vector3 offset;
+
+		/// <summary>The current position along the orbit in degrees.</summary>
 		public double Angle { set { angle = value; } get { return angle; } } [FSA("Angle")] [SerializeField] private double angle;
 
 		/// <summary>The orbit speed.</summary>
@@ -71,16 +74,16 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		public static SgtPosition CalculatePosition(SgtFloatingPoint parentPoint, double radius, double angle, Vector3 tilt, float oblateness)
+		public static SgtPosition CalculatePosition(SgtFloatingPoint parentPoint, double radius, double angle, Vector3 tilt, Vector3 offset, float oblateness)
 		{
 			if (parentPoint != null)
 			{
 				var rotation = parentPoint.transform.rotation * Quaternion.Euler(tilt);
 				var r1       = radius;
 				var r2       = radius * (1.0f - oblateness);
-				var localX   = System.Math.Sin(angle * Mathf.Deg2Rad) * r1;
-				var localY   = 0.0;
-				var localZ   = System.Math.Cos(angle * Mathf.Deg2Rad) * r2;
+				var localX   = offset.x + System.Math.Sin(angle * Mathf.Deg2Rad) * r1;
+				var localY   = offset.y + 0.0;
+				var localZ   = offset.z + System.Math.Cos(angle * Mathf.Deg2Rad) * r2;
 
 				Rotate(rotation, ref localX, ref localY, ref localZ);
 
@@ -97,9 +100,10 @@ namespace SpaceGraphicsToolkit
 			return default(SgtPosition);
 		}
 
+		[ContextMenu("Update Orbit")]
 		public void UpdateOrbit()
 		{
-			cachedPoint.SetPosition(CalculatePosition(ParentPoint, radius, angle, tilt, oblateness));
+			cachedPoint.SetPosition(CalculatePosition(ParentPoint, radius, angle, tilt, offset, oblateness));
 		}
 
 		// Rotates x and y only
@@ -175,28 +179,38 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingOrbit;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingOrbit))]
-	public class SgtFloatingOrbit_Editor : SgtEditor<SgtFloatingOrbit>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingOrbit_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.ParentPoint == null));
-				Each(t => t.UnregisterParentPoint());
-					Draw("parentPoint", "The point this orbit will go around. NOTE: This should be null/None if it will be spawned by SgtFloatingSpawnerOrbit.");
-				Each(t => t.RegisterParentPoint());
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			var updateOrbit = false;
+
+			BeginError(Any(tgts, t => t.ParentPoint == null));
+				Each(tgts, t => t.UnregisterParentPoint());
+					Draw("parentPoint", ref updateOrbit, "The point this orbit will go around. NOTE: This should be null/None if it will be spawned by SgtFloatingSpawnerOrbit.");
+				Each(tgts, t => t.RegisterParentPoint());
 			EndError();
-			if (Any(t => t.ParentPoint == null))
+			if (Any(tgts, t => t.ParentPoint == null))
 			{
-				EditorGUILayout.HelpBox("ParentPoint should only be None/null if this prefab will be spawned from the SgtFloatingSpawnerOrbit component. If not, you should add one to the parent GameObject.", MessageType.Info);
+				Info("ParentPoint should only be None/null if this prefab will be spawned from the SgtFloatingSpawnerOrbit component. If not, you should add one to the parent GameObject.");
 			}
-			Draw("radius", "The radius of the orbit in meters.");
-			Draw("oblateness", "How squashed the orbit is.");
-			Draw("tilt", "The local rotation of the orbit in degrees.");
-			Draw("angle", "The curent position along the orbit in degrees.");
+			Draw("radius", ref updateOrbit, "The radius of the orbit in meters.");
+			Draw("oblateness", ref updateOrbit, "How squashed the orbit is.");
+			Draw("tilt", ref updateOrbit, "The local rotation of the orbit in degrees.");
+			Draw("offset", ref updateOrbit, "The local offset of the orbit in meters.");
+			Draw("angle", ref updateOrbit, "The current position along the orbit in degrees.");
 			Draw("degreesPerSecond", "The orbit speed.");
+
+			if (updateOrbit == true)
+			{
+				Each(tgts, t => t.UpdateOrbit(), true, true);
+			}
 		}
 	}
 }

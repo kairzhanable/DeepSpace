@@ -1,0 +1,23 @@
+﻿BEGIN_OPTIONS
+	Workflow "Unlit"
+END_OPTIONS
+
+BEGIN_PASS("All")
+    Cull Off
+	ZWrite Off
+	Blend One One
+END_PASS
+
+BEGIN_SUBSHADERS
+	"../../Shared/Shaders/SGT_Output.surfshader"
+	"SGT_Spacetime.surfshader"
+END_SUBSHADERS
+
+BEGIN_CODE
+	void SurfaceFunction(inout Surface o, inout ShaderData d)
+	{
+		d.blackboard.finalColor.xyz *= d.blackboard.finalColor.w;
+
+		OutputWithoutAlpha(o, ModifyUnlitOutput(d.blackboard.finalColor));
+	}
+END_CODE

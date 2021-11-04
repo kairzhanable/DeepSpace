@@ -10,43 +10,43 @@ namespace SpaceGraphicsToolkit
 	public class SgtStarfieldSpiral : SgtStarfield
 	{
 		/// <summary>This allows you to set the random seed used during procedural generation.</summary>
-		public int Seed { set { if (seed != value) { seed = value; DirtyMaterial(); } } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
+		public int Seed { set { if (seed != value) { seed = value; DirtyMesh(); } } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
 
 		/// <summary>The radius of the starfield.</summary>
-		public float Radius { set { if (radius != value) { radius = value; DirtyMaterial(); } } get { return radius; } } [FSA("Radius")] [SerializeField] private float radius = 1.0f;
+		public float Radius { set { if (radius != value) { radius = value; DirtyMesh(); } } get { return radius; } } [FSA("Radius")] [SerializeField] private float radius = 1.0f;
 
 		/// <summary>The amount of spiral arms.</summary>
-		public int ArmCount { set { if (armCount != value) { armCount = value; DirtyMaterial(); } } get { return armCount; } } [FSA("ArmCount")] [SerializeField] private int armCount = 1;
+		public int ArmCount { set { if (armCount != value) { armCount = value; DirtyMesh(); } } get { return armCount; } } [FSA("ArmCount")] [SerializeField] private int armCount = 1;
 
-		/// <summary>The amound each arm twists.</summary>
-		public float Twist { set { if (twist != value) { twist = value; DirtyMaterial(); } } get { return twist; } } [FSA("Twist")] [SerializeField] private float twist = 1.0f;
+		/// <summary>The amount each arm twists.</summary>
+		public float Twist { set { if (twist != value) { twist = value; DirtyMesh(); } } get { return twist; } } [FSA("Twist")] [SerializeField] private float twist = 1.0f;
 
 		/// <summary>This allows you to set the thickness of the star distribution at the center of the spiral.</summary>
-		public float ThicknessInner { set { if (thicknessInner != value) { thicknessInner = value; DirtyMaterial(); } } get { return thicknessInner; } } [FSA("ThicknessInner")] [SerializeField] private float thicknessInner = 0.1f;
+		public float ThicknessInner { set { if (thicknessInner != value) { thicknessInner = value; DirtyMesh(); } } get { return thicknessInner; } } [FSA("ThicknessInner")] [SerializeField] private float thicknessInner = 0.1f;
 
 		/// <summary>This allows you to set the thickness of the star distribution at the edge of the spiral.</summary>
-		public float ThicknessOuter { set { if (thicknessOuter != value) { thicknessOuter = value; DirtyMaterial(); } } get { return thicknessOuter; } } [FSA("ThicknessOuter")] [SerializeField] private float thicknessOuter = 0.3f;
+		public float ThicknessOuter { set { if (thicknessOuter != value) { thicknessOuter = value; DirtyMesh(); } } get { return thicknessOuter; } } [FSA("ThicknessOuter")] [SerializeField] private float thicknessOuter = 0.3f;
 
 		/// <summary>This allows you to push stars away from the spiral, giving you a smoother distribution.</summary>
-		public float ThicknessPower { set { if (thicknessPower != value) { thicknessPower = value; DirtyMaterial(); } } get { return thicknessPower; } } [FSA("ThicknessPower")] [SerializeField] private float thicknessPower = 1.0f;
+		public float ThicknessPower { set { if (thicknessPower != value) { thicknessPower = value; DirtyMesh(); } } get { return thicknessPower; } } [FSA("ThicknessPower")] [SerializeField] private float thicknessPower = 1.0f;
 
 		/// <summary>The amount of stars that will be generated in the starfield.</summary>
-		public int StarCount { set { if (starCount != value) { starCount = value; DirtyMaterial(); } } get { return starCount; } } [FSA("StarCount")] [SerializeField] private int starCount = 1000;
+		public int StarCount { set { if (starCount != value) { starCount = value; DirtyMesh(); } } get { return starCount; } } [FSA("StarCount")] [SerializeField] private int starCount = 1000;
 
 		/// <summary>Each star is given a random color from this gradient.</summary>
 		public Gradient StarColors { get { if (starColors == null) starColors = new Gradient(); return starColors; } } [FSA("StarColors")] [SerializeField] private Gradient starColors;
 
 		/// <summary>The minimum radius of stars in the starfield.</summary>
-		public float StarRadiusMin { set { if (starRadiusMin != value) { starRadiusMin = value; DirtyMaterial(); } } get { return starRadiusMin; } } [FSA("StarRadiusMin")] [SerializeField] private float starRadiusMin = 0.0f;
+		public float StarRadiusMin { set { if (starRadiusMin != value) { starRadiusMin = value; DirtyMesh(); } } get { return starRadiusMin; } } [FSA("StarRadiusMin")] [SerializeField] private float starRadiusMin = 0.0f;
 
 		/// <summary>The maximum radius of stars in the starfield.</summary>
-		public float StarRadiusMax { set { if (starRadiusMax != value) { starRadiusMax = value; DirtyMaterial(); } } get { return starRadiusMax; } } [FSA("StarRadiusMax")] [SerializeField] private float starRadiusMax = 0.05f;
+		public float StarRadiusMax { set { if (starRadiusMax != value) { starRadiusMax = value; DirtyMesh(); } } get { return starRadiusMax; } } [FSA("StarRadiusMax")] [SerializeField] private float starRadiusMax = 0.05f;
 
 		/// <summary>How likely the size picking will pick smaller stars over larger ones (1 = default/linear).</summary>
-		public float StarRadiusBias { set { if (starRadiusBias != value) { starRadiusBias = value; DirtyMaterial(); } } get { return starRadiusBias; } } [FSA("StarRadiusBias")] [SerializeField] private float starRadiusBias = 0.0f;
+		public float StarRadiusBias { set { if (starRadiusBias != value) { starRadiusBias = value; DirtyMesh(); } } get { return starRadiusBias; } } [FSA("StarRadiusBias")] [SerializeField] private float starRadiusBias = 0.0f;
 
 		/// <summary>The maximum amount a star's size can pulse over time. A value of 1 means the star can potentially pulse between its maximum size, and 0.</summary>
-		public float StarPulseMax { set { if (starPulseMax != value) { starPulseMax = value; DirtyMaterial(); } } get { return starPulseMax; } } [FSA("StarPulseMax")] [SerializeField] [Range(0.0f, 1.0f)] private float starPulseMax = 1.0f;
+		public float StarPulseMax { set { if (starPulseMax != value) { starPulseMax = value; DirtyMesh(); } } get { return starPulseMax; } } [FSA("StarPulseMax")] [SerializeField] [Range(0.0f, 1.0f)] private float starPulseMax = 1.0f;
 
 		// Temp vars used during generation
 		private static float armStep;
@@ -59,10 +59,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtStarfieldSpiral Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject      = SgtHelper.CreateGameObject("Starfield Spiral", layer, parent, localPosition, localRotation, localScale);
-			var starfieldSpiral = gameObject.AddComponent<SgtStarfieldSpiral>();
-
-			return starfieldSpiral;
+			return SgtHelper.CreateGameObject("Starfield Spiral", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtStarfieldSpiral>();
 		}
 
 #if UNITY_EDITOR
@@ -129,14 +126,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtStarfieldSpiral;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtStarfieldSpiral))]
-	public class SgtStarfieldSpiral_Editor : SgtStarfield_Editor<SgtStarfieldSpiral>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtStarfieldSpiral_Editor : SgtStarfield_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterial = false;
 			var dirtyMesh     = false;
 
@@ -144,8 +143,8 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			DrawMainTex(ref dirtyMaterial, ref dirtyMesh);
-			DrawLayout(ref dirtyMaterial, ref dirtyMesh);
+			DrawMainTex(ref dirtyMaterial);
+			DrawLayout(ref dirtyMesh);
 
 			Separator();
 
@@ -155,35 +154,33 @@ namespace SpaceGraphicsToolkit
 
 			Draw("seed", ref dirtyMesh, "This allows you to set the random seed used during procedural generation.");
 			Draw("radius", ref dirtyMesh, "The radius of the starfield.");
-			BeginError(Any(t => t.ArmCount <= 0));
+			BeginError(Any(tgts, t => t.ArmCount <= 0));
 				Draw("armCount", ref dirtyMesh, "The amount of spiral arms.");
 			EndError();
-			Draw("twist", ref dirtyMesh, "The amound each arm twists.");
+			Draw("twist", ref dirtyMesh, "The amount each arm twists.");
 			Draw("thicknessInner", ref dirtyMesh, "This allows you to set the thickness of the star distribution at the center of the spiral.");
 			Draw("thicknessOuter", ref dirtyMesh, "This allows you to set the thickness of the star distribution at the edge of the spiral.");
 			Draw("thicknessPower", ref dirtyMesh, "This allows you to push stars away from the spiral, giving you a smoother distribution.");
 
 			Separator();
 
-			BeginError(Any(t => t.StarCount < 0));
+			BeginError(Any(tgts, t => t.StarCount < 0));
 				Draw("starCount", ref dirtyMesh, "The amount of stars that will be generated in the starfield.");
 			EndError();
 			Draw("starColors", ref dirtyMesh, "Each star is given a random color from this gradient.");
-			BeginError(Any(t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMin", ref dirtyMesh, "The minimum radius of stars in the starfield.");
 			EndError();
-			BeginError(Any(t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMax", ref dirtyMesh, "The maximum radius of stars in the starfield.");
 			EndError();
 			Draw("starRadiusBias", ref dirtyMesh, "How likely the size picking will pick smaller stars over larger ones (0 = default/linear).");
 			Draw("starPulseMax", ref dirtyMesh, "The maximum amount a star's size can pulse over time. A value of 1 means the star can potentially pulse between its maximum size, and 0.");
 
-			RequireCamera();
+			SgtHelper.RequireCamera();
 
-			serializedObject.ApplyModifiedProperties();
-
-			if (dirtyMaterial == true) DirtyEach(t => t.DirtyMaterial());
-			if (dirtyMesh     == true) DirtyEach(t => t.DirtyMesh    ());
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 		}
 	}
 }

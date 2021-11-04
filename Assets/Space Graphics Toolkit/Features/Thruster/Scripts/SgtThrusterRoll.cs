@@ -81,14 +81,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtThrusterRoll;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtThrusterRoll))]
-	public class SgtThrusterRoll_Editor : SgtEditor<SgtThrusterRoll>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtThrusterRoll_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("rotation", "The rotation offset in degrees.");
 		}
 	}

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -31,10 +31,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtFlare Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Flare", layer, parent, localPosition, localRotation, localScale);
-			var flare      = gameObject.AddComponent<SgtFlare>();
-
-			return flare;
+			return SgtHelper.CreateGameObject("Flare", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtFlare>();
 		}
 
 #if UNITY_EDITOR
@@ -88,49 +85,51 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFlare;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFlare))]
-	public class SgtFlare_Editor : SgtEditor<SgtFlare>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFlare_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Mesh == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Mesh == null));
 				Draw("mesh", "This allows you to set the mesh used to render the flare.");
 			EndError();
-			BeginError(Any(t => t.Material == null));
+			BeginError(Any(tgts, t => t.Material == null));
 				Draw("material", "The material used to render this flare.");
 			EndError();
 			Draw("cameraOffset", "This allows you to offset the camera distance in world space when rendering the flare, giving you fine control over the render order."); // Updated automatically
 			Draw("followCameras", "Should the flare automatically snap to cameras."); // Automatically updated
 
-			if (Any(t => t.FollowCameras == true))
+			if (Any(tgts, t => t.FollowCameras == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.FollowDistance <= 0.0f));
+					BeginError(Any(tgts, t => t.FollowDistance <= 0.0f));
 						Draw("followDistance", "The distance from the camera this flare will be placed in world space."); // Automatically updated
 					EndError();
 				EndIndent();
 			}
 
-			if (Any(t => t.Mesh == null && t.GetComponent<SgtFlareMesh>() == null))
+			if (Any(tgts, t => t.Mesh == null && t.GetComponent<SgtFlareMesh>() == null))
 			{
 				Separator();
 
 				if (Button("Add Mesh") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtFlareMesh>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtFlareMesh>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Material == null && t.GetComponent<SgtFlareMaterial>() == null))
+			if (Any(tgts, t => t.Material == null && t.GetComponent<SgtFlareMaterial>() == null))
 			{
 				Separator();
 
 				if (Button("Add Material") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtFlareMaterial>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtFlareMaterial>(t.gameObject));
 				}
 			}
 		}

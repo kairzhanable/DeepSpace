@@ -2,39 +2,70 @@ using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
-	/// <summary>This component allows you to generate the <b>SgtSpacetime</b> component's <b>Mesh</b> setting.</summary>
+	/// <summary>This component can generate a plane grid mesh suitable for use with the <b>SgtSpacetime</b> component.
+	/// NOTE: For maximum performance it's recommended that you manually use the <b>ExportMesh</b> context menu option of this component to turn this mesh into an asset. You can then remove this component and use the exported mesh.</summary>
 	[ExecuteInEditMode]
-	[RequireComponent(typeof(SgtSpacetime))]
+	[RequireComponent(typeof(MeshFilter))]
+	[RequireComponent(typeof(MeshRenderer))]
 	[HelpURL(SgtHelper.HelpUrlPrefix + "SgtSpacetimeMesh")]
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Spacetime Mesh")]
 	public class SgtSpacetimeMesh : MonoBehaviour
 	{
+		/// <summary>The size of the grid along the X axis.</summary>
+		public float SizeX { set { if (sizeX != value) { sizeX = value; DirtyMesh(); } } get { return sizeX; } } [SerializeField] private float sizeX = 1.0f;
+
+		/// <summary>The size of the grid along the Z axis.</summary>
+		public float SizeZ { set { if (sizeZ != value) { sizeZ = value; DirtyMesh(); } } get { return sizeZ; } } [SerializeField] private float sizeZ = 1.0f;
+
 		/// <summary>The amount of quads along the X axis.</summary>
 		public int QuadsX { set { if (quadsX != value) { quadsX = value; DirtyMesh(); } } get { return quadsX; } } [SerializeField] private int quadsX = 16;
 
 		/// <summary>The amount of quads along the Z axis.</summary>
 		public int QuadsZ { set { if (quadsZ != value) { quadsZ = value; DirtyMesh(); } } get { return quadsZ; } } [SerializeField] private int quadsZ = 16;
 
+		/// <summary>Should the mesh be centered, or begin at local 0,0?</summary>
+		public bool Center { set { if (center != value) { center = value; DirtyMesh(); } } get { return center; } } [SerializeField] private bool center = true;
+
 		[System.NonSerialized]
 		private Mesh generatedMesh;
 
 		[System.NonSerialized]
-		private SgtSpacetime cachedSpacetime;
+		private MeshRenderer cachedMeshRenderer;
 
 		[System.NonSerialized]
-		private bool cachedSpacetimeSet;
+		private bool cachedMeshRendererSet;
 
-		public SgtSpacetime CachedSpacetime
+		[System.NonSerialized]
+		private MeshFilter cachedMeshFilter;
+
+		[System.NonSerialized]
+		private bool cachedMeshFilterSet;
+
+		public MeshRenderer CachedMeshRenderer
 		{
 			get
 			{
-				if (cachedSpacetimeSet == false)
+				if (cachedMeshRendererSet == false)
 				{
-					cachedSpacetime    = GetComponent<SgtSpacetime>();
-					cachedSpacetimeSet = true;
+					cachedMeshRenderer    = GetComponent<MeshRenderer>();
+					cachedMeshRendererSet = true;
 				}
 
-				return cachedSpacetime;
+				return cachedMeshRenderer;
+			}
+		}
+
+		public MeshFilter CachedMeshFilter
+		{
+			get
+			{
+				if (cachedMeshFilterSet == false)
+				{
+					cachedMeshFilter    = GetComponent<MeshFilter>();
+					cachedMeshFilterSet = true;
+				}
+
+				return cachedMeshFilter;
 			}
 		}
 
@@ -45,7 +76,7 @@ namespace SpaceGraphicsToolkit
 
 #if UNITY_EDITOR
 		/// <summary>This method allows you to export the generated mesh as an asset.
-		/// Once done, you can remove this component, and set the <b>SgtSpacetime</b> component's <b>Mesh</b> setting using the exported asset.</summary>
+		/// Once done, you can remove this component, and set the <b>MeshFilter</b> component's <b>Mesh</b> setting using the exported asset.</summary>
 		[ContextMenu("Export Mesh")]
 		public void ExportMesh()
 		{
@@ -61,17 +92,46 @@ namespace SpaceGraphicsToolkit
 		[ContextMenu("Apply Mesh")]
 		public void ApplyMesh()
 		{
-			CachedSpacetime.Mesh = generatedMesh;
+			CachedMeshFilter.sharedMesh = generatedMesh;
 		}
 
 		[ContextMenu("Remove Mesh")]
 		public void RemoveMesh()
 		{
-			if (CachedSpacetime.Mesh == generatedMesh)
+			if (CachedMeshFilter.sharedMesh == generatedMesh)
 			{
-				CachedSpacetime.Mesh = null;
+				CachedMeshFilter.sharedMesh = null;
 			}
 		}
+
+		/// <summary>This allows you create a new GameObject with the <b>SgtSpacetimeMesh</b> component attached.</summary>
+		public static SgtSpacetimeMesh Create(int layer = 0, Transform parent = null)
+		{
+			return Create(layer, parent, Vector3.zero, Quaternion.identity, Vector3.one);
+		}
+
+		/// <summary>This allows you create a new GameObject with the <b>SgtSpacetimeMesh</b> component attached.</summary>
+		public static SgtSpacetimeMesh Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
+		{
+			return SgtHelper.CreateGameObject("Spacetime Mesh", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtSpacetimeMesh>();
+		}
+
+#if UNITY_EDITOR
+		protected virtual void Reset()
+		{
+			var parent = GetComponentInParent<SgtSpacetime>();
+
+			if (parent != null)
+			{
+				if (parent.Renderers.Contains(CachedMeshRenderer) == false)
+				{
+					parent.Renderers.Add(CachedMeshRenderer);
+
+					parent.DirtyRenderers();
+				}
+			}
+		}
+#endif
 
 		protected virtual void OnEnable()
 		{
@@ -88,6 +148,7 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
+		// We don't know what was modified, so update everything
 		protected virtual void OnDidApplyAnimationProperties()
 		{
 			DirtyMesh();
@@ -119,8 +180,15 @@ namespace SpaceGraphicsToolkit
 						var v = z * stepZ;
 						var i = x + z * vertsX;
 
-						positions[i] = new Vector3(u - 0.5f, 0.0f, v - 0.5f);
 						coords[i] = new Vector2(u, v);
+
+						if (center == true)
+						{
+							u -= 0.5f;
+							v -= 0.5f;
+						}
+
+						positions[i] = new Vector3(u * sizeX, 0.0f, v * sizeZ);
 					}
 				}
 
@@ -135,11 +203,12 @@ namespace SpaceGraphicsToolkit
 						var d = b + vertsX;
 
 						indices[i + 0] = a;
-						indices[i + 1] = b;
-						indices[i + 2] = c;
+						indices[i + 1] = c;
+						indices[i + 2] = b;
+
 						indices[i + 3] = d;
-						indices[i + 4] = c;
-						indices[i + 5] = b;
+						indices[i + 4] = b;
+						indices[i + 5] = c;
 					}
 				}
 
@@ -149,9 +218,10 @@ namespace SpaceGraphicsToolkit
 				generatedMesh.uv          = coords;
 				generatedMesh.triangles   = indices;
 				generatedMesh.RecalculateNormals();
-				//generatedMesh.RecalculateBounds();
+				generatedMesh.RecalculateTangents();
+				generatedMesh.RecalculateBounds();
 
-				generatedMesh.bounds = new Bounds(Vector3.zero, Vector3.one);
+				generatedMesh.bounds = new Bounds(generatedMesh.bounds.center, generatedMesh.bounds.size + Vector3.up * 100.0f);
 			}
 
 			ApplyMesh();
@@ -163,26 +233,45 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtSpacetimeMesh;
 
 	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSpacetimeMesh))]
-	public class SgtSpacetimeMesh_Editor : SgtEditor<SgtSpacetimeMesh>
+	[CustomEditor(typeof(TARGET))]
+	public class SgtSpacetimeMesh_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMesh = false;
 
-			BeginError(Any(t => t.QuadsX < 1));
+			BeginError(Any(tgts, t => t.SizeX == 0.0f));
+				Draw("sizeX", ref dirtyMesh, "The size of the grid along the X axis.");
+			EndError();
+			BeginError(Any(tgts, t => t.SizeZ == 0.0f));
+				Draw("sizeZ", ref dirtyMesh, "The size of the grid along the X axis.");
+			EndError();
+			BeginError(Any(tgts, t => t.QuadsX < 1));
 				Draw("quadsX", ref dirtyMesh, "The amount of quads along the X axis.");
 			EndError();
-			BeginError(Any(t => t.QuadsZ < 1));
+			BeginError(Any(tgts, t => t.QuadsZ < 1));
 				Draw("quadsZ", ref dirtyMesh, "The amount of quads along the Z axis.");
 			EndError();
+			Draw("center", ref dirtyMesh, "Should the mesh be centered, or begin at local 0,0?");
 
 			if (dirtyMesh == true)
 			{
-				DirtyEach(t => t.DirtyMesh());
+				Each(tgts, t => t.DirtyMesh(), true, true);
 			}
+		}
+
+		[MenuItem(SgtHelper.GameObjectMenuPrefix + "Spacetime Mesh", false, 10)]
+		public static void CreateItem()
+		{
+			var parent   = SgtHelper.GetSelectedParent();
+			var instance = SgtSpacetimeMesh.Create(parent != null ? parent.gameObject.layer : 0, parent);
+
+			SgtHelper.SelectAndPing(instance);
 		}
 	}
 }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -170,10 +170,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtDebrisSpawner Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject    = SgtHelper.CreateGameObject("Debris Spawner", layer, parent, localPosition, localRotation, localScale);
-			var debrisSpawner = gameObject.AddComponent<SgtDebrisSpawner>();
-
-			return debrisSpawner;
+			return SgtHelper.CreateGameObject("Debris Spawner", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtDebrisSpawner>();
 		}
 
 #if UNITY_EDITOR
@@ -359,58 +356,60 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtDebrisSpawner;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtDebrisSpawner))]
-	public class SgtDebrisSpawner_Editor : SgtEditor<SgtDebrisSpawner>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtDebrisSpawner_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Target == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Target == null));
 				Draw("target", "If this transform is inside the radius then debris will begin spawning.");
 			EndError();
 			BeginDisabled();
 				BeginIndent();
-					EditorGUILayout.Slider("Density", Target.GetFollowerDensity(), 0.0f, 1.0f);
+					UnityEditor.EditorGUILayout.Slider("Density", tgt.GetFollowerDensity(), 0.0f, 1.0f);
 				EndIndent();
 			EndDisabled();
 			Draw("spawnInside", "The shapes the debris will spawn inside.");
 
 			Separator();
 
-			BeginError(Any(t => t.ShowSpeed <= 0.0f));
+			BeginError(Any(tgts, t => t.ShowSpeed <= 0.0f));
 				Draw("showSpeed", "How quickly the debris shows after it spawns.");
 			EndError();
-			BeginError(Any(t => t.ShowDistance <= 0.0f || t.ShowDistance > t.HideDistance));
+			BeginError(Any(tgts, t => t.ShowDistance <= 0.0f || t.ShowDistance > t.HideDistance));
 				Draw("showDistance", "The distance from the follower that debris begins spawning.");
 			EndError();
-			BeginError(Any(t => t.HideDistance < 0.0f || t.ShowDistance > t.HideDistance));
+			BeginError(Any(tgts, t => t.HideDistance < 0.0f || t.ShowDistance > t.HideDistance));
 				Draw("hideDistance", "The distance from the follower that debris gets hidden.");
 			EndError();
 
 			Separator();
 
 			Draw("spawnOnAwake", "Should all the debris be automatically spawned at the start?");
-			BeginError(Any(t => t.SpawnLimit < 0));
+			BeginError(Any(tgts, t => t.SpawnLimit < 0));
 				Draw("spawnLimit", "The maximum amount of debris that can be spawned.");
 			EndError();
-			BeginError(Any(t => t.SpawnRateMin < 0.0f || t.SpawnRateMin > t.SpawnRateMax));
+			BeginError(Any(tgts, t => t.SpawnRateMin < 0.0f || t.SpawnRateMin > t.SpawnRateMax));
 				Draw("spawnRateMin", "The minimum amount of seconds between debris spawns.");
 			EndError();
-			BeginError(Any(t => t.SpawnRateMax < 0.0f || t.SpawnRateMin > t.SpawnRateMax));
+			BeginError(Any(tgts, t => t.SpawnRateMax < 0.0f || t.SpawnRateMin > t.SpawnRateMax));
 				Draw("spawnRateMax", "The maximum amount of seconds between debris spawns.");
 			EndError();
-			BeginError(Any(t => t.SpawnScaleMin < 0.0f || t.SpawnScaleMin > t.SpawnScaleMax));
+			BeginError(Any(tgts, t => t.SpawnScaleMin < 0.0f || t.SpawnScaleMin > t.SpawnScaleMax));
 				Draw("spawnScaleMin", "The minimum scale multiplier applied to spawned debris.");
 			EndError();
-			BeginError(Any(t => t.SpawnScaleMax < 0.0f || t.SpawnScaleMin > t.SpawnScaleMax));
+			BeginError(Any(tgts, t => t.SpawnScaleMax < 0.0f || t.SpawnScaleMin > t.SpawnScaleMax));
 				Draw("spawnScaleMax", "The maximum scale multiplier applied to spawned debris.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.Prefabs == null || t.Prefabs.Count == 0 || t.Prefabs.Contains(null) == true));
+			BeginError(Any(tgts, t => t.Prefabs == null || t.Prefabs.Count == 0 || t.Prefabs.Contains(null) == true));
 				Draw("prefabs", "These prefabs are randomly picked from when spawning new debris.");
 			EndError();
 		}

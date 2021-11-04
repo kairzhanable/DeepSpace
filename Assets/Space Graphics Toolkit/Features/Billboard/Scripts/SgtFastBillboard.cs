@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -43,14 +43,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFastBillboard;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFastBillboard))]
-	public class SgtFastBillboard_Editor : SgtEditor<SgtFastBillboard>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFastBillboard_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("rollWithCamera", "If the camera rolls, should this billboard roll with it?");
 			Draw("avoidClipping", "If your billboard is clipping out of view at extreme angles, then enable this.");
 		}

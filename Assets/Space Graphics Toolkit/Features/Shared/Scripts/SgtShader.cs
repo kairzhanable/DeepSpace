@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -43,9 +43,14 @@ namespace SpaceGraphicsToolkit
 		public static int _FarRadius;
 		public static int _FarScale;
 		public static int _FarTex;
+		public static int _FlowTex;
+		public static int _FlowSpeed;
+		public static int _FlowStrength;
+		public static int _FlowNoiseTiling;
 		public static int _Gau;
-		public static int _GauDat;
+		public static int _GauStr;
 		public static int _GauPos;
+		public static int _HasWater;
 		public static int _HeightMap;
 		public static int _HeightMapScale;
 		public static int _HeightMapSize;
@@ -54,6 +59,7 @@ namespace SpaceGraphicsToolkit
 		public static int _HighlightScale;
 		public static int _HoleColor;
 		public static int _HolePower;
+		public static int _HoleSize;
 		public static int _HorizonLengthRecip;
 		public static int _InnerRatio;
 		public static int _InnerScale;
@@ -63,10 +69,14 @@ namespace SpaceGraphicsToolkit
 		public static int _MaskMap;
 		public static int _NearScale;
 		public static int _NearTex;
+		public static int _NormalMap;
 		public static int _NormalStep;
 		public static int _NormalStrength;
 		public static int _Offset;
 		public static int _Output;
+		public static int _Pin;
+		public static int _PinStr;
+		public static int _PinPos;
 		public static int _PinchOffset;
 		public static int _PinchPower;
 		public static int _PinchScale;
@@ -78,6 +88,7 @@ namespace SpaceGraphicsToolkit
 		public static int _RadiusSize;
 		public static int _Rip;
 		public static int _RipDat;
+		public static int _RipStr;
 		public static int _RipPos;
 		public static int _Scale;
 		public static int _ScaleRecip;
@@ -99,6 +110,7 @@ namespace SpaceGraphicsToolkit
 		public static int _Twi;
 		public static int _TwiDat;
 		public static int _TwiMat;
+		public static int _TwiStr;
 		public static int _TwiPos;
 		public static int _WaterLevel;
 		public static int _WorldPosition;
@@ -148,9 +160,14 @@ namespace SpaceGraphicsToolkit
 			_FarRadius = Shader.PropertyToID("_FarRadius");
 			_FarScale = Shader.PropertyToID("_FarScale");
 			_FarTex = Shader.PropertyToID("_FarTex");
+			_FlowTex = Shader.PropertyToID("_FlowTex");
+			_FlowSpeed = Shader.PropertyToID("_FlowSpeed");
+			_FlowStrength = Shader.PropertyToID("_FlowStrength");
+			_FlowNoiseTiling = Shader.PropertyToID("_FlowNoiseTiling");
 			_Gau = Shader.PropertyToID("_Gau");
-			_GauDat = Shader.PropertyToID("_GauDat");
+			_GauStr = Shader.PropertyToID("_GauStr");
 			_GauPos = Shader.PropertyToID("_GauPos");
+			_HasWater = Shader.PropertyToID("_HasWater");
 			_HeightMap = Shader.PropertyToID("_HeightMap");
 			_HeightMapScale = Shader.PropertyToID("_HeightMapScale");
 			_HeightMapSize = Shader.PropertyToID("_HeightMapSize");
@@ -159,6 +176,7 @@ namespace SpaceGraphicsToolkit
 			_HighlightScale = Shader.PropertyToID("_HighlightScale");
 			_HoleColor = Shader.PropertyToID("_HoleColor");
 			_HolePower = Shader.PropertyToID("_HolePower");
+			_HoleSize = Shader.PropertyToID("_HoleSize");
 			_HorizonLengthRecip = Shader.PropertyToID("_HorizonLengthRecip");
 			_InnerRatio = Shader.PropertyToID("_InnerRatio");
 			_InnerScale = Shader.PropertyToID("_InnerScale");
@@ -168,10 +186,14 @@ namespace SpaceGraphicsToolkit
 			_MaskMap = Shader.PropertyToID("_MaskMap");
 			_NearScale = Shader.PropertyToID("_NearScale");
 			_NearTex = Shader.PropertyToID("_NearTex");
+			_NormalMap = Shader.PropertyToID("_NormalMap");
 			_NormalStep = Shader.PropertyToID("_NormalStep");
 			_NormalStrength = Shader.PropertyToID("_NormalStrength");
 			_Offset = Shader.PropertyToID("_Offset");
 			_Output = Shader.PropertyToID("_Output");
+			_Pin = Shader.PropertyToID("_Pin");
+			_PinStr = Shader.PropertyToID("_PinStr");
+			_PinPos = Shader.PropertyToID("_PinPos");
 			_PinchOffset = Shader.PropertyToID("_PinchOffset");
 			_PinchPower = Shader.PropertyToID("_PinchPower");
 			_PinchScale = Shader.PropertyToID("_PinchScale");
@@ -183,6 +205,7 @@ namespace SpaceGraphicsToolkit
 			_RadiusSize = Shader.PropertyToID("_RadiusSize");
 			_Rip = Shader.PropertyToID("_Rip");
 			_RipDat = Shader.PropertyToID("_RipDat");
+			_RipStr = Shader.PropertyToID("_RipStr");
 			_RipPos = Shader.PropertyToID("_RipPos");
 			_Scale = Shader.PropertyToID("_Scale");
 			_ScaleRecip = Shader.PropertyToID("_ScaleRecip");
@@ -204,6 +227,7 @@ namespace SpaceGraphicsToolkit
 			_Twi = Shader.PropertyToID("_Twi");
 			_TwiDat = Shader.PropertyToID("_TwiDat");
 			_TwiMat = Shader.PropertyToID("_TwiMat");
+			_TwiStr = Shader.PropertyToID("_TwiStr");
 			_TwiPos = Shader.PropertyToID("_TwiPos");
 			_WaterLevel = Shader.PropertyToID("_WaterLevel");
 			_WorldPosition = Shader.PropertyToID("_WorldPosition");

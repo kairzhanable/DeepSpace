@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -31,27 +31,27 @@ namespace SpaceGraphicsToolkit
 			if (Instances.Count > 0) { instance = Instances.First.Value; return true; } return false;
 		}
 
-		/// <summary>This gives you the universal SgtPosition of the input camera-relative world space position.</summary>
-		public SgtPosition GetPosition(Vector3 localPosition)
+		/// <summary>This method converts the specified world space position into a universal SgtPosition.</summary>
+		public SgtPosition GetPosition(Vector3 worldPosition)
 		{
-			var o = default(SgtPosition);
+			var o = snappedPoint;
 
-			o.LocalX = localPosition.x;
-			o.LocalY = localPosition.y;
-			o.LocalZ = localPosition.z;
+			o.LocalX += worldPosition.x;
+			o.LocalY += worldPosition.y;
+			o.LocalZ += worldPosition.z;
 
 			o.SnapLocal();
 
 			return o;
 		}
 
-		/// <summary>This gives you the camera-relative position of the input SgtPosition in world space.</summary>
+		/// <summary>This method converts the specified universal SgtPosition into a world space position.</summary>
 		public Vector3 CalculatePosition(SgtPosition input)
 		{
 			return CalculatePosition(ref input);
 		}
 
-		/// <summary>This gives you the camera-relative position of the input SgtPosition in world space.</summary>
+		/// <summary>This method converts the specified universal SgtPosition into a world space position.</summary>
 		public Vector3 CalculatePosition(ref SgtPosition input)
 		{
 			var x = (input.GlobalX - snappedPoint.GlobalX) * SgtPosition.CELL_SIZE + (input.LocalX - snappedPoint.LocalX);
@@ -135,19 +135,21 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingCamera;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingCamera))]
-	public class SgtFloatingCamera_Editor : SgtFloatingPoint_Editor<SgtFloatingCamera>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingCamera_Editor : SgtFloatingPoint_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
 			Separator();
 
-			BeginError(Any(t => t.SnapDistance <= 0.0));
+			BeginError(Any(tgts, t => t.SnapDistance <= 0.0));
 				Draw("snapDistance", "When the transform.position.magnitude exceeds this value, the position will be snapped back to the origin.");
 			EndError();
 			Draw("snappedPoint", "Every time this camera's position gets snapped, its position at that time is stored here. This allows other objects to correctly position themselves relative to this.");

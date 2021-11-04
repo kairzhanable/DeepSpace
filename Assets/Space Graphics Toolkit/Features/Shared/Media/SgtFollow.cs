@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -75,15 +75,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFollow;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFollow))]
-	public class SgtFollow_Editor : SgtEditor<SgtFollow>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFollow_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Target == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Target == null));
 				Draw("target", "The transform that will be followed.");
 			EndError();
 			Draw("damping", "How quickly this Transform follows the target.\n\n-1 = instant.");

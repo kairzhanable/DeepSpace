@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -123,15 +123,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtPrefabSwitcher;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtPrefabSwitcher))]
-	public class SgtPrefabSwitcher_Editor : SgtEditor<SgtPrefabSwitcher>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtPrefabSwitcher_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Speed <= 0.0f));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Speed <= 0.0f));
 				Draw("speed", "The speed the prefabs will switch.");
 			EndError();
 			Draw("index", "The prefab index that will be displayed.");

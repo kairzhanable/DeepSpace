@@ -1,4 +1,5 @@
 using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -11,13 +12,13 @@ namespace SpaceGraphicsToolkit
 	public class SgtLightning : MonoBehaviour
 	{
 		/// <summary>The lightning spawner this belongs to. If this is null then this GameObject will automatically be destroyed.</summary>
-		public SgtLightningSpawner LightningSpawner;
+		public SgtLightningSpawner LightningSpawner { set { lightningSpawner = value; } get { return lightningSpawner; } } [FSA("LightningSpawner")] [SerializeField] private SgtLightningSpawner lightningSpawner;
 
 		/// <summary>The maximum amount of seconds this lightning has been active for.</summary>
-		public float Age;
+		public float Age { set { age = value; } get { return age; } } [FSA("Age")] [SerializeField] private float age;
 
 		/// <summary>The maximum amount of seconds this lightning can be active for.</summary>
-		public float Life;
+		public float Life { set { life = value; } get { return life; } } [FSA("Life")] [SerializeField] private float life;
 
 		[System.NonSerialized]
 		private MeshFilter cachedMeshFilter;
@@ -108,16 +109,16 @@ namespace SpaceGraphicsToolkit
 			{
 				if (Application.isPlaying == true)
 				{
-					Age += Time.deltaTime;
+					age += Time.deltaTime;
 				}
 
-				if (Age >= Life)
+				if (age >= life)
 				{
 					SgtComponentPool<SgtLightning>.Add(this);
 				}
 				else if (material != null)
 				{
-					material.SetFloat(SgtShader._Age, SgtHelper.Divide(Age, Life));
+					material.SetFloat(SgtShader._Age, SgtHelper.Divide(age, life));
 				}
 			}
 		}
@@ -127,23 +128,25 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtLightning;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtLightning))]
-	public class SgtLightning_Editor : SgtEditor<SgtLightning>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtLightning_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("Age", "The maximum amount of seconds this lightning has been active for.");
-			BeginError(Any(t => t.Life < 0.0f));
-				Draw("Life", "The maximum amount of seconds this lightning can be active for.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("age", "The maximum amount of seconds this lightning has been active for.");
+			BeginError(Any(tgts, t => t.Life < 0.0f));
+				Draw("life", "The maximum amount of seconds this lightning can be active for.");
 			EndError();
 
 			Separator();
 
 			BeginDisabled();
-				Draw("LightningSpawner", "The lightning spawner this belongs to. If this is null then this GameObject will automatically be destroyed.");
+				Draw("lightningSpawner", "The lightning spawner this belongs to. If this is null then this GameObject will automatically be destroyed.");
 			EndDisabled();
 		}
 	}

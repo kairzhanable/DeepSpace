@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -9,33 +10,29 @@ namespace SpaceGraphicsToolkit
 	public class SgtShadowRing : SgtShadow
 	{
 		/// <summary>The texture of the shadow (left = inside, right = outside).</summary>
-		public Texture Texture;
+		public Texture Texture { set { texture = value; } get { return texture; } } [FSA("Texture")] [SerializeField] private Texture texture;
 
 		/// <summary>The inner radius of the ring casting this shadow (auto set if Ring is set).</summary>
-		public float RadiusMin = 1.0f;
+		public float RadiusMin { set { radiusMin = value; } get { return radiusMin; } } [FSA("RadiusMin")] [SerializeField] private float radiusMin = 1.0f;
 
 		/// <summary>The outer radius of the ring casting this shadow (auto set if Ring is set).</summary>
-		public float RadiusMax = 2.0f;
-
-		public override Texture GetTexture()
-		{
-			return Texture;
-		}
+		public float RadiusMax { set { radiusMax = value; } get { return radiusMax; } } [FSA("RadiusMax")] [SerializeField] private float radiusMax = 2.0f;
 
 		public override void CalculateShadow(SgtLight light)
 		{
-			if (Texture != null)
+			if (texture != null)
 			{
 				var direction = default(Vector3);
 				var position  = default(Vector3);
 				var color     = default(Color);
+				var intensity = 0.0f;
 
-				SgtLight.Calculate(light, transform.position, null, null, ref position, ref direction, ref color);
+				SgtLight.Calculate(light, transform.position, null, null, ref position, ref direction, ref color, ref intensity);
 
 				var rotation = Quaternion.FromToRotation(direction, Vector3.back);
 				var squash   = Vector3.Dot(direction, transform.up); // Find how squashed the ellipse is based on light direction
-				var width    = transform.lossyScale.x * RadiusMax;
-				var length   = transform.lossyScale.z * RadiusMax;
+				var width    = transform.lossyScale.x * radiusMax;
+				var length   = transform.lossyScale.z * radiusMax;
 				var axis     = rotation * transform.up; // Find the transformed up axis
 				var spin     = Quaternion.LookRotation(Vector3.forward, new Vector2(-axis.x, axis.y)); // Orient the shadow ellipse
 				var scale    = SgtHelper.Reciprocal3(new Vector3(width, length * Mathf.Abs(squash), 1.0f));
@@ -46,11 +43,10 @@ namespace SpaceGraphicsToolkit
 				var shadowS = Matrix4x4.Scale(scale); // Scale the ring into an oval
 				var shadowK = SgtHelper.ShearingZ(new Vector2(0.0f, skew)); // Skew the shadow so it aligns with the ring plane
 
-				cachedActive  = true;
-				cachedMatrix  = shadowS * shadowK * shadowR * shadowT;
-				cachedRatio   = SgtHelper.Divide(RadiusMax, RadiusMax - RadiusMin);
-				cachedRadius  = SgtHelper.UniformScale(transform.lossyScale) * RadiusMax;
-				cachedTexture = Texture;
+				cachedActive = true;
+				cachedMatrix = shadowS * shadowK * shadowR * shadowT;
+				cachedRatio  = SgtHelper.Divide(radiusMax, radiusMax - radiusMin);
+				cachedRadius = SgtHelper.UniformScale(transform.lossyScale) * radiusMax;
 			}
 			else
 			{
@@ -75,7 +71,7 @@ namespace SpaceGraphicsToolkit
 					var distA = 0.0f;
 					var distB = 1.0f;
 					var scale = 1.0f * Mathf.Deg2Rad;
-					var inner = SgtHelper.Divide(RadiusMin, RadiusMax);
+					var inner = SgtHelper.Divide(radiusMin, radiusMax);
 
 					for (var i = 1; i < 10; i++)
 					{
@@ -110,22 +106,24 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtShadowRing;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtShadowRing))]
-	public class SgtShadowRing_Editor : SgtEditor<SgtShadowRing>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtShadowRing_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Texture == null));
-				Draw("Texture", "The texture of the shadow (left = inside, right = outside).");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Texture == null));
+				Draw("texture", "The texture of the shadow (left = inside, right = outside).");
 			EndError();
-			BeginError(Any(t => t.RadiusMin < 0.0f || t.RadiusMin >= t.RadiusMax));
-				Draw("RadiusMin", "The inner radius of the ring casting this shadow (auto set if Ring is set).");
+			BeginError(Any(tgts, t => t.RadiusMin < 0.0f || t.RadiusMin >= t.RadiusMax));
+				Draw("radiusMin", "The inner radius of the ring casting this shadow (auto set if Ring is set).");
 			EndError();
-			BeginError(Any(t => t.RadiusMax < 0.0f || t.RadiusMin >= t.RadiusMax));
-				Draw("RadiusMax", "The outer radius of the ring casting this shadow (auto set if Ring is set).");
+			BeginError(Any(tgts, t => t.RadiusMax < 0.0f || t.RadiusMin >= t.RadiusMax));
+				Draw("radiusMax", "The outer radius of the ring casting this shadow (auto set if Ring is set).");
 			EndError();
 		}
 	}

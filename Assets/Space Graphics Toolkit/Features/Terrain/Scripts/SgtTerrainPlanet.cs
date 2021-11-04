@@ -1,4 +1,4 @@
-﻿using Unity.Jobs;
+using Unity.Jobs;
 using Unity.Burst;
 using Unity.Mathematics;
 using Unity.Collections;
@@ -6,24 +6,37 @@ using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
-	/// <summary>This component allows you to create dynamic mesh LOD planets suitable for use with the <b>SGT Planet</b> shader.</summary>
+	/// <summary>This component allows you to create dynamic mesh LOD planets suitable for use with the <b>SGT / Terrain Planet</b> shader.</summary>
 	[ExecuteInEditMode]
 	public class SgtTerrainPlanet : SgtTerrain
 	{
 		private NativeArray<double3> currentPoints;
 		private NativeArray<double3> pendingPoints;
 		private NativeArray<double>  heights;
-
+		
 		private NativeArray<float3> positions;
 		private NativeArray<float3> normals;
 		private NativeArray<float4> tangents;
-		private NativeArray<float4> coords;
+		private NativeArray<float4> coords0;
+		private NativeArray<float4> coords1;
+		private NativeArray<float4> coords2;
+		private NativeArray<float2> coords3;
 		private NativeArray<int>    indices;
+		private NativeArray<float3> corner;
 
 		private bool           running;
 		private SgtTerrainQuad currentQuad;
 		private JobHandle      currentHandle;
 		private int            age;
+
+		/// <summary>This allows you to bake detail texture tiling into the terrain mesh itself. This is superior to using the planet material's detail tiling setting, because it will avoid floating precision issues when extreme UV tiling is used.</summary>
+		public int BakedDetailTilingA { set { if (bakedDetailTilingA != value) { bakedDetailTilingA = value; MarkAsDirty(); } } get { return bakedDetailTilingA; } } [SerializeField] private int bakedDetailTilingA = 16;
+
+		/// <summary>This allows you to bake detail texture tiling into the terrain mesh itself. This is superior to using the planet material's detail tiling setting, because it will avoid floating precision issues when extreme UV tiling is used.</summary>
+		public int BakedDetailTilingB { set { if (bakedDetailTilingB != value) { bakedDetailTilingB = value; bakedDetailTilingB = value; MarkAsDirty(); } } get { return bakedDetailTilingB; } } [SerializeField] private int bakedDetailTilingB = 1000;
+
+		/// <summary>This allows you to bake detail texture tiling into the terrain mesh itself. This is superior to using the planet material's detail tiling setting, because it will avoid floating precision issues when extreme UV tiling is used.</summary>
+		public int BakedDetailTilingC { set { if (bakedDetailTilingC != value) { bakedDetailTilingC = value; bakedDetailTilingC = value; MarkAsDirty(); } } get { return bakedDetailTilingC; } } [SerializeField] private int bakedDetailTilingC = 100000;
 
 		protected override bool IsRunning
 		{
@@ -48,17 +61,6 @@ namespace SpaceGraphicsToolkit
 			return instance;
 		}
 
-#if UNITY_EDITOR
-		[UnityEditor.MenuItem(SgtHelper.GameObjectMenuPrefix + "Terrain Planet", false, 10)]
-		public static void CreateMenuItem()
-		{
-			var parent   = SgtHelper.GetSelectedParent();
-			var instance = Create(parent != null ? parent.gameObject.layer : 0, parent);
-
-			SgtHelper.SelectAndPing(instance);
-		}
-#endif
-
 		protected override void OnEnable()
 		{
 			base.OnEnable();
@@ -71,23 +73,53 @@ namespace SpaceGraphicsToolkit
 			positions = new NativeArray<float3>(0, Allocator.Persistent);
 			normals   = new NativeArray<float3>(0, Allocator.Persistent);
 			tangents  = new NativeArray<float4>(0, Allocator.Persistent);
-			coords    = new NativeArray<float4>(0, Allocator.Persistent);
+			coords0   = new NativeArray<float4>(0, Allocator.Persistent);
+			coords1   = new NativeArray<float4>(0, Allocator.Persistent);
+			coords2   = new NativeArray<float4>(0, Allocator.Persistent);
+			coords3   = new NativeArray<float2>(0, Allocator.Persistent);
 			indices   = new NativeArray<int>(0, Allocator.Persistent);
+			corner    = new NativeArray<float3>(1, Allocator.Persistent);
 		}
 
 		protected override void OnDisable()
 		{
+			if (running == true)
+			{
+				running = false;
+
+				currentHandle.Complete();
+
+				// Revert
+				currentQuad.Points = currentPoints;
+
+				currentPoints = default(NativeArray<double3>);
+			}
+
 			base.OnDisable();
 
-			if (currentPoints.IsCreated == true) currentPoints.Dispose();
-			if (pendingPoints.IsCreated == true) pendingPoints.Dispose();
-			if (heights.IsCreated == true) heights.Dispose();
+			if (pendingPoints.IsCreated == true)
+			{
+				pendingPoints.Dispose();
+
+				pendingPoints = default(NativeArray<double3>);
+			}
+
+			if (heights.IsCreated == true)
+			{
+				heights.Dispose();
+
+				heights = default(NativeArray<double>);
+			}
 
 			positions.Dispose();
 			normals.Dispose();
 			tangents.Dispose();
-			coords.Dispose();
+			coords0.Dispose();
+			coords1.Dispose();
+			coords2.Dispose();
+			coords3.Dispose();
 			indices.Dispose();
+			corner.Dispose();
 		}
 
 		protected override void UpdateJob()
@@ -106,14 +138,18 @@ namespace SpaceGraphicsToolkit
 
 					currentQuad.PendingMeshes.Add(pendingMesh);
 
-					currentQuad.Points = pendingPoints;
+					currentQuad.Points        = pendingPoints;
+					currentQuad.PendingCorner = corner[0];
 
 					pendingMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
 					pendingMesh.SetVertices(SgtHelper.ConvertNativeArray(positions));
 					pendingMesh.SetNormals(SgtHelper.ConvertNativeArray(normals));
 					pendingMesh.SetTangents(SgtHelper.ConvertNativeArray(tangents));
-					pendingMesh.SetUVs(0, SgtHelper.ConvertNativeArray(coords));
+					pendingMesh.SetUVs(0, SgtHelper.ConvertNativeArray(coords0));
+					pendingMesh.SetUVs(1, SgtHelper.ConvertNativeArray(coords1));
+					pendingMesh.SetUVs(2, SgtHelper.ConvertNativeArray(coords2));
+					pendingMesh.SetUVs(3, SgtHelper.ConvertNativeArray(coords3));
 #if UNITY_2019_3_OR_NEWER
 					pendingMesh.SetIndices(SgtHelper.ConvertNativeArray(indices), MeshTopology.Triangles, 0);
 #else
@@ -121,10 +157,10 @@ namespace SpaceGraphicsToolkit
 #endif
 					pendingMesh.RecalculateBounds();
 
-					//var min = (float3)quad.PendingMesh.bounds.min;
-					//var max = (float3)quad.PendingMesh.bounds.max;
-					//var ext = math.max(math.abs(min), math.abs(max));
-					//quad.PendingMesh.bounds = new Bounds(Vector3.zero, ext);
+					var min = (float3)pendingMesh.bounds.min;
+					var max = (float3)pendingMesh.bounds.max;
+					var ext = math.max(math.abs(min), math.abs(max));
+					pendingMesh.bounds = new Bounds(Vector3.zero, ext * 2.0f);
 
 					pendingMesh.UploadMeshData(false);
 
@@ -139,7 +175,7 @@ namespace SpaceGraphicsToolkit
 		{
 			running       = true;
 			age           = 0;
-			currentQuad          = newQuad;
+			currentQuad   = newQuad;
 			currentPoints = currentQuad.Points;
 
 			// Build arrays
@@ -155,7 +191,10 @@ namespace SpaceGraphicsToolkit
 			SgtHelper.UpdateNativeArray(ref positions, pointsX * pointsY);
 			SgtHelper.UpdateNativeArray(ref normals, pointsX * pointsY);
 			SgtHelper.UpdateNativeArray(ref tangents, pointsX * pointsY);
-			SgtHelper.UpdateNativeArray(ref coords, pointsX * pointsY);
+			SgtHelper.UpdateNativeArray(ref coords0, pointsX * pointsY);
+			SgtHelper.UpdateNativeArray(ref coords1, pointsX * pointsY);
+			SgtHelper.UpdateNativeArray(ref coords2, pointsX * pointsY);
+			SgtHelper.UpdateNativeArray(ref coords3, pointsX * pointsY);
 			SgtHelper.UpdateNativeArray(ref indices, quadsX * quadsY * 6);
 
 			// Build jobs
@@ -178,8 +217,11 @@ namespace SpaceGraphicsToolkit
 			var verticesJob = new VerticesJob();
 
 			verticesJob.Middle       = currentQuad.Cube.Middle;
+			verticesJob.Radius       = radius;
 			verticesJob.Twist        = currentQuad.Twist;
 			verticesJob.Smooth       = (int)(detail * resolution * 0.15);
+			verticesJob.TilingB      = bakedDetailTilingB / 64.0f;
+			verticesJob.TilingC      = bakedDetailTilingC / 64.0f;
 			verticesJob.PendingOuter = currentQuad.PendingOuter;
 			verticesJob.VirtualOuter = currentQuad.VirtualOuter;
 
@@ -187,8 +229,12 @@ namespace SpaceGraphicsToolkit
 			verticesJob.Positions = positions;
 			verticesJob.Normals   = normals;
 			verticesJob.Tangents  = tangents;
-			verticesJob.Coords    = coords;
+			verticesJob.Coords0   = coords0;
+			verticesJob.Coords1   = coords1;
+			verticesJob.Coords2   = coords2;
+			verticesJob.Coords3   = coords3;
 			verticesJob.Heights   = heights;
+			verticesJob.Corner    = corner;
 
 			var indicesJob = new IndicesJob();
 
@@ -271,8 +317,11 @@ namespace SpaceGraphicsToolkit
 		public struct VerticesJob : IJob
 		{
 			public long          Middle;
+			public double        Radius;
 			public double        Twist;
 			public int           Smooth;
+			public float         TilingB;
+			public float         TilingC;
 			public SgtLongBounds PendingOuter;
 			public SgtLongBounds VirtualOuter;
 
@@ -281,7 +330,11 @@ namespace SpaceGraphicsToolkit
 			public NativeArray<float3>  Positions;
 			public NativeArray<float3>  Normals;
 			public NativeArray<float4>  Tangents;
-			public NativeArray<float4>  Coords;
+			public NativeArray<float4>  Coords0;
+			public NativeArray<float4>  Coords1;
+			public NativeArray<float4>  Coords2;
+			public NativeArray<float2>  Coords3;
+			public NativeArray<float3>  Corner;
 
 			public void Execute()
 			{
@@ -299,6 +352,10 @@ namespace SpaceGraphicsToolkit
 				var pointsX  = (int)(PendingOuter.maxX - PendingOuter.minX) + 1;
 				var samplesX = pointsX + 4;
 				var index    = 0;
+				var cornerB  = math.floor(GetCoords(Points[0]) * TilingB);
+				var cornerC  = math.floor(GetCoords(Points[0]) * TilingC);
+
+				Corner[0] = (float3)math.floor(Points[0]);
 
 				for (var y = PendingOuter.minY; y <= PendingOuter.maxY; y++)
 				{
@@ -317,6 +374,9 @@ namespace SpaceGraphicsToolkit
 						var pointThis = Points[idx];
 						var pointPrev = Points[j];
 
+						var heightThis = math.length(pointThis);
+						var heightPrev = math.length(pointPrev);
+
 						var coordThis = GetCoords(pointThis);
 						var coordPrev = GetCoords(pointPrev);
 
@@ -326,10 +386,15 @@ namespace SpaceGraphicsToolkit
 						var tangentThis = GetTangent(normalThis);
 						var tangentPrev = GetTangent(normalPrev);
 
-						Positions[index] = (float3)math.lerp(pointPrev, pointThis, detail);
+						var coords0 = math.lerp(coordPrev, coordThis, detail);
+
+						Positions[index] = (float3)(math.lerp(pointPrev, pointThis, detail) - Corner[0]);
 						Normals[index] = (float3)math.lerp(normalPrev, normalThis, detail);
 						Tangents[index] = (float4)math.lerp(tangentPrev, tangentThis, detail);
-						Coords[index] = (float4)math.lerp(coordPrev, coordThis, detail);
+						Coords0[index] = (float4)coords0;
+						Coords1[index] = (float4)(coords0 * TilingB - cornerB);
+						Coords2[index] = (float4)(coords0 * TilingC - cornerC);
+						Coords3[index] = (float2)(math.lerp(heightPrev, heightThis, detail) - Radius);
 
 						index++;
 					}
@@ -394,14 +459,37 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtTerrainPlanet;
 
 	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainPlanet))]
-	public class SgtTerrainPlanet_Editor : SgtTerrain_Editor<SgtTerrainPlanet>
+	[CustomEditor(typeof(TARGET))]
+	public class SgtTerrainPlanet_Editor : SgtTerrain_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			var markAsDirty = false;
+
 			base.OnInspector();
+
+			Draw("bakedDetailTilingA", ref markAsDirty, "This allows you to bake detail texture tiling into the terrain mesh itself. This is superior to using the planet material's detail tiling setting, because it will avoid floating precision issues when extreme UV tiling is used.");
+			Draw("bakedDetailTilingB", ref markAsDirty, "This allows you to bake detail texture tiling into the terrain mesh itself. This is superior to using the planet material's detail tiling setting, because it will avoid floating precision issues when extreme UV tiling is used.");
+			Draw("bakedDetailTilingC", ref markAsDirty, "This allows you to bake detail texture tiling into the terrain mesh itself. This is superior to using the planet material's detail tiling setting, because it will avoid floating precision issues when extreme UV tiling is used.");
+
+			if (markAsDirty == true)
+			{
+				Each(tgts, t => t.MarkAsDirty());
+			}
+		}
+
+		[MenuItem(SgtHelper.GameObjectMenuPrefix + "Terrain Planet", false, 10)]
+		public static void CreateMenuItem()
+		{
+			var parent   = SgtHelper.GetSelectedParent();
+			var instance = SgtTerrainPlanet.Create(parent != null ? parent.gameObject.layer : 0, parent);
+
+			SgtHelper.SelectAndPing(instance);
 		}
 	}
 }

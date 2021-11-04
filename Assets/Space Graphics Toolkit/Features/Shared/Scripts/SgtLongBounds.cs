@@ -1,4 +1,4 @@
-﻿namespace SpaceGraphicsToolkit
+namespace SpaceGraphicsToolkit
 {
 	/// <summary>This implements Bounds using the long data type.</summary>
 	[System.Serializable]

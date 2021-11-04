@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -8,115 +9,34 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Shadow Sphere")]
 	public class SgtShadowSphere : SgtShadow
 	{
-		/// <summary>The width of the generated texture. A higher value can result in a smoother transition.</summary>
-		public int Width = 256;
-
-		/// <summary>The format of the generated texture.</summary>
-		public TextureFormat Format = TextureFormat.ARGB32;
-
 		/// <summary>The sharpness of the sunset red channel transition.</summary>
-		public float SharpnessR = 1.0f;
+		public float SharpnessR { set { if (sharpnessR != value) { sharpnessR = value; } } get { return sharpnessR; } } [FSA("SharpnessR")] [SerializeField] private float sharpnessR = 1.0f;
 
 		/// <summary>The power of the sunset green channel transition.</summary>
-		public float SharpnessG = 1.0f;
+		public float SharpnessG { set { if (sharpnessG != value) { sharpnessG = value; } } get { return sharpnessG; } } [FSA("SharpnessG")] [SerializeField] private float sharpnessG = 1.0f;
 
 		/// <summary>The power of the sunset blue channel transition.</summary>
-		public float SharpnessB = 1.0f;
-
-		/// <summary>The opacity of the shadow.</summary>
-		[Range(0.0f, 1.0f)]
-		public float Opacity = 1.0f;
-
-		/// <summary>The inner radius of the sphere in local space.</summary>
-		public float RadiusMin = 1.0f;
+		public float SharpnessB { set { if (sharpnessB != value) { sharpnessB = value; } } get { return sharpnessB; } } [FSA("SharpnessB")] [SerializeField] private float sharpnessB = 1.0f;
 
 		/// <summary>The outer radius of the sphere in local space.</summary>
-		public float RadiusMax = 1.1f;
-
-		[System.NonSerialized]
-		private Texture2D generatedTexture;
+		public float RadiusMax { set { if (radiusMax != value) { radiusMax = value; } } get { return radiusMax; } } [FSA("RadiusMax")] [SerializeField] private float radiusMax = 1.1f;
 
 		[SerializeField]
 		[HideInInspector]
 		private bool startCalled;
-
-		public Texture2D GeneratedTexture
-		{
-			get
-			{
-				return generatedTexture;
-			}
-		}
-
-		public override Texture GetTexture()
-		{
-			if (generatedTexture == false)
-			{
-				UpdateTexture();
-			}
-
-			return generatedTexture;
-		}
-
-		[ContextMenu("Update Textures")]
-		public void UpdateTexture()
-		{
-			if (Width > 0)
-			{
-				// Destroy if invalid
-				if (generatedTexture != null)
-				{
-					if (generatedTexture.width != Width || generatedTexture.height != 1 || generatedTexture.format != Format)
-					{
-						generatedTexture = SgtHelper.Destroy(generatedTexture);
-					}
-				}
-
-				// Create?
-				if (generatedTexture == null)
-				{
-					generatedTexture = SgtHelper.CreateTempTexture2D("Sphere Shadow (Generated)", Width, 1, Format);
-
-					generatedTexture.wrapMode = TextureWrapMode.Clamp;
-				}
-
-				var color = Color.clear;
-				var stepX = 1.0f / (Width - 1);
-
-				for (var x = 0; x < Width; x++)
-				{
-					var u = x * stepX;
-
-					WriteTexture(u, x);
-				}
-			
-				generatedTexture.Apply();
-			}
-		}
-
-		private void WriteTexture(float u, int x)
-		{
-			var color = default(Color);
-
-			color.r = SgtHelper.Sharpness(u, SharpnessR) * Opacity + (1.0f - Opacity);
-			color.g = SgtHelper.Sharpness(u, SharpnessG) * Opacity + (1.0f - Opacity);
-			color.b = SgtHelper.Sharpness(u, SharpnessB) * Opacity + (1.0f - Opacity);
-			color.a = 1.0f;
-
-			generatedTexture.SetPixel(x, 0, SgtHelper.Saturate(color));
-		}
 
 		public override void CalculateShadow(SgtLight light)
 		{
 			var direction = default(Vector3);
 			var position  = default(Vector3);
 			var color     = default(Color);
+			var intensity = 0.0f;
 
-			SgtLight.Calculate(light, transform.position, null, null, ref position, ref direction, ref color);
+			SgtLight.Calculate(light, transform.position, null, null, ref position, ref direction, ref color, ref intensity);
 
 			var dot      = Vector3.Dot(direction, transform.up);
-			var radiusXZ = (transform.lossyScale.x + transform.lossyScale.z) * 0.5f * RadiusMax;
-			var radiusY  = transform.lossyScale.y * RadiusMax;
+			var radiusXZ = (transform.lossyScale.x + transform.lossyScale.z) * 0.5f * radiusMax;
+			var radiusY  = transform.lossyScale.y * radiusMax;
 			var radius   = GetRadius(radiusY, radiusXZ, dot * Mathf.PI * 0.5f);
 			var rotation = Quaternion.FromToRotation(direction, Vector3.back);
 			var vector   = rotation * transform.up;
@@ -128,9 +48,12 @@ namespace SpaceGraphicsToolkit
 
 			cachedActive  = true;
 			cachedMatrix  = shadowS * shadowR * shadowT;
-			cachedRatio   = SgtHelper.Divide(RadiusMax, RadiusMax - RadiusMin);
-			cachedRadius  = SgtHelper.UniformScale(transform.lossyScale) * RadiusMax;
-			cachedTexture = generatedTexture;
+			//cachedRatio   = SgtHelper.Divide(radiusMax, radiusMax - radiusMin);
+			cachedPower.x  = sharpnessR;
+			cachedPower.y  = sharpnessG;
+			cachedPower.z  = sharpnessB;
+			cachedPower.w  = Mathf.Max(Mathf.Max(cachedPower.x, cachedPower.y), cachedPower.z);
+			cachedRadius  = SgtHelper.UniformScale(transform.lossyScale) * radiusMax;
 		}
 
 		private float GetRadius(float a, float b, float theta)
@@ -147,31 +70,6 @@ namespace SpaceGraphicsToolkit
 			return a;
 		}
 
-		protected override void OnEnable()
-		{
-			base.OnEnable();
-
-			if (startCalled == true)
-			{
-				CheckUpdateCalls();
-			}
-		}
-
-		protected virtual void Start()
-		{
-			if (startCalled == false)
-			{
-				startCalled = true;
-
-				CheckUpdateCalls();
-			}
-		}
-	
-		protected virtual void OnDestroy()
-		{
-			SgtHelper.Destroy(generatedTexture);
-		}
-
 #if UNITY_EDITOR
 		protected virtual void OnDrawGizmosSelected()
 		{
@@ -182,8 +80,7 @@ namespace SpaceGraphicsToolkit
 			{
 				Gizmos.matrix = transform.localToWorldMatrix;
 
-				Gizmos.DrawWireSphere(Vector3.zero, RadiusMin);
-				Gizmos.DrawWireSphere(Vector3.zero, RadiusMax);
+				Gizmos.DrawWireSphere(Vector3.zero, radiusMax);
 
 				CalculateShadow(lights[0]);
 
@@ -217,48 +114,28 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 #endif
-
-		private void CheckUpdateCalls()
-		{
-			if (generatedTexture == null)
-			{
-				UpdateTexture();
-			}
-		}
 	}
 }
 
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtShadowSphere;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtShadowSphere))]
-	public class SgtShadowSphere_Editor : SgtEditor<SgtShadowSphere>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtShadowSphere_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			var updateTexture = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			BeginError(Any(t => t.Width < 1));
-				Draw("Width", ref updateTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
+			Draw("sharpnessR", "The sharpness of the sunset red channel transition.");
+			Draw("sharpnessG", "The sharpness of the sunset green channel transition.");
+			Draw("sharpnessB", "The sharpness of the sunset blue channel transition.");
+			BeginError(Any(tgts, t => t.RadiusMax < 0.0f));
+				Draw("radiusMax", "The outer radius of the sphere in local space.");
 			EndError();
-			Draw("Format", ref updateTexture, "The format of the generated texture.");
-			Draw("SharpnessR", ref updateTexture, "The sharpness of the sunset red channel transition.");
-			Draw("SharpnessG", ref updateTexture, "The sharpness of the sunset green channel transition.");
-			Draw("SharpnessB", ref updateTexture, "The sharpness of the sunset blue channel transition.");
-			BeginError(Any(t => t.Opacity < 0.0f));
-				Draw("Opacity", ref updateTexture, "The opacity of the shadow.");
-			EndError();
-			BeginError(Any(t => t.RadiusMin < 0.0f || t.RadiusMin >= t.RadiusMax));
-				Draw("RadiusMin", "The inner radius of the sphere in local space.");
-			EndError();
-			BeginError(Any(t => t.RadiusMax < 0.0f || t.RadiusMin >= t.RadiusMax));
-				Draw("RadiusMax", "The outer radius of the sphere in local space.");
-			EndError();
-
-			if (updateTexture == true) DirtyEach(t => t.UpdateTexture());
 		}
 	}
 }

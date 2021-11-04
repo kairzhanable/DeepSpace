@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -14,10 +15,10 @@ namespace SpaceGraphicsToolkit
 		}
 
 		/// <summary>This allows you to control when this component will be generated.</summary>
-		public GenerateType Generate;
+		public GenerateType Generate { set { generate = value; } get { return generate; } } [FSA("Generate")] [SerializeField] private GenerateType generate;
 
 		/// <summary>The seed used for automatic generation.</summary>
-		[SgtSeed] public int Seed;
+		public int Seed { set { seed = value; } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
 
 		/// <summary>This method allows you to manually generate this component with the specified seed.</summary>
 		public void GenerateWith(int seed)
@@ -32,7 +33,7 @@ namespace SpaceGraphicsToolkit
 		[ContextMenu("Generate Now")]
 		public void GenerateNow()
 		{
-			switch (Generate)
+			switch (generate)
 			{
 				case GenerateType.Automatically:
 				{
@@ -50,7 +51,7 @@ namespace SpaceGraphicsToolkit
 
 				case GenerateType.WithFixedSeed:
 				{
-					GenerateWith(Seed);
+					GenerateWith(seed);
 				}
 				break;
 
@@ -66,7 +67,7 @@ namespace SpaceGraphicsToolkit
 
 		protected virtual void Awake()
 		{
-			switch (Generate)
+			switch (generate)
 			{
 				case GenerateType.Automatically:
 				{
@@ -84,7 +85,7 @@ namespace SpaceGraphicsToolkit
 
 				case GenerateType.WithFixedSeed:
 				{
-					GenerateWith(Seed);
+					GenerateWith(seed);
 				}
 				break;
 			}
@@ -95,16 +96,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	public class SgtProcedural_Editor<T> : SgtEditor<T>
-		where T : SgtProcedural
+	using TARGET = SgtProcedural;
+
+	public class SgtProcedural_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("Generate", "This allows you to control when this component will be generated.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			if (Any(t => t.Generate == SgtProcedural.GenerateType.WithFixedSeed))
+			Draw("generate", "This allows you to control when this component will be generated.");
+
+			if (Any(tgts, t => t.Generate == SgtProcedural.GenerateType.WithFixedSeed))
 			{
-				Draw("Seed", "The seed used for automatic generation.");
+				Draw("seed", "The seed used for automatic generation.");
 			}
 
 			Separator();

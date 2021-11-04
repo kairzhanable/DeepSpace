@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -8,23 +9,23 @@ namespace SpaceGraphicsToolkit
 	public class SgtShapeBox : SgtShape
 	{
 		/// <summary>The min/max size of the box.</summary>
-		public Vector3 Extents = Vector3.one;
+		public Vector3 Extents { set { extents = value; } get { return extents; } } [FSA("Extents")] [SerializeField] private Vector3 extents = Vector3.one;
 
-		/// <summary>The transtion style between minimum and maximum density.</summary>
-		public SgtEase.Type Ease = SgtEase.Type.Smoothstep;
+		/// <summary>The transition style between minimum and maximum density.</summary>
+		public SgtEase.Type Ease { set { ease = value; } get { return ease; } } [FSA("Ease")] [SerializeField] private SgtEase.Type ease = SgtEase.Type.Smoothstep;
 
 		/// <summary>How quickly the density increases when inside the sphere.</summary>
-		public float Sharpness = 1.0f;
+		public float Sharpness { set { sharpness = value; } get { return sharpness; } } [FSA("Sharpness")] [SerializeField] private float sharpness = 1.0f;
 
 		public override float GetDensity(Vector3 worldPoint)
 		{
 			var localPoint = transform.InverseTransformPoint(worldPoint);
-			var distanceX  = Mathf.InverseLerp(Extents.x, 0.0f, Mathf.Abs(localPoint.x));
-			var distanceY  = Mathf.InverseLerp(Extents.y, 0.0f, Mathf.Abs(localPoint.y));
-			var distanceZ  = Mathf.InverseLerp(Extents.z, 0.0f, Mathf.Abs(localPoint.z));
+			var distanceX  = Mathf.InverseLerp(extents.x, 0.0f, Mathf.Abs(localPoint.x));
+			var distanceY  = Mathf.InverseLerp(extents.y, 0.0f, Mathf.Abs(localPoint.y));
+			var distanceZ  = Mathf.InverseLerp(extents.z, 0.0f, Mathf.Abs(localPoint.z));
 			var distance01 = Mathf.Min(distanceX, Mathf.Min(distanceY, distanceZ));
 
-			return SgtHelper.Sharpness(SgtEase.Evaluate(Ease, distance01), Sharpness);
+			return SgtHelper.Sharpness(SgtEase.Evaluate(ease, distance01), sharpness);
 		}
 
 		public static SgtShapeBox Create(int layer = 0, Transform parent = null)
@@ -34,10 +35,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtShapeBox Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Shape Box", layer, parent, localPosition, localRotation, localScale);
-			var shapeBox   = gameObject.AddComponent<SgtShapeBox>();
-
-			return shapeBox;
+			return SgtHelper.CreateGameObject("Shape Box", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtShapeBox>();
 		}
 
 #if UNITY_EDITOR
@@ -60,7 +58,7 @@ namespace SpaceGraphicsToolkit
 			for (var i = 0; i <= 10; i++)
 			{
 				var distance = i * 0.1f;
-				var size     = GetDensity(transform.TransformPoint(distance * Extents)) * Extents;
+				var size     = GetDensity(transform.TransformPoint(distance * extents)) * extents;
 
 				Gizmos.DrawWireCube(Vector3.zero, size * 2.0f);
 			}
@@ -72,19 +70,21 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtShapeBox;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtShapeBox))]
-	public class SgtShapeBox_Editor : SgtEditor<SgtShapeBox>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtShapeBox_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Extents == Vector3.zero));
-				Draw("Extents", "The min/max size of the box.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Extents == Vector3.zero));
+				Draw("extents", "The min/max size of the box.");
 			EndError();
-			Draw("Ease", "The transtion style between minimum and maximum density.");
-			Draw("Sharpness", "How quickly the density increases when inside the sphere.");
+			Draw("ease", "The transition style between minimum and maximum density.");
+			Draw("sharpness", "How quickly the density increases when inside the sphere.");
 		}
 	}
 }

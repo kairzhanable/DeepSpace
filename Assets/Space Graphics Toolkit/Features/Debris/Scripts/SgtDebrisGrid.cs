@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -225,10 +225,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtDebrisGrid Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Debris Grid", layer, parent, localPosition, localRotation, localScale);
-			var debrisGrid = gameObject.AddComponent<SgtDebrisGrid>();
-
-			return debrisGrid;
+			return SgtHelper.CreateGameObject("Debris Grid", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtDebrisGrid>();
 		}
 
 #if UNITY_EDITOR
@@ -341,44 +338,46 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtDebrisGrid;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtDebrisGrid))]
-	public class SgtDebrisGrid_Editor : SgtEditor<SgtDebrisGrid>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtDebrisGrid_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var clearUpdate = false;
 
-			BeginError(Any(t => t.Target == null));
+			BeginError(Any(tgts, t => t.Target == null));
 				Draw("target", "The transform the debris will spawn around (e.g. MainCamera).");
 			EndError();
 			Draw("spawnInside", ref clearUpdate, "The shapes the debris will spawn inside.");
 
 			Separator();
 
-			BeginError(Any(t => t.ShowDistance <= 0.0f || t.ShowDistance > t.HideDistance));
+			BeginError(Any(tgts, t => t.ShowDistance <= 0.0f || t.ShowDistance > t.HideDistance));
 				Draw("showDistance", "The distance from the target that debris begins spawning.");
 			EndError();
-			BeginError(Any(t => t.HideDistance < 0.0f || t.ShowDistance > t.HideDistance));
+			BeginError(Any(tgts, t => t.HideDistance < 0.0f || t.ShowDistance > t.HideDistance));
 				Draw("hideDistance", "The distance from the target that debris gets hidden.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.CellCount <= 0));
+			BeginError(Any(tgts, t => t.CellCount <= 0));
 				Draw("cellCount", ref clearUpdate, "This allows you to set how many cells are in the grid on each axis within the Hide Distance.");
 			EndError();
 			Draw("cellNoise", ref clearUpdate, "How far from the center of each cell the debris can be spawned. This should be decreated to stop debris intersecting.");
-			BeginError(Any(t => t.DebrisCountTarget <= 0));
+			BeginError(Any(tgts, t => t.DebrisCountTarget <= 0));
 				Draw("debrisCountTarget", ref clearUpdate, "The maximum expected amount of debris based on the cell size settings.");
 			EndError();
 			Draw("seed", ref clearUpdate, "This allows you to set the random seed used during procedural generation.");
 
 			Separator();
 
-			BeginError(Any(t => t.ScaleMin < 0.0f || t.ScaleMin > t.ScaleMax));
+			BeginError(Any(tgts, t => t.ScaleMin < 0.0f || t.ScaleMin > t.ScaleMax));
 				Draw("scaleMin", "The minimum scale multiplier of the debris.");
 				Draw("scaleMax", "The maximum scale multiplier of the debris.");
 			EndError();
@@ -387,11 +386,11 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			BeginError(Any(t => t.Prefabs == null || t.Prefabs.Count == 0 || t.Prefabs.Contains(null) == true));
+			BeginError(Any(tgts, t => t.Prefabs == null || t.Prefabs.Count == 0 || t.Prefabs.Contains(null) == true));
 				Draw("prefabs", ref clearUpdate, "These prefabs are randomly picked from when spawning new debris.");
 			EndError();
 
-			if (clearUpdate == true) DirtyEach(t => { t.ClearDebris(); t.UpdateDebris(); });
+			if (clearUpdate == true) Each(tgts, t => { t.ClearDebris(); t.UpdateDebris(); }, true);
 		}
 
 		private bool InvalidShapes(List<SgtShape> shapes)

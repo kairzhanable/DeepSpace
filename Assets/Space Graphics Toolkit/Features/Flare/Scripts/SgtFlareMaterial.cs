@@ -129,6 +129,16 @@ namespace SpaceGraphicsToolkit
 		}
 #endif
 
+		public void DirtyMaterial()
+		{
+			UpdateMaterial();
+		}
+
+		public void DirtyTexture()
+		{
+			UpdateTexture();
+		}
+
 		[ContextMenu("Update Material")]
 		public void UpdateMaterial()
 		{
@@ -236,7 +246,7 @@ namespace SpaceGraphicsToolkit
 			color.b *= 1.0f - SgtEase.Evaluate(ease, SgtHelper.Sharpness(u, sharpnessB));
 			color.a  = color.grayscale;
 
-			generatedTexture.SetPixel(x, 0, SgtHelper.Saturate(color));
+			generatedTexture.SetPixel(x, 0, SgtHelper.ToGamma(SgtHelper.Saturate(color)));
 		}
 	}
 }
@@ -244,42 +254,41 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFlareMaterial;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFlareMaterial))]
-	public class SgtFlareMaterial_Editor : SgtEditor<SgtFlareMaterial>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFlareMaterial_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			var updateMaterial = false;
-			var updateTexture  = false;
-			var applyMaterial    = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			Draw("zTest", ref updateMaterial, "The ZTest mode of the material (Always = draw on top).");
-			Draw("dstBlend", ref updateMaterial, "The ZTest mode of the material (Always = draw on top).");
-			Draw("renderQueue", ref updateMaterial, "This allows you to adjust the render queue of the aurora material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
+			var dirtyMaterial = false;
+			var dirtyTexture  = false;
+
+			Draw("zTest", ref dirtyMaterial, "The ZTest mode of the material (Always = draw on top).");
+			Draw("dstBlend", ref dirtyMaterial, "The ZTest mode of the material (Always = draw on top).");
+			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the aurora material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
 
 			Separator();
 
-			Draw("format", ref updateTexture, "The format of the generated texture.");
-			BeginError(Any(t => t.Width < 1));
-				Draw("width", ref updateTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
+			Draw("format", ref dirtyTexture, "The format of the generated texture.");
+			BeginError(Any(tgts, t => t.Width < 1));
+				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 
 			Separator();
 
-			Draw("color", ref updateTexture, "The base color will be multiplied by this.");
-			Draw("ease", ref updateTexture, "The color transition style.");
-			Draw("sharpnessR", ref updateTexture, "The sharpness of the red transition.");
-			Draw("sharpnessG", ref updateTexture, "The sharpness of the green transition.");
-			Draw("sharpnessB", ref updateTexture, "The sharpness of the blue transition.");
+			Draw("color", ref dirtyTexture, "The base color will be multiplied by this.");
+			Draw("ease", ref dirtyTexture, "The color transition style.");
+			Draw("sharpnessR", ref dirtyTexture, "The sharpness of the red transition.");
+			Draw("sharpnessG", ref dirtyTexture, "The sharpness of the green transition.");
+			Draw("sharpnessB", ref dirtyTexture, "The sharpness of the blue transition.");
 
-			serializedObject.ApplyModifiedProperties();
 
-			if (updateMaterial == true) DirtyEach(t => t.UpdateMaterial());
-			if (updateTexture  == true) DirtyEach(t => t.UpdateTexture ());
-			if (applyMaterial  == true) DirtyEach(t => t.ApplyMaterial ());
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyTexture  == true) Each(tgts, t => t.DirtyTexture (), true, true);
 		}
 	}
 }

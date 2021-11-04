@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -154,22 +154,24 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingObject;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingObject), true)]
-	public class SgtFloatingObject_Editor : SgtFloatingPoint_Editor<SgtFloatingObject>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET), true)]
+	public class SgtFloatingObject_Editor : SgtFloatingPoint_Editor
 	{
 		protected override void OnInspector()
 		{
-			if (Any(t => t.PositionSet == true))
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			if (Any(tgts, t => t.PositionSet == true))
 			{
 				base.OnInspector();
 			}
 
-			if (Any(t => t.PositionSet == false))
+			if (Any(tgts, t => t.PositionSet == false))
 			{
-				EditorGUILayout.HelpBox("This SgtFloatingObject's Position hasn't been set yet. It will be calculated in Start or when you manually call the DerivePosition method.", MessageType.Info);
+				Info("This SgtFloatingObject's Position hasn't been set yet. It will be calculated in Start or when you manually call the DerivePosition method.");
 			}
 
 			Separator();

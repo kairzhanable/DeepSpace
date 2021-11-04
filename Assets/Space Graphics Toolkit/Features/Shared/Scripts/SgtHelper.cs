@@ -1,11 +1,9 @@
 using UnityEngine;
+using System.Collections.Generic;
+using Unity.Collections;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using System.Collections.Generic;
-using Unity.Mathematics;
-using Unity.Collections;
-using Random = UnityEngine.Random;
 
 namespace SpaceGraphicsToolkit
 {
@@ -37,25 +35,6 @@ namespace SpaceGraphicsToolkit
 
 		private static Stack<Random.State> seedStates = new Stack<Random.State>();
 
-		private static Camera[] tempCameraArray = new Camera[128];
-
-		private static List<Camera> tempCameraList = new List<Camera>();
-
-		/// <summary>This will return a non-alloc temporary list of all cameras in the scene.</summary>
-		public static List<Camera> GetCameras()
-		{
-			var count = Camera.GetAllCameras(tempCameraArray);
-
-			tempCameraList.Clear();
-
-			for (var i = 0; i < count; i++)
-			{
-				tempCameraList.Add(tempCameraArray[i]);
-			}
-
-			return tempCameraList;
-		}
-
 		public static void InvokeCalculateDistance(Vector3 worldPosition, ref float distance)
 		{
 			if (OnCalculateDistance != null)
@@ -78,21 +57,6 @@ namespace SpaceGraphicsToolkit
 			{
 				OnSnap.Invoke(delta);
 			}
-		}
-
-		public static T GetIndex<T>(ref List<T> list, int index)
-		{
-			if (list == null)
-			{
-				list = new List<T>();
-			}
-
-			for (var i = list.Count; i <= index; i++)
-			{
-				list.Add(default(T));
-			}
-
-			return list[index];
 		}
 
 		public static void ClearCapacity<T>(List<T> list, int minCapacity)
@@ -223,6 +187,11 @@ namespace SpaceGraphicsToolkit
 			return 0.0f;
 		}
 
+		public static int GetRenderingLayers(GameObject gameObject, int renderingLayers)
+		{
+			return renderingLayers != 0 ? renderingLayers : gameObject.layer;
+		}
+
 		public static Vector3 Reciprocal3(Vector3 xyz)
 		{
 			xyz.x = Reciprocal(xyz.x);
@@ -264,101 +233,6 @@ namespace SpaceGraphicsToolkit
 			c.a = Saturate(c.a);
 
 			return c;
-		}
-
-		public static Color GetPixel(Cubemap cube, Vector3 p)
-		{
-			var x = Mathf.Abs(p.x);
-			var y = Mathf.Abs(p.y);
-			var z = Mathf.Abs(p.z);
-
-			if (x > y)
-			{
-				if (x > z)
-				{
-					p *= 1.0f / x;
-
-					if (p.x > 0.0f)
-					{
-						return GetPixel(cube, CubemapFace.PositiveX, -p.z, -p.y);
-					}
-					else
-					{
-						return GetPixel(cube, CubemapFace.NegativeX, p.z, -p.y);
-					}
-				}
-				else
-				{
-					p *= 1.0f / z;
-
-					if (p.z > 0.0f)
-					{
-						return GetPixel(cube, CubemapFace.PositiveZ, p.x, -p.y);
-					}
-					else
-					{
-						return GetPixel(cube, CubemapFace.NegativeZ, -p.x, -p.y);
-					}
-				}
-			}
-			else
-			{
-				if (y > z)
-				{
-					p *= 1.0f / y;
-
-					if (p.y > 0.0f)
-					{
-						return GetPixel(cube, CubemapFace.PositiveY, p.x, p.z);
-					}
-					else
-					{
-						return GetPixel(cube, CubemapFace.NegativeY, p.x, -p.z);
-					}
-				}
-				else
-				{
-					p *= 1.0f / z;
-
-					if (p.z > 0.0f)
-					{
-						return GetPixel(cube, CubemapFace.PositiveZ, p.x, -p.y);
-					}
-					else
-					{
-						return GetPixel(cube, CubemapFace.NegativeZ, -p.x, -p.y);
-					}
-				}
-			}
-		}
-
-		public static Color GetPixel(Cubemap cube, CubemapFace face, float h, float v)
-		{
-			var w = cube.width;
-			var s = w + 1;
-			var x = (int)((h * 0.5f + 0.5f) * s);
-			var y = (int)((v * 0.5f + 0.5f) * s);
-
-			x = Mathf.Clamp(x, 0, w);
-			y = Mathf.Clamp(y, 0, w);
-
-			return cube.GetPixel(face, x, y);
-		}
-
-		public static T Pop<T>(HashSet<T> collection)
-		{
-			var first = default(T);
-
-			foreach (var element in collection)
-			{
-				first = element;
-
-				break;
-			}
-
-			collection.Remove(first);
-
-			return first;
 		}
 
 		public static float Sharpness(float a, float p)
@@ -930,13 +804,38 @@ namespace SpaceGraphicsToolkit
 			return matrix;
 		}
 
-		public static Color Brighten(Color color, float brightness)
+		public static Color Brighten(Color color, float brightness, bool convertToGamma = true)
 		{
+			if (convertToGamma == true)
+			{
+				color = ToGamma(color);
+			}
+
 			color.r *= brightness;
 			color.g *= brightness;
 			color.b *= brightness;
 
 			return color;
+		}
+
+		public static Color ToGamma(Color linear)
+		{
+			if (QualitySettings.activeColorSpace == ColorSpace.Linear)
+			{
+				return linear.gamma;
+			}
+
+			return linear;
+		}
+
+		public static float ToGamma(float linear)
+		{
+			if (QualitySettings.activeColorSpace == ColorSpace.Linear)
+			{
+				return Mathf.Pow(linear, 2.2f);
+			}
+
+			return linear;
 		}
 
 		public static Color Premultiply(Color color)
@@ -1054,16 +953,17 @@ namespace SpaceGraphicsToolkit
 				array = new NativeArray<T>(length, Allocator.Persistent);
 			}
 		}
-#if UNITY_2019_3_OR_NEWER
-		public static NativeArray<float2> ConvertNativeArray(NativeArray<float2> nativeArray)
+#if __BURST__
+	#if UNITY_2019_3_OR_NEWER
+		public static NativeArray<Unity.Mathematics.float2> ConvertNativeArray(NativeArray<Unity.Mathematics.float2> nativeArray)
 		{
 			return nativeArray;
 		}
-		public static NativeArray<float3> ConvertNativeArray(NativeArray<float3> nativeArray)
+		public static NativeArray<Unity.Mathematics.float3> ConvertNativeArray(NativeArray<Unity.Mathematics.float3> nativeArray)
 		{
 			return nativeArray;
 		}
-		public static NativeArray<float4> ConvertNativeArray(NativeArray<float4> nativeArray)
+		public static NativeArray<Unity.Mathematics.float4> ConvertNativeArray(NativeArray<Unity.Mathematics.float4> nativeArray)
 		{
 			return nativeArray;
 		}
@@ -1075,19 +975,19 @@ namespace SpaceGraphicsToolkit
 		{
 			return nativeArray;
 		}
-#else
+	#else
 		private static List<Vector2> tempVector2s = new List<Vector2>(1024);
-		public static List<Vector2> ConvertNativeArray(NativeArray<float2> nativeArray)
+		public static List<Vector2> ConvertNativeArray(NativeArray<Unity.Mathematics.float2> nativeArray)
 		{
 			tempVector2s.Clear(); for (var i = 0; i < nativeArray.Length; i++) tempVector2s.Add(nativeArray[i]); return tempVector2s;
 		}
 		private static List<Vector3> tempVector3s = new List<Vector3>(1024);
-		public static List<Vector3> ConvertNativeArray(NativeArray<float3> nativeArray)
+		public static List<Vector3> ConvertNativeArray(NativeArray<Unity.Mathematics.float3> nativeArray)
 		{
 			tempVector3s.Clear(); for (var i = 0; i < nativeArray.Length; i++) tempVector3s.Add(nativeArray[i]); return tempVector3s;
 		}
 		private static List<Vector4> tempVector4s = new List<Vector4>(1024);
-		public static List<Vector4> ConvertNativeArray(NativeArray<float4> nativeArray)
+		public static List<Vector4> ConvertNativeArray(NativeArray<Unity.Mathematics.float4> nativeArray)
 		{
 			tempVector4s.Clear(); for (var i = 0; i < nativeArray.Length; i++) tempVector4s.Add(nativeArray[i]); return tempVector4s;
 		}
@@ -1101,6 +1001,7 @@ namespace SpaceGraphicsToolkit
 		{
 			tempColors.Clear(); for (var i = 0; i < nativeArray.Length; i++) tempColors.Add(nativeArray[i]); return tempColors;
 		}
+	#endif
 #endif
 	}
 }

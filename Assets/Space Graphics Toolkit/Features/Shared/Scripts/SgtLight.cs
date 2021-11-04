@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -11,18 +11,47 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Light")]
 	public class SgtLight : SgtLinkedBehaviour<SgtLight>
 	{
+		public const int MAX_LIGHTS = 16;
+
 		/// <summary>The SgtLightPointer component allows you to treat a Directional light like a Point light, and enabling this allows you to notify SGT about this.</summary>
 		public bool TreatAsPoint { set { treatAsPoint = value; } get { return treatAsPoint; } } [FSA("TreatAsPoint")] [SerializeField] private bool treatAsPoint = false;
 
-		/// <summary>This allows you to control the intensity of the attached light when used by SGT components.
-		/// -1 = Use attached Light value.</summary>
-		public float Intensity { set { intensity = value; } get { return intensity; } } [SerializeField] private float intensity = -1.0f;
+		/// <summary>All light values will be multiplied by this before use.</summary>
+		public float Multiplier { set { multiplier = value; } get { return multiplier; } } [SerializeField] private float multiplier = 1.0f;
+
+		/// <summary>This allows you to control the intensity of this light when used by SGT components that implement their own custom lighting (e.g. SgtAtmosphere). This should typically be in the 0..1 range.</summary>
+		public float IntensityInSGT { set { intensityInSGT = value; } get { return intensityInSGT; } } [SerializeField] private float intensityInSGT = 1.0f;
+
+		/// <summary>This allows you to control the intensity of the attached light when using the <b>Standard</b> rendering pipeline.
+		/// -1 = The attached light intensity will not be modified.</summary>
+		public float IntensityInStandard { set  { intensityInStandard = value; } get { return intensityInStandard; } } [SerializeField] private float intensityInStandard = 1.0f;
+
+		/// <summary>This allows you to control the intensity of the attached light when using the <b>URP</b> rendering pipeline.
+		/// -1 = The attached light intensity will not be modified.</summary>
+		public float IntensityInURP { set  { intensityInURP = value; } get { return intensityInURP; } } [SerializeField] private float intensityInURP = 1.0f;
+
+		/// <summary>This allows you to control the intensity of the attached light when using the <b>HDRP</b> rendering pipeline.
+		/// -1 = The attached light intensity will not be modified.</summary>
+		public float IntensityInHDRP { set  { intensityInHDRP = value; } get { return intensityInHDRP; } } [SerializeField] private float intensityInHDRP = 120000.0f;
+
+		[System.NonSerialized]
+		private Transform cachedTransform;
+
+		[System.NonSerialized]
+		private bool cachedTransformSet;
 
 		[System.NonSerialized]
 		private Light cachedLight;
 
 		[System.NonSerialized]
 		private bool cachedLightSet;
+
+		private static SgtShaderBundle.Pipeline pipe;
+
+	#if __HDRP__
+		[System.NonSerialized]
+		private UnityEngine.Rendering.HighDefinition.HDAdditionalLightData cachedLightData;
+	#endif
 
 		private static List<LightProperties> cachedLightProperties = new List<LightProperties>();
 
@@ -44,16 +73,61 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		public float FinalIntensity
+		public Transform CachedTransform
 		{
 			get
 			{
-				if (intensity >= 0.0f)
+				if (cachedTransformSet == false)
 				{
-					return intensity;
+					cachedTransform    = GetComponent<Transform>();
+					cachedTransformSet = true;
 				}
 
-				return cachedLight.intensity;
+				return cachedTransform;
+			}
+		}
+
+		protected virtual void Update()
+		{
+			pipe = SgtShaderBundle.DetectProjectPipeline();
+
+			if (SgtShaderBundle.IsStandard(pipe) == true)
+			{
+				ApplyIntensity(intensityInStandard);
+			}
+			else if (SgtShaderBundle.IsURP(pipe) == true)
+			{
+				ApplyIntensity(intensityInURP);
+			}
+			else if (SgtShaderBundle.IsHDRP(pipe) == true)
+			{
+				ApplyIntensity(intensityInHDRP);
+			}
+		}
+
+		private void ApplyIntensity(float intensity)
+		{
+			if (intensity >= 0.0f)
+			{
+				if (cachedLightSet == false)
+				{
+					cachedLight    = GetComponent<Light>();
+					cachedLightSet = true;
+				}
+
+				#if __HDRP__
+					if (cachedLightData == null)
+					{
+						cachedLightData = GetComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>();
+					}
+
+					if (cachedLightData != null)
+					{
+						cachedLightData.SetIntensity(intensity * multiplier, UnityEngine.Rendering.HighDefinition.LightUnit.Lux);
+					}
+				#else
+					cachedLight.intensity = intensity * multiplier;
+				#endif
 			}
 		}
 
@@ -61,11 +135,13 @@ namespace SpaceGraphicsToolkit
 
 		private static int CompareDistance(SgtLight a, SgtLight b)
 		{
-			var distA = Vector3.SqrMagnitude(a.transform.position - compareDistanceCenter);
-			var distB = Vector3.SqrMagnitude(b.transform.position - compareDistanceCenter);
+			var distA = Vector3.SqrMagnitude(a.CachedTransform.position - compareDistanceCenter);
+			var distB = Vector3.SqrMagnitude(b.CachedTransform.position - compareDistanceCenter);
 
 			return distA.CompareTo(distB);
 		}
+
+		private static System.Comparison<SgtLight> CompareDistanceDel = CompareDistance;
 
 		public static List<SgtLight> Find(bool lit, int mask, Vector3 center)
 		{
@@ -79,7 +155,7 @@ namespace SpaceGraphicsToolkit
 				{
 					var cachedLight = light.CachedLight;
 
-					if (SgtHelper.Enabled(cachedLight) == true && light.FinalIntensity > 0.0f && (cachedLight.cullingMask & mask) != 0)
+					if (SgtHelper.Enabled(cachedLight) == true && light.intensityInSGT > 0.0f && light.multiplier > 0.0f && (cachedLight.cullingMask & mask) != 0)
 					{
 						tempLights.Add(light);
 					}
@@ -89,7 +165,7 @@ namespace SpaceGraphicsToolkit
 
 				compareDistanceCenter = center;
 
-				tempLights.Sort(CompareDistance);
+				tempLights.Sort(CompareDistanceDel);
 			}
 
 			return tempLights;
@@ -103,7 +179,7 @@ namespace SpaceGraphicsToolkit
 
 				if (tempLight.transform.position == center)
 				{
-					if (tempLight.TreatAsPoint == true || tempLight.CachedLight.type != LightType.Directional)
+					if (tempLight.treatAsPoint == true || tempLight.CachedLight.type != LightType.Directional)
 					{
 						tempLights.RemoveAt(i);
 					}
@@ -111,7 +187,7 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		public static void Calculate(SgtLight light, Vector3 center, Transform directionTransform, Transform positionTransform, ref Vector3 position, ref Vector3 direction, ref Color color)
+		public static void Calculate(SgtLight light, Vector3 center, Transform directionTransform, Transform positionTransform, ref Vector3 position, ref Vector3 direction, ref Color color, ref float intensity)
 		{
 			if (light != null)
 			{
@@ -119,19 +195,40 @@ namespace SpaceGraphicsToolkit
 
 				direction = -light.transform.forward;
 				position  = light.transform.position;
-				color     = SgtHelper.Brighten(cachedLight.color, light.FinalIntensity);
+				color     = cachedLight.color;
+				intensity = cachedLight.intensity * light.intensityInSGT;
 
 				switch (cachedLight.type)
 				{
 					case LightType.Point:
 					{
 						direction = Vector3.Normalize(position - center);
+
+						if (SgtShaderBundle.IsStandard(pipe) == true)
+						{
+							var dist  = SgtHelper.Divide(Vector3.Distance(center, position), light.CachedLight.range);
+							var atten = Mathf.Clamp01(1.0f / (1.0f + 25.0f * dist * dist) * ((1.0f - dist) * 5.0f));
+
+							intensity *= atten;
+						}
+						// Attenuation is more or less the same in URP and HDRP?
+						else
+						{
+							var dist  = Vector3.Distance(center, position);
+							var atten = Mathf.Clamp01(1.0f / (dist * dist));
+
+							intensity *= atten;
+
+							var range = 1.0f - SgtHelper.Divide(dist, light.CachedLight.range);
+
+							intensity *= Mathf.Clamp01(range * range);
+						}
 					}
 					break;
 
 					case LightType.Directional:
 					{
-						if (light.TreatAsPoint == true)
+						if (light.treatAsPoint == true)
 						{
 							direction = Vector3.Normalize(position - center);
 						}
@@ -156,32 +253,36 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		public static void Write(bool lit, Vector3 center, Transform directionTransform, Transform positionTransform, float scatterStrength, int maxLights)
+		private static List<Vector4> tempColor     = new List<Vector4>();
+		private static List<Vector4> tempScatter   = new List<Vector4>();
+		private static List<Vector4> tempPosition  = new List<Vector4>();
+		private static List<Vector4> tempDirection = new List<Vector4>();
+
+		public static void Write(Vector3 center, Transform directionTransform, Transform positionTransform, float scatterStrength, int maxLights)
 		{
 			var lightCount = 0;
 
+			tempColor.Clear();
+			tempScatter.Clear();
+			tempPosition.Clear();
+			tempDirection.Clear();
+
 			for (var i = 0; i < tempLights.Count; i++)
 			{
-				var light      = tempLights[i];
-				var properties = GetLightProperties(lightCount++);
-				var direction  = default(Vector3);
-				var position   = default(Vector3);
-				var color      = default(Color);
+				var light     = tempLights[i];
+				var position  = default(Vector3);
+				var direction = default(Vector3);
+				var color     = default(Color);
+				var intensity = default(float);
 
-				Calculate(light, center, directionTransform, positionTransform, ref position, ref direction, ref color);
+				Calculate(light, center, directionTransform, positionTransform, ref position, ref direction, ref color, ref intensity);
 
-				for (var j = SgtHelper.tempMaterials.Count - 1; j >= 0; j--)
-				{
-					var tempMaterial = SgtHelper.tempMaterials[j];
+				lightCount += 1;
 
-					if (tempMaterial != null)
-					{
-						tempMaterial.SetVector(properties.Direction, direction);
-						tempMaterial.SetVector(properties.Position, SgtHelper.NewVector4(position, 1.0f));
-						tempMaterial.SetColor(properties.Color, color);
-						tempMaterial.SetColor(properties.Scatter, color * scatterStrength);
-					}
-				}
+				tempColor.Add(SgtHelper.Brighten(color, intensity));
+				tempScatter.Add(SgtHelper.Brighten(color, intensity * scatterStrength));
+				tempPosition.Add(SgtHelper.NewVector4(position, 1.0f));
+				tempDirection.Add(direction);
 
 				if (lightCount >= maxLights)
 				{
@@ -189,17 +290,19 @@ namespace SpaceGraphicsToolkit
 				}
 			}
 
-			for (var i = 0; i <= maxLights; i++)
+			foreach (var tempMaterial in SgtHelper.tempMaterials)
 			{
-				var keyword = GetLightKeyword(i);
+				if (tempMaterial != null)
+				{
+					tempMaterial.SetInt("_LightCount", lightCount);
 
-				if (lit == true && i == lightCount)
-				{
-					SgtHelper.EnableKeyword(keyword);
-				}
-				else
-				{
-					SgtHelper.DisableKeyword(keyword);
+					if (lightCount > 0)
+					{
+						tempMaterial.SetVectorArray("_LightColor", tempColor);
+						tempMaterial.SetVectorArray("_LightScatter", tempScatter);
+						tempMaterial.SetVectorArray("_LightPosition", tempPosition);
+						tempMaterial.SetVectorArray("_LightDirection", tempDirection);
+					}
 				}
 			}
 		}
@@ -245,20 +348,26 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtLight;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtLight))]
-	public class SgtLight_Editor : SgtEditor<SgtLight>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtLight_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			EditorGUILayout.HelpBox("This component marks the attached Light as one that will be used by SGT. Most SGT features only work with a limited amount of lights, so having to explicitly define which ones will be used helps stop you going over this limit.", MessageType.Info);
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Info("This component marks the attached Light as one that will be used by SGT. Most SGT features only work with a limited amount of lights, so having to explicitly define which ones will be used helps stop you going over this limit.");
 			
 			Separator();
 
 			Draw("treatAsPoint", "The SgtLightPointer component allows you to treat a Directional light like a Point light, and enabling this allows you to notify SGT about this.");
-			Draw("intensity", "This allows you to control the intensity of the attached light when used by SGT components.\n\n-1 = Use attached Light value.");
+			Draw("multiplier", "All light values will be multiplied by this before use.");
+			Draw("intensityInSGT", "This allows you to control the intensity of this light when used by SGT components that implement their own custom lighting (e.g. SgtAtmosphere). This should typically be in the 0..1 range.");
+			Draw("intensityInStandard", "This allows you to control the intensity of the attached light when using the Standard rendering pipeline.\n\n-1 = The attached light intensity will not be modified.");
+			Draw("intensityInURP", "This allows you to control the intensity of the attached light when using the URP rendering pipeline.\n\n-1 = The attached light intensity will not be modified.");
+			Draw("intensityInHDRP", "This allows you to control the intensity of the attached light when using the HDRP rendering pipeline.\n\n-1 = The attached light intensity will not be modified.");
 		}
 	}
 }

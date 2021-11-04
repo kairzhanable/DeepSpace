@@ -184,7 +184,7 @@ namespace SpaceGraphicsToolkit
 			pixel.g = Mathf.Pow(pixel.g, 1.0f - exposure);
 			pixel.b = Mathf.Pow(pixel.b, 1.0f - exposure);
 
-			generatedTexture.SetPixel(x, 0, SgtHelper.Saturate(pixel));
+			generatedTexture.SetPixel(x, 0, SgtHelper.ToGamma(SgtHelper.Saturate(pixel)));
 		}
 	}
 }
@@ -192,29 +192,31 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtRingMainTexFilter;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtRingMainTexFilter))]
-	public class SgtRingMainTexFilter_Editor : SgtEditor<SgtRingMainTexFilter>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtRingMainTexFilter_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Source == null));
+			BeginError(Any(tgts, t => t.Source == null));
 				Draw("source", ref dirtyTexture, "The source ring texture that will be filtered.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
 
 			Separator();
 
-			BeginError(Any(t => t.Power < 0.0f));
+			BeginError(Any(tgts, t => t.Power < 0.0f));
 				Draw("power", ref dirtyTexture, "The sharpness of the light/dark transition.");
 			EndError();
 			Draw("exposure", ref dirtyTexture, "This allows you to control the brightness.");
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true, true);
 		}
 	}
 }

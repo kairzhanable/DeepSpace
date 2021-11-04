@@ -48,7 +48,9 @@ namespace SpaceGraphicsToolkit
 		/// <summary>This allows you to adjust the fog level of the atmosphere in the sky.</summary>
 		public float OuterFog { set { if (outerFog != value) { outerFog = value; DirtyMaterials(); } } get { return outerFog; } } [FSA("OuterFog")] [SerializeField] private float outerFog;
 
-		/// <summary>This allows you to control how thick the atmosphere is when the camera is inside its radius.</summary>
+		/// <summary>This allows you to control how quickly the sky reaches maximum opacity as the camera enters the atmosphere.
+		/// 1 = You must go down to ground level before the opacity reaches max.
+		/// 2 = You must go at least half way down to the surface.</summary>
 		public float Sky { set { sky = value; } get { return sky; } } [FSA("Sky")] [SerializeField] private float sky = 1.0f;
 
 		/// <summary>This allows you to set the altitude where atmospheric density reaches its maximum point. The lower you set this, the foggier the horizon will appear when approaching the surface.</summary>
@@ -62,6 +64,15 @@ namespace SpaceGraphicsToolkit
 
 		/// <summary>The atmosphere will always be lit by this amount.</summary>
 		public Color AmbientColor { set { if (ambientColor != value) { ambientColor = value; DirtyMaterials(); } } get { return ambientColor; } } [FSA("AmbientColor")] [SerializeField] private Color ambientColor;
+
+		/// <summary>The <b>AmbientColor</b> will be multiplied by this.</summary>
+		public float AmbientBrightness { set { if (ambientBrightness != value) { ambientBrightness = value; DirtyMaterials(); } } get { return ambientBrightness; } } [SerializeField] private float ambientBrightness = 1.0f;
+
+		/// <summary>The maximum amount of <b>SgtLight</b> components that can light this object.</summary>
+		public int MaxLights { set { if (maxLights != value) { maxLights = value; DirtyMaterials(); } } get { return maxLights; } } [SerializeField] [Range(0, SgtLight.MAX_LIGHTS)] private int maxLights = 2;
+
+		/// <summary>The maximum amount of <b>SgtShadowSphere</b> components that can shade this object.</summary>
+		public int MaxSphereShadows { set { if (maxSphereShadows != value) { maxSphereShadows = value; DirtyMaterials(); } } get { return maxSphereShadows; } } [SerializeField] [Range(0, SgtShadow.MAX_SPHERE_SHADOWS)] private int maxSphereShadows = 2;
 
 		/// <summary>The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.</summary>
 		public Texture LightingTex { set { if (lightingTex != value) { lightingTex = value; DirtyMaterials(); } } get { return lightingTex; } } [FSA("LightingTex")] [SerializeField] private Texture lightingTex;
@@ -78,11 +89,14 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The scattering is multiplied by this value, allowing you to easily adjust the brightness of the effect.</summary>
 		public float ScatteringStrength { set { if (scatteringStrength != value) { scatteringStrength = value; DirtyMaterials(); } } get { return scatteringStrength; } } [FSA("ScatteringStrength")] [SerializeField] private float scatteringStrength = 3.0f;
 
-		/// <summary>The mie scattering term, allowing you to adjust the distribution of front scattered light.</summary>
+		/// <summary>The Mie scattering term, allowing you to adjust the distribution of front scattered light.</summary>
 		public float ScatteringMie { set { if (scatteringMie != value) { scatteringMie = value; DirtyMaterials(); } } get { return scatteringMie; } } [FSA("ScatteringMie")] [SerializeField] private float scatteringMie = 50.0f;
 
-		/// <summary>The mie rayleigh term, allowing you to adjust the distribution of front and back scattered light.</summary>
+		/// <summary>The Rayleigh scattering term, allowing you to adjust the distribution of front and back scattered light.</summary>
 		public float ScatteringRayleigh { set { if (scatteringRayleigh != value) { scatteringRayleigh = value; DirtyMaterials(); } } get { return scatteringRayleigh; } } [FSA("ScatteringRayleigh")] [SerializeField] private float scatteringRayleigh = 0.1f;
+
+		/// <summary>Should the scattering make full use of the high range color buffer? Or only fill into the LDR 0..1 (0..255) range?</summary>
+		public bool ScatteringHdr { set { if (scatteringHdr != value) { scatteringHdr = value; DirtyMaterials(); } } get { return scatteringHdr; } } [SerializeField] private bool scatteringHdr;
 
 		/// <summary>Should the night side of the atmosphere have different sky values?</summary>
 		public bool Night { set { night = value; } get { return night; } } [FSA("Night")] [SerializeField] private bool night;
@@ -169,13 +183,13 @@ namespace SpaceGraphicsToolkit
 				outerMaterial = SgtHelper.CreateTempMaterial("Atmosphere Outer (Generated)", SgtHelper.ShaderNamePrefix + "AtmosphereOuter");
 			}
 
-			var color      = SgtHelper.Brighten(this.color, brightness);
+			var finalColor = SgtHelper.Brighten(color, brightness);
 			var innerRatio = SgtHelper.Divide(innerMeshRadius, OuterRadius);
 
 			innerMaterial.renderQueue = outerMaterial.renderQueue = renderQueue;
 
-			innerMaterial.SetColor(SgtShader._Color, color);
-			outerMaterial.SetColor(SgtShader._Color, color);
+			innerMaterial.SetColor(SgtShader._Color, finalColor);
+			outerMaterial.SetColor(SgtShader._Color, finalColor);
 
 			innerMaterial.SetTexture(SgtShader._DepthTex, innerDepthTex);
 			outerMaterial.SetTexture(SgtShader._DepthTex, outerDepthTex);
@@ -185,19 +199,33 @@ namespace SpaceGraphicsToolkit
 
 			if (outerSoftness > 0.0f)
 			{
-				SgtHelper.EnableKeyword("SGT_A", outerMaterial); // Softness
+				SgtHelper.EnableKeyword("_SOFTNESS", outerMaterial);
 
 				outerMaterial.SetFloat(SgtShader._SoftParticlesFactor, SgtHelper.Reciprocal(outerSoftness));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_A", outerMaterial); // Softness
+				SgtHelper.DisableKeyword("_SOFTNESS", outerMaterial);
+			}
+
+			if (lit == true && scattering == true && scatteringHdr == true)
+			{
+				SgtHelper.EnableKeyword("_HDR", innerMaterial);
+				SgtHelper.EnableKeyword("_HDR", outerMaterial);
+			}
+			else
+			{
+				SgtHelper.DisableKeyword("_HDR", innerMaterial);
+				SgtHelper.DisableKeyword("_HDR", outerMaterial);
 			}
 
 			if (lit == true)
 			{
-				innerMaterial.SetColor(SgtShader._AmbientColor, ambientColor);
-				outerMaterial.SetColor(SgtShader._AmbientColor, ambientColor);
+				SgtHelper.EnableKeyword("_LIT", innerMaterial);
+				SgtHelper.EnableKeyword("_LIT", outerMaterial);
+
+				innerMaterial.SetColor(SgtShader._AmbientColor, SgtHelper.Brighten(ambientColor, ambientBrightness));
+				outerMaterial.SetColor(SgtShader._AmbientColor, SgtHelper.Brighten(ambientColor, ambientBrightness));
 
 				innerMaterial.SetTexture(SgtShader._LightingTex, lightingTex);
 				outerMaterial.SetTexture(SgtShader._LightingTex, lightingTex);
@@ -208,7 +236,7 @@ namespace SpaceGraphicsToolkit
 					outerMaterial.SetFloat(SgtShader._ScatteringMie, scatteringMie);
 					outerMaterial.SetFloat(SgtShader._ScatteringRayleigh, scatteringRayleigh);
 
-					SgtHelper.EnableKeyword("SGT_B", outerMaterial); // Scattering
+					SgtHelper.EnableKeyword("_SCATTERING", outerMaterial);
 
 					if (groundScattering == true)
 					{
@@ -216,18 +244,23 @@ namespace SpaceGraphicsToolkit
 						innerMaterial.SetFloat(SgtShader._ScatteringMie, scatteringMie);
 						innerMaterial.SetFloat(SgtShader._ScatteringRayleigh, scatteringRayleigh);
 
-						SgtHelper.EnableKeyword("SGT_B", innerMaterial); // Scattering
+						SgtHelper.EnableKeyword("_SCATTERING", innerMaterial);
 					}
 					else
 					{
-						SgtHelper.DisableKeyword("SGT_B", innerMaterial); // Scattering
+						SgtHelper.DisableKeyword("_SCATTERING", innerMaterial);
 					}
 				}
 				else
 				{
-					SgtHelper.DisableKeyword("SGT_B", innerMaterial); // Scattering
-					SgtHelper.DisableKeyword("SGT_B", outerMaterial); // Scattering
+					SgtHelper.DisableKeyword("_SCATTERING", innerMaterial);
+					SgtHelper.DisableKeyword("_SCATTERING", outerMaterial);
 				}
+			}
+			else
+			{
+				SgtHelper.DisableKeyword("_LIT", innerMaterial);
+				SgtHelper.DisableKeyword("_LIT", outerMaterial);
 			}
 
 			CachedSharedMaterial.Material = innerMaterial;
@@ -240,10 +273,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtAtmosphere Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Atmosphere", layer, parent, localPosition, localRotation, localScale);
-			var atmosphere = gameObject.AddComponent<SgtAtmosphere>();
-
-			return atmosphere;
+			return SgtHelper.CreateGameObject("Atmosphere", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtAtmosphere>();
 		}
 
 #if UNITY_EDITOR
@@ -302,10 +332,11 @@ namespace SpaceGraphicsToolkit
 
 			SgtShadow.Find(lit, mask, lights);
 			SgtShadow.FilterOutSphere(cachedTransform.position);
-			SgtShadow.Write(lit, 2);
+			SgtShadow.WriteSphere(maxSphereShadows);
+			SgtShadow.WriteRing(1);
 
 			SgtLight.FilterOut(cachedTransform.position);
-			SgtLight.Write(lit, cachedTransform.position, cachedTransform, null, scatteringStrength, 2);
+			SgtLight.Write(cachedTransform.position, cachedTransform, null, scatteringStrength, maxLights);
 		}
 
 		protected virtual void OnDestroy()
@@ -396,8 +427,9 @@ namespace SpaceGraphicsToolkit
 					var position  = default(Vector3);
 					var direction = default(Vector3);
 					var color     = default(Color);
+					var intensity = 0.0f;
 
-					SgtLight.Calculate(light, cachedTransform.position, null, null, ref position, ref direction, ref color);
+					SgtLight.Calculate(light, cachedTransform.position, null, null, ref position, ref direction, ref color, ref intensity);
 
 					var dot     = Vector3.Dot(direction, cameraDirection) * 0.5f + 0.5f;
 					var night01 = Mathf.InverseLerp(nightEnd, nightStart, dot);
@@ -495,80 +527,64 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAtmosphere;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAtmosphere))]
-	public class SgtAtmosphere_Editor : SgtEditor<SgtAtmosphere>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAtmosphere_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterials = false;
 
 			Draw("color", ref dirtyMaterials, "The base color will be multiplied by this.");
-			BeginError(Any(t => t.Brightness < 0.0f));
+			BeginError(Any(tgts, t => t.Brightness < 0.0f));
 				Draw("brightness", ref dirtyMaterials, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
 			EndError();
 			Draw("renderQueue", ref dirtyMaterials, "This allows you to adjust the render queue of the atmosphere materials. You can normally adjust the render queue in the material settings, but since these materials are procedurally generated your changes will be lost.");
 
 			Separator();
 
-			BeginError(Any(t => t.InnerDepthTex == null));
+			BeginError(Any(tgts, t => t.InnerDepthTex == null));
 				Draw("innerDepthTex", ref dirtyMaterials, "The look up table associating optical depth with atmospheric color for the planet surface. The left side is used when the atmosphere is thin (e.g. center of the planet when looking from space). The right side is used when the atmosphere is thick (e.g. the horizon).");
 			EndError();
-			BeginError(Any(t => t.InnerMeshRadius <= 0.0f));
+			BeginError(Any(tgts, t => t.InnerMeshRadius <= 0.0f));
 				Draw("innerMeshRadius", ref dirtyMaterials, "The radius of the meshes set in the SgtSharedMaterial.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.OuterDepthTex == null));
+			BeginError(Any(tgts, t => t.OuterDepthTex == null));
 				Draw("outerDepthTex", ref dirtyMaterials, "The look up table associating optical depth with atmospheric color for the planet sky. The left side is used when the atmosphere is thin (e.g. edge of the atmosphere when looking from space). The right side is used when the atmosphere is thick (e.g. the horizon).");
 			EndError();
-			BeginError(Any(t => t.OuterMesh == null));
+			BeginError(Any(tgts, t => t.OuterMesh == null));
 				Draw("outerMesh", ref dirtyMaterials, "This allows you to set the mesh used to render the atmosphere. This should be a sphere.");
 			EndError();
-			BeginError(Any(t => t.OuterMeshRadius <= 0.0f));
+			BeginError(Any(tgts, t => t.OuterMeshRadius <= 0.0f));
 				Draw("outerMeshRadius", ref dirtyMaterials, "This allows you to set the radius of the OuterMesh. If this is incorrectly set then the atmosphere will render incorrectly.");
 			EndError();
 			Draw("outerSoftness", ref dirtyMaterials, "If you have a big object that is both inside and outside of the atmosphere, it can cause a sharp intersection line. Increasing this setting allows you to change the smoothness of this intersection.");
 
-			if (Any(t => t.OuterSoftness > 0.0f))
+			if (Any(tgts, t => t.OuterSoftness > 0.0f))
 			{
-				foreach (var camera in Camera.allCameras)
-				{
-					if (SgtHelper.Enabled(camera) == true && camera.depthTextureMode == DepthTextureMode.None)
-					{
-						if ((camera.cullingMask & (1 << Target.gameObject.layer)) != 0)
-						{
-							if (HelpButton("You have enabled soft particles, but the '" + camera.name + "' camera does not write depth textures.", MessageType.Error, "Fix", 50.0f) == true)
-							{
-								var dtm = SgtHelper.GetOrAddComponent<SgtDepthTextureMode>(camera.gameObject);
-
-								dtm.DepthMode = DepthTextureMode.Depth;
-
-								dtm.UpdateDepthMode();
-
-								Selection.activeObject = dtm;
-							}
-						}
-					}
-				}
+				SgtHelper.RequireDepth();
 			}
 
 			Separator();
 
-			BeginError(Any(t => t.Height <= 0.0f));
+			BeginError(Any(tgts, t => t.Height <= 0.0f));
 				Draw("height", ref dirtyMaterials, "This allows you to set how high the atmosphere extends above the surface of the planet in local space.");
 			EndError();
-			BeginError(Any(t => t.InnerFog >= 1.0f));
+			BeginError(Any(tgts, t => t.InnerFog >= 1.0f));
 				Draw("innerFog", ref dirtyMaterials, "This allows you to adjust the fog level of the atmosphere on the surface.");
 			EndError();
-			BeginError(Any(t => t.OuterFog >= 1.0f));
+			BeginError(Any(tgts, t => t.OuterFog >= 1.0f));
 				Draw("outerFog", ref dirtyMaterials, "This allows you to adjust the fog level of the atmosphere in the sky.");
 			EndError();
-			BeginError(Any(t => t.Sky < 0.0f));
-				Draw("sky", "This allows you to control how thick the atmosphere is when the camera is inside its radius"); // Updated automatically
+			BeginError(Any(tgts, t => t.Sky < 0.0f));
+				Draw("sky", "This allows you to control how quickly the sky reaches maximum opacity as the camera enters the atmosphere.\n\n1 = You must go down to ground level before the opacity reaches max.\n\n2 = You must go at least half way down to the surface."); // Updated automatically
 			EndError();
 			Draw("middle", "This allows you to set the altitude where atmospheric density reaches its maximum point. The lower you set this, the foggier the horizon will appear when approaching the surface."); // Updated automatically
 			Draw("cameraOffset", "This allows you to offset the camera distance in world space when rendering the atmosphere, giving you fine control over the render order."); // Updated automatically
@@ -577,42 +593,46 @@ namespace SpaceGraphicsToolkit
 
 			Draw("lit", ref dirtyMaterials, "If you enable this then nearby SgtLight and SgtShadow casters will be found and applied to the lighting calculations.");
 
-			if (Any(t => t.Lit == true))
+			if (Any(tgts, t => t.Lit == true))
 			{
 				if (SgtLight.InstanceCount == 0)
 				{
-					EditorGUILayout.HelpBox("You need to add the SgtLight component to your scene lights for them to work with SGT.", MessageType.Warning);
+					Warning("You need to add the SgtLight component to your scene lights for them to work with SGT.");
 				}
 
 				BeginIndent();
-					BeginError(Any(t => t.LightingTex == null));
+					BeginError(Any(tgts, t => t.LightingTex == null));
 						Draw("lightingTex", "The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.");
 					EndError();
 					Draw("ambientColor", ref dirtyMaterials, "The atmosphere will always be lit by this amount.");
+					Draw("ambientBrightness", ref dirtyMaterials, "The <b>AmbientColor</b> will be multiplied by this.");
+					Draw("maxLights", "The maximum amount of <b>SgtLight</b> components that can light this object."); // Updated automatically
+					Draw("maxSphereShadows", "The maximum amount of <b>SgtShadowSphere</b> components that can shade this object."); // Updated automatically
 					Draw("scattering", ref dirtyMaterials, "If you enable this then light will scatter through the atmosphere. This means light entering the eye will come from all angles, especially around the light point.");
-					if (Any(t => t.Scattering == true))
+					if (Any(tgts, t => t.Scattering == true))
 					{
 						BeginIndent();
 							Draw("groundScattering", ref dirtyMaterials, "If you enable this then atmospheric scattering will be applied to the surface material.");
-							BeginError(Any(t => t.ScatteringTex == null));
+							BeginError(Any(tgts, t => t.ScatteringTex == null));
 								Draw("scatteringTex", ref dirtyMaterials, "The look up table associating light angle with scattering color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.");
 							EndError();
 							Draw("scatteringStrength", ref dirtyMaterials, "The scattering is multiplied by this value, allowing you to easily adjust the brightness of the effect.");
-							Draw("scatteringMie", ref dirtyMaterials, "The mie scattering term, allowing you to adjust the distribution of front scattered light.");
-							Draw("scatteringRayleigh", ref dirtyMaterials, "The mie rayleigh term, allowing you to adjust the distribution of front and back scattered light.");
+							Draw("scatteringMie", ref dirtyMaterials, "The Mie scattering term, allowing you to adjust the distribution of front scattered light.");
+							Draw("scatteringRayleigh", ref dirtyMaterials, "The Rayleigh scattering term, allowing you to adjust the distribution of front and back scattered light.");
+							Draw("scatteringHdr", ref dirtyMaterials, "Should the scattering make full use of the high range color buffer? Or only fill into the LDR 0..1 (0..255) range?");
 						EndIndent();
 					}
 					Draw("night", "Should the night side of the atmosphere have different sky values?"); // Updated automatically
-					if (Any(t => t.Night == true))
+					if (Any(tgts, t => t.Night == true))
 					{
 						BeginIndent();
 							Draw("nightSky", "The 'Sky' value of the night side."); // Updated automatically
 							Draw("nightEase", "The transition style between the day and night."); // Updated automatically
-							BeginError(Any(t => t.NightStart >= t.NightEnd));
+							BeginError(Any(tgts, t => t.NightStart >= t.NightEnd));
 								Draw("nightStart", "The start point of the day/sunset transition (0 = dark side, 1 = light side)."); // Updated automatically
 								Draw("nightEnd", "The end point of the day/sunset transition (0 = dark side, 1 = light side)."); // Updated automatically
 							EndError();
-							BeginError(Any(t => t.NightPower < 1.0f));
+							BeginError(Any(tgts, t => t.NightPower < 1.0f));
 								Draw("nightPower", "The power of the night transition."); // Updated automatically
 							EndError();
 						EndIndent();
@@ -620,59 +640,59 @@ namespace SpaceGraphicsToolkit
 				EndIndent();
 			}
 
-			if (Any(t => (t.InnerDepthTex == null || t.OuterDepthTex == null) && t.GetComponent<SgtAtmosphereDepthTex>() == null))
+			if (Any(tgts, t => (t.InnerDepthTex == null || t.OuterDepthTex == null) && t.GetComponent<SgtAtmosphereDepthTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add InnerDepthTex & OuterDepthTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAtmosphereDepthTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAtmosphereDepthTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Lit == true && t.LightingTex == null && t.GetComponent<SgtAtmosphereLightingTex>() == null))
+			if (Any(tgts, t => t.Lit == true && t.LightingTex == null && t.GetComponent<SgtAtmosphereLightingTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add LightingTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAtmosphereLightingTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAtmosphereLightingTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Lit == true && t.Scattering == true && t.ScatteringTex == null && t.GetComponent<SgtAtmosphereScatteringTex>() == null))
+			if (Any(tgts, t => t.Lit == true && t.Scattering == true && t.ScatteringTex == null && t.GetComponent<SgtAtmosphereScatteringTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add ScatteringTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAtmosphereScatteringTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAtmosphereScatteringTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => SetOuterMeshAndOuterMeshRadius(t, false)))
+			if (Any(tgts, t => SetOuterMeshAndOuterMeshRadius(t, false)))
 			{
 				Separator();
 
 				if (Button("Set Outer Mesh & Outer Mesh Radius") == true)
 				{
-					Each(t => SetOuterMeshAndOuterMeshRadius(t, true));
+					Each(tgts, t => SetOuterMeshAndOuterMeshRadius(t, true));
 				}
 			}
 
-			if (Any(t => AddInnerRendererAndSetInnerMeshRadius(t, false)))
+			if (Any(tgts, t => AddInnerRendererAndSetInnerMeshRadius(t, false)))
 			{
 				Separator();
 
 				if (Button("Add Inner Renderer & Set Inner Mesh Radius") == true)
 				{
-					Each(t => AddInnerRendererAndSetInnerMeshRadius(t, true));
+					Each(tgts, t => AddInnerRendererAndSetInnerMeshRadius(t, true));
 				}
 			}
 
 			if (dirtyMaterials == true)
 			{
-				DirtyEach(t => t.DirtyMaterials());
+				Each(tgts, t => t.DirtyMaterials(), true, true);
 			}
 		}
 

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGraphicsToolkit
@@ -7,24 +7,31 @@ namespace SpaceGraphicsToolkit
 	[ExecuteInEditMode]
 	[HelpURL(SgtHelper.HelpUrlPrefix + "SgtPlanet")]
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Planet")]
-	public class SgtPlanet : MonoBehaviour
+	public class SgtPlanet : MonoBehaviour, IOverridableSharedMaterial
 	{
-		public enum ChannelType
+		class Seam
 		{
-			Red,
-			Green,
-			Blue,
-			Alpha
+			public List<int> Indices = new List<int>();
+
+			public static Stack<Seam> Pool = new Stack<Seam>();
+		}
+
+		class Geom
+		{
+			public List<Seam> Seams = new List<Seam>();
 		}
 
 		/// <summary>The sphere mesh used to render the planet.</summary>
-		public Mesh Mesh { set { mesh = value; DirtyMesh(); } get { return mesh; } } [SerializeField] private Mesh mesh;
+		public Mesh Mesh { set { if (mesh != value) { mesh = value; DirtyMesh(); } } get { return mesh; } } [SerializeField] private Mesh mesh;
+
+		/// <summary>The rendering layer used to render the planet.</summary>
+		//public int RenderingLayer { set { renderingLayer = value; } get { return renderingLayer; } } [SerializeField] [SgtLayer] private int renderingLayer;
 
 		/// <summary>If you want the generated mesh to have a matching collider, you can specify it here.</summary>
-		public MeshCollider MeshCollider { set { meshCollider = value; DirtyMesh(); } get { return meshCollider; } } [SerializeField] private MeshCollider meshCollider;
+		public MeshCollider MeshCollider { set { if (meshCollider != value) { meshCollider = value; DirtyMesh(); } } get { return meshCollider; } } [SerializeField] private MeshCollider meshCollider;
 
 		/// <summary>The radius of the planet in local space.</summary>
-		public float Radius { set { radius = value; DirtyMesh(); } get { return radius; } } [SerializeField] private float radius = 1.0f;
+		public float Radius { set { if (radius != value) { radius = value; DirtyMesh(); } } get { return radius; } } [SerializeField] private float radius = 1.0f;
 
 		/// <summary>The material used to render the planet. For best results, this should use the SGT Planet shader.</summary>
 		public Material Material { set { material = value; } get { return material; } } [SerializeField] private Material material;
@@ -32,25 +39,21 @@ namespace SpaceGraphicsToolkit
 		/// <summary>If you want to apply a shared material (e.g. atmosphere) to this terrain, then specify it here.</summary>
 		public SgtSharedMaterial SharedMaterial { set { sharedMaterial = value; } get { return sharedMaterial; } } [SerializeField] private SgtSharedMaterial sharedMaterial;
 
-		/// <summary>The heightmap texture, where the height data is stored in the alpha channel.
-		/// NOTE: This should use an Equirectangular projection.
-		/// NOTE: This texture should be marked as readable.</summary>
-		public Texture2D Heightmap { set { heightmap = value; DirtyMesh(); } get { return heightmap; } } [SerializeField] private Texture2D heightmap;
-
-		/// <summary>This allows you to choose which color channel from the heightmap texture will be used.
-		/// NOTE: If your texture uses a 1 byte per channel format like Alpha8/R8, then this setting will be ignored.</summary>
-		public ChannelType Channel { set { channel = value; DirtyMesh(); } get { return channel; } } [SerializeField] private ChannelType channel = ChannelType.Alpha;
-
-		/// <summary>The maximum height displacement applied to the planet mesh when the heightmap alpha value is 1.</summary>
-		public float Displacement { set { displacement = value; DirtyMesh(); } get { return displacement; } } [SerializeField] private float displacement = 0.1f;
-
 		/// <summary>The current water level.
 		/// 0 = Radius.
 		/// 1 = Radius + Displacement.</summary>
-		public float WaterLevel { set { waterLevel = value; DirtyMesh(); } get { return waterLevel; } } [Range(-2.0f, 2.0f)] [SerializeField] private float waterLevel;
+		public float WaterLevel { set { if (waterLevel != value) { waterLevel = value; DirtyMesh(); } } get { return waterLevel; } } [Range(-2.0f, 2.0f)] [SerializeField] private float waterLevel;
+
+		/// <summary>Should the planet mesh be displaced using the heightmap in the planet material?</summary>
+		public bool Displace { set { if (displace != value) { displace = value; DirtyMesh(); } } get { return displace; } } [SerializeField] private bool displace;
+
+		/// <summary>The maximum height displacement applied to the planet mesh when the heightmap alpha value is 1.</summary>
+		public float Displacement { set { if (displacement != value) { displacement = value; DirtyMesh(); } } get { return displacement; } } [SerializeField] private float displacement = 0.1f;
 
 		/// <summary>If you enable this then the water will not rise, instead the terrain will shrink down.</summary>
-		public bool ClampWater { set { clampWater = value; DirtyMesh(); } get { return clampWater; } } [SerializeField] private bool clampWater;
+		public bool ClampWater { set { if (clampWater != value) { clampWater = value; DirtyMesh(); } } get { return clampWater; } } [SerializeField] private bool clampWater;
+
+		public event SgtSharedMaterial.OverrideSharedMaterialSignature OnOverrideSharedMaterial;
 
 		[System.NonSerialized]
 		private Mesh generatedMesh;
@@ -62,25 +65,74 @@ namespace SpaceGraphicsToolkit
 		private List<Vector4> generatedCoords = new List<Vector4>();
 
 		[System.NonSerialized]
-		private MaterialPropertyBlock properties;
+		private List<Vector3> generatedNormals = new List<Vector3>();
+
+		[System.NonSerialized]
+		private List<Vector4> generatedTangents = new List<Vector4>();
+
+		[System.NonSerialized]
+		private SgtProperties properties = new SgtProperties();
 
 		[System.NonSerialized]
 		private bool dirtyMesh;
+
+		[System.NonSerialized]
+		private Texture2D lastHeightmap;
+
+		private static Dictionary<Mesh, Geom> meshToGeom = new Dictionary<Mesh, Geom>();
+
+		private static Dictionary<Vector3, Seam> tempPoints = new Dictionary<Vector3, Seam>();
+
+		public SgtProperties Properties
+		{
+			get
+			{
+				return properties;
+			}
+		}
+
+		public Texture2D MaterialHeightmap
+		{
+			get
+			{
+				return material != null ? material.GetTexture(SgtShader._HeightMap) as Texture2D : null;
+			}
+		}
+
+		public bool MaterialHasWater
+		{
+			get
+			{
+				return material != null ? material.GetFloat(SgtShader._HasWater) == 1.0f : false;
+			}
+		}
 
 		public void DirtyMesh()
 		{
 			dirtyMesh = true;
 		}
 
+		public void RegisterSharedMaterialOverride(SgtSharedMaterial.OverrideSharedMaterialSignature e)
+		{
+			OnOverrideSharedMaterial += e;
+		}
+
+		public void UnregisterSharedMaterialOverride(SgtSharedMaterial.OverrideSharedMaterialSignature e)
+		{
+			OnOverrideSharedMaterial -= e;
+		}
+
 		/// <summary>This method causes the planet mesh to update based on the current settings. You should call this after you finish modifying them.</summary>
 		[ContextMenu("Rebuild")]
 		public void Rebuild()
 		{
-			dirtyMesh         = false;
+			dirtyMesh     = false;
 			generatedMesh = SgtHelper.Destroy(generatedMesh);
 
 			if (mesh != null)
 			{
+				var geom = GetGeom(mesh);
+
 				generatedMesh = Instantiate(mesh);
 
 				generatedMesh.GetVertices(generatedPositions);
@@ -88,8 +140,9 @@ namespace SpaceGraphicsToolkit
 
 				var count = generatedMesh.vertexCount;
 
+				lastHeightmap = MaterialHeightmap;
 #if UNITY_EDITOR
-				SgtHelper.MakeTextureReadable(heightmap);
+				SgtHelper.MakeTextureReadable(lastHeightmap);
 #endif
 
 				for (var i = 0; i < count; i++)
@@ -122,12 +175,97 @@ namespace SpaceGraphicsToolkit
 				generatedMesh.RecalculateNormals();
 				generatedMesh.RecalculateTangents();
 
+				generatedMesh.GetNormals(generatedNormals);
+				generatedMesh.GetTangents(generatedTangents);
+
+				foreach (var seam in geom.Seams)
+				{
+					if (seam.Indices.Count > 1)
+					{
+						var averageNormal  = default(Vector3);
+						var averageTangent = default(Vector4);
+
+						for (var i = 0; i < seam.Indices.Count; i++)
+						{
+							var index = seam.Indices[i];
+
+							averageNormal  += generatedNormals[index];
+							averageTangent += generatedTangents[index];
+						}
+
+						averageNormal  /= seam.Indices.Count;
+						averageTangent /= seam.Indices.Count;
+
+						for (var i = 0; i < seam.Indices.Count; i++)
+						{
+							var index = seam.Indices[i];
+
+							generatedNormals[index] = averageNormal;
+							generatedTangents[index] = averageTangent;
+						}
+					}
+				}
+
+				generatedMesh.SetNormals(generatedNormals);
+				generatedMesh.SetTangents(generatedTangents);
+
 				if (meshCollider != null)
 				{
 					meshCollider.sharedMesh = null;
 					meshCollider.sharedMesh = generatedMesh;
 				}
 			}
+		}
+
+		private static Geom GetGeom(Mesh mesh)
+		{
+			var geom = default(Geom);
+
+			if (meshToGeom.TryGetValue(mesh, out geom) == false)
+			{
+				geom = new Geom();
+
+				tempPoints.Clear();
+
+				var positions = mesh.vertices;
+
+				for (var i = 0; i < positions.Length; i++)
+				{
+					var point = positions[i];
+					var seam  = default(Seam);
+
+					if (tempPoints.TryGetValue(point, out seam) == false)
+					{
+						seam = Seam.Pool.Count > 0 ? Seam.Pool.Pop() : new Seam();
+
+						tempPoints.Add(point, seam);
+					}
+
+					seam.Indices.Add(i);
+				}
+
+				foreach (var pair in tempPoints)
+				{
+					var seam = pair.Value;
+
+					if (seam.Indices.Count > 1)
+					{
+						geom.Seams.Add(pair.Value);
+					}
+					else
+					{
+						seam.Indices.Clear();
+
+						Seam.Pool.Push(seam);
+					}
+				}
+
+				tempPoints.Clear();
+
+				meshToGeom.Add(mesh, geom);
+			}
+
+			return geom;
 		}
 
 		public static SgtPlanet Create(int layer = 0, Transform parent = null)
@@ -137,10 +275,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtPlanet Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Planet", layer, parent, localPosition, localRotation, localScale);
-			var instance   = gameObject.AddComponent<SgtPlanet>();
-
-			return instance;
+			return SgtHelper.CreateGameObject("Planet", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtPlanet>();
 		}
 
 #if UNITY_EDITOR
@@ -177,24 +312,55 @@ namespace SpaceGraphicsToolkit
 
 			if (generatedMesh != null && material != null)
 			{
-				if (properties == null)
-				{
-					properties = new MaterialPropertyBlock();
-				}
+				Properties.SetFloat(SgtShader._WaterLevel, waterLevel);
 
-				properties.SetFloat(SgtShader._WaterLevel, waterLevel);
+				// Write direction of nearest light?
+				if (material.GetFloat("_HasNight") == 1.0f)
+				{
+					var mask   = 1 << gameObject.layer;
+					var lights = SgtLight.Find(true, mask, transform.position);
+
+					SgtLight.FilterOut(transform.position);
+
+					if (lights.Count > 0)
+					{
+						var position  = Vector3.zero;
+						var direction = Vector3.forward;
+						var color     = Color.white;
+						var intensity = 0.0f;
+
+						SgtLight.Calculate(lights[0], transform.position, default(Transform), default(Transform), ref position, ref direction, ref color, ref intensity);
+
+						properties.SetVector(Shader.PropertyToID("_NightDirection"), -direction);
+					}
+				}
 			}
+		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyMesh();
 		}
 
 		private void HandleCameraDraw(Camera camera)
 		{
 			if (SgtHelper.CanDraw(gameObject, camera) == false) return;
 
-			Graphics.DrawMesh(generatedMesh, transform.localToWorldMatrix, material, gameObject.layer, camera, 0, properties);
+			//var layer = SgtHelper.GetRenderingLayers(gameObject, renderingLayer);
+			var layer = gameObject.layer;
 
-			if (sharedMaterial != null && sharedMaterial.Material != null)
+			Graphics.DrawMesh(generatedMesh, transform.localToWorldMatrix, material, layer, camera, 0, properties);
+
+			var finalSharedMaterial = sharedMaterial;
+
+			if (OnOverrideSharedMaterial != null)
 			{
-				Graphics.DrawMesh(generatedMesh, transform.localToWorldMatrix, sharedMaterial.Material, gameObject.layer, camera, 0, properties);
+				OnOverrideSharedMaterial.Invoke(ref finalSharedMaterial, camera);
+			}
+
+			if (SgtHelper.Enabled(finalSharedMaterial) == true && finalSharedMaterial.Material != null)
+			{
+				Graphics.DrawMesh(generatedMesh, transform.localToWorldMatrix, finalSharedMaterial.Material, layer, camera, 0, properties);
 			}
 		}
 
@@ -222,10 +388,10 @@ namespace SpaceGraphicsToolkit
 		{
 			var final = radius;
 
-			if (heightmap != null)
+			if (displace == true && lastHeightmap != null)
 			{
 				var uv   = SgtHelper.CartesianToPolarUV(vector);
-				var land = heightmap.GetPixelBilinear(uv.x, uv.y)[(int)channel];
+				var land = lastHeightmap.GetPixelBilinear(uv.x, uv.y).a;
 
 				if (clampWater == true)
 				{
@@ -245,42 +411,75 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtPlanet;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtPlanet))]
-	public class SgtPlanet_Editor : SgtEditor<SgtPlanet>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtPlanet_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMesh = false;
 
-			BeginError(Any(t => t.Mesh == null));
+			BeginError(Any(tgts, t => t.Mesh == null));
 				Draw("mesh", ref dirtyMesh, "The sphere mesh used to render the planet.");
 			EndError();
+			//Draw("renderingLayer", "The rendering layer used to render the planet.");
 			Draw("meshCollider", ref dirtyMesh, "If you want the generated mesh to have a matching collider, you can specify it here.");
-			BeginError(Any(t => t.Radius <= 0.0f));
+			BeginError(Any(tgts, t => t.Radius <= 0.0f));
 				Draw("radius", ref dirtyMesh, "The radius of the planet in local space.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.Material == null));
+			BeginError(Any(tgts, t => t.Material == null));
 				Draw("material", "The material used to render the planet. For best results, this should use the SGT Planet shader.");
 			EndError();
 			Draw("sharedMaterial", "If you want to apply a shared material (e.g. atmosphere) to this terrain, then specify it here.");
 
 			Separator();
 
-			Draw("heightmap", ref dirtyMesh, "The heightmap texture, where the height data is stored in the alpha channel.\n\nNOTE: This should use an Equirectangular projection.\n\nNOTE: This texture should be marked as readable.");
-			Draw("channel", ref dirtyMesh, "This allows you to choose which color channel from the heightmap texture will be used.");
-			BeginError(Any(t => t.Displacement == 0.0f));
-				Draw("displacement", ref dirtyMesh, "The maximum height displacement applied to the planet mesh when the heightmap alpha value is 1.");
-			EndError();
-			Draw("waterLevel", ref dirtyMesh, "The current water level.\n\n0 = Radius.\n\n1 = Radius + Displacement.");
-			Draw("clampWater", ref dirtyMesh, "If you enable this then the water will not rise, instead the terrain will shrink down.");
+			if (Any(tgts, t => t.MaterialHeightmap != null))
+			{
+				if (Any(tgts, t => t.MaterialHasWater == true))
+				{
+					Draw("waterLevel", ref dirtyMesh, "The current water level.\n\n0 = Radius.\n\n1 = Radius + Displacement.");
+				}
+				Draw("displace", ref dirtyMesh, "Should the planet mesh be displaced using the heightmap in the planet material?");
+				if (Any(tgts, t => t.Displace == true))
+				{
+					BeginIndent();
+						BeginError(Any(tgts, t => t.Displacement == 0.0f));
+							Draw("displacement", ref dirtyMesh, "The maximum height displacement applied to the planet mesh when the heightmap alpha value is 1.");
+						EndError();
+						Draw("clampWater", ref dirtyMesh, "If you enable this then the water will not rise, instead the terrain will shrink down.");
+					EndIndent();
+				}
+			}
 
-			if (dirtyMesh == true) DirtyEach(t => t.DirtyMesh());
+			if (Any(tgts, t => t.MaterialHasWater == true && t.GetComponent<SgtPlanetWaterGradient>() == null))
+			{
+				Separator();
+
+				if (HelpButton("This material has water, but you have no WaterGradient component.", UnityEditor.MessageType.Info, "Fix", 50) == true)
+				{
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtPlanetWaterGradient>(t.gameObject));
+				}
+			}
+
+			if (Any(tgts, t => t.MaterialHasWater == true && t.GetComponent<SgtPlanetWaterTexture>() == null))
+			{
+				Separator();
+
+				if (HelpButton("This material has water, but you have no WaterTexture component.", UnityEditor.MessageType.Info, "Fix", 50) == true)
+				{
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtPlanetWaterTexture>(t.gameObject));
+				}
+			}
+
+			if (dirtyMesh == true) Each(tgts, t => t.DirtyMesh(), true, true);
 		}
 	}
 }

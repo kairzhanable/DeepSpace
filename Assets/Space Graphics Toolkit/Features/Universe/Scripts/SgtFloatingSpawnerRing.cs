@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -52,27 +52,29 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingSpawnerRing;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingSpawnerRing))]
-	public class SgtFloatingSpawnerRing_Editor : SgtFloatingSpawner_Editor<SgtFloatingSpawnerRing>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingSpawnerRing_Editor : SgtFloatingSpawner_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
 			Separator();
 
 			Draw("count", "The amount of prefabs that will be spawned.");
-			BeginError(Any(t => t.RadiusMin <= 0.0 || t.RadiusMin > t.RadiusMax));
+			BeginError(Any(tgts, t => t.RadiusMin <= 0.0 || t.RadiusMin > t.RadiusMax));
 				Draw("radiusMin", "The minimum distance away the prefabs can spawn in meters.");
-				Draw("radiusMax");
+				Draw("radiusMax", "The maximum distance away the prefabs can spawn in meters.");
 			EndError();
 
-			if (Any(t => t.RadiusMin > t.Range || t.RadiusMax > t.Range))
+			if (Any(tgts, t => t.RadiusMin > t.Range || t.RadiusMax > t.Range))
 			{
-				EditorGUILayout.HelpBox("The spawn range should be greater than the spawn radius.", MessageType.Warning);
+				Warning("The spawn range should be greater than the spawn radius.");
 			}
 		}
 	}

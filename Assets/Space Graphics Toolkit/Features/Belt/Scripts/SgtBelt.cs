@@ -16,14 +16,33 @@ namespace SpaceGraphicsToolkit
 		/// <summary>If you enable this then nearby SgtLight and SgtShadow casters will be found and applied to the lighting calculations.</summary>
 		public bool Lit { set { if (lit != value) { lit = value; DirtyMaterial(); } } get { return lit; } } [FSA("Lit")] [SerializeField] private bool lit;
 
-		/// <summary>The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.</summary>
-		public Texture LightingTex { set { if (lightingTex != value) { lightingTex = value; DirtyMaterial(); } } get { return lightingTex; } } [FSA("LightingTex")] [SerializeField] private Texture lightingTex;
-
 		/// <summary>The belt will always be lit by this amount.</summary>
 		public Color AmbientColor { set { if (ambientColor != value) { ambientColor = value; DirtyMaterial(); } } get { return ambientColor; } } [FSA("AmbientColor")] [SerializeField] private Color ambientColor;
 
+		/// <summary>The <b>AmbientColor</b> will be multiplied by this.</summary>
+		public float AmbientBrightness { set { if (ambientBrightness != value) { ambientBrightness = value; DirtyMaterial(); } } get { return ambientBrightness; } } [SerializeField] private float ambientBrightness = 1.0f;
+
+		/// <summary>The maximum amount of <b>SgtLight</b> components that can light this object.</summary>
+		public int MaxLights { set { if (maxLights != value) { maxLights = value; DirtyMaterial(); } } get { return maxLights; } } [SerializeField] [Range(0, SgtLight.MAX_LIGHTS)] private int maxLights = 2;
+
+		/// <summary>The maximum amount of <b>SgtShadowSphere</b> components that can shade this object.</summary>
+		public int MaxSphereShadows { set { if (maxSphereShadows != value) { maxSphereShadows = value; DirtyMaterial(); } } get { return maxSphereShadows; } } [SerializeField] [Range(0, SgtShadow.MAX_SPHERE_SHADOWS)] private int maxSphereShadows = 2;
+
+		/// <summary>The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.</summary>
+		public Texture LightingTex { set { if (lightingTex != value) { lightingTex = value; DirtyMaterial(); } } get { return lightingTex; } } [FSA("LightingTex")] [SerializeField] private Texture lightingTex;
+
 		/// <summary>Instead of just tinting the asteroids with the colors, should the RGB values be raised to the power of the color?</summary>
 		public bool PowerRgb { set { if (powerRgb != value) { powerRgb = value; DirtyMaterial(); } } get { return powerRgb; } } [FSA("PowerRgb")] [SerializeField] private bool powerRgb;
+
+		public static Vector3 CalculateLocalPosition(ref SgtBeltAsteroid asteroid, float age)
+		{
+			var a = asteroid.OrbitAngle + asteroid.OrbitSpeed * age;
+			var x = (float)System.Math.Sin(a) * asteroid.OrbitDistance;
+			var y = asteroid.Height;
+			var z = (float)System.Math.Cos(a) * asteroid.OrbitDistance;
+
+			return new Vector3(x, y, z);
+		}
 
 		public SgtBeltCustom MakeEditableCopy(int layer = 0, Transform parent = null)
 		{
@@ -52,21 +71,24 @@ namespace SpaceGraphicsToolkit
 			EndQuads();
 
 			// Copy common settings
-			customBelt.Color         = Color;
-			customBelt.Brightness    = Brightness;
-			customBelt.mainTex       = mainTex;
-			customBelt.layout        = layout;
-			customBelt.layoutColumns = layoutColumns;
-			customBelt.layoutRows    = layoutRows;
-			customBelt.layoutRects   = new List<Rect>(layoutRects);
-			customBelt.blendMode     = blendMode;
-			customBelt.renderQueue   = renderQueue;
-			customBelt.orbitOffset   = orbitOffset;
-			customBelt.orbitSpeed    = orbitSpeed;
-			customBelt.lit           = lit;
-			customBelt.lightingTex   = lightingTex;
-			customBelt.ambientColor  = ambientColor;
-			customBelt.powerRgb      = powerRgb;
+			customBelt.Color             = Color;
+			customBelt.Brightness        = Brightness;
+			customBelt.mainTex           = mainTex;
+			customBelt.layout            = layout;
+			customBelt.layoutColumns     = layoutColumns;
+			customBelt.layoutRows        = layoutRows;
+			customBelt.layoutRects       = new List<Rect>(layoutRects);
+			customBelt.blendMode         = blendMode;
+			customBelt.renderQueue       = renderQueue;
+			customBelt.orbitOffset       = orbitOffset;
+			customBelt.orbitSpeed        = orbitSpeed;
+			customBelt.lit               = lit;
+			customBelt.maxLights         = maxLights;
+			customBelt.maxSphereShadows  = maxSphereShadows;
+			customBelt.ambientColor      = ambientColor;
+			customBelt.ambientBrightness = ambientBrightness;
+			customBelt.lightingTex       = lightingTex;
+			customBelt.powerRgb          = powerRgb;
 
 			return customBelt;
 		}
@@ -100,9 +122,10 @@ namespace SpaceGraphicsToolkit
 
 			SgtShadow.Find(lit, mask, lights);
 			SgtShadow.FilterOutRing(transform.position);
-			SgtShadow.Write(lit, 2);
+			SgtShadow.WriteSphere(2);
+			SgtShadow.WriteRing(1);
 
-			SgtLight.Write(lit, transform.position, transform, null, 1.0f, 2);
+			SgtLight.Write(transform.position, transform, null, 1.0f, 2);
 		}
 
 		protected override void HandleCameraDraw(Camera camera)
@@ -143,16 +166,22 @@ namespace SpaceGraphicsToolkit
 			if (lit == true)
 			{
 				material.SetTexture(SgtShader._LightingTex, lightingTex);
-				material.SetColor(SgtShader._AmbientColor, ambientColor);
+				material.SetColor(SgtShader._AmbientColor, SgtHelper.Brighten(ambientColor, ambientBrightness));
+
+				SgtHelper.EnableKeyword("_LIT", material);
+			}
+			else
+			{
+				SgtHelper.DisableKeyword("_LIT", material);
 			}
 
 			if (powerRgb == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B", material); // PowerRgb
+				SgtHelper.EnableKeyword("_POWER_RGB", material);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B", material); // PowerRgb
+				SgtHelper.DisableKeyword("_POWER_RGB", material);
 			}
 
 			material.SetTexture(SgtShader._LightingTex, lightingTex);
@@ -248,60 +277,58 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtBelt;
 
-	public abstract class SgtBelt_Editor<T> : SgtQuads_Editor<T>
-		where T : SgtBelt
+	public abstract class SgtBelt_Editor : SgtQuads_Editor
 	{
-		protected override void DrawMaterial(ref bool updateMaterial)
+		protected override void DrawMaterial(ref bool dirtyMaterial)
 		{
-			Draw("color", ref updateMaterial, "The base color will be multiplied by this.");
-			BeginError(Any(t => t.Brightness < 0.0f));
-				Draw("brightness", ref updateMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("color", ref dirtyMaterial, "The base color will be multiplied by this.");
+			BeginError(Any(tgts, t => t.Brightness < 0.0f));
+				Draw("brightness", ref dirtyMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
 			EndError();
-			Draw("blendMode", ref updateMaterial, "The blend mode used to render the material.");
-			Draw("renderQueue", ref updateMaterial, "This allows you to adjust the render queue of the belt material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
+			Draw("blendMode", ref dirtyMaterial, "The blend mode used to render the material.");
+			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the belt material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
 			Draw("orbitOffset", "The amount of seconds this belt has been animating for."); // Updated automatically
 			Draw("orbitSpeed", "The animation speed of this belt."); // Updated automatically
 		}
 
-		protected void DrawLighting(ref bool updateMaterial)
+		protected void DrawLighting(ref bool dirtyMaterial)
 		{
-			Draw("powerRgb", ref updateMaterial, "Instead of just tinting the asteroids with the colors, should the RGB values be raised to the power of the color?");
-			Draw("lit", ref updateMaterial, "If you enable this then nearby SgtLight and SgtShadow casters will be found and applied to the lighting calculations.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			if (Any(t => t.Lit == true))
+			Draw("powerRgb", ref dirtyMaterial, "Instead of just tinting the asteroids with the colors, should the RGB values be raised to the power of the color?");
+			Draw("lit", ref dirtyMaterial, "If you enable this then nearby SgtLight and SgtShadow casters will be found and applied to the lighting calculations.");
+
+			if (Any(tgts, t => t.Lit == true))
 			{
 				if (SgtLight.InstanceCount == 0)
 				{
-					EditorGUILayout.HelpBox("You need to add the SgtLight component to your scene lights for them to work with SGT.", MessageType.Warning);
+					Warning("You need to add the SgtLight component to your scene lights for them to work with SGT.");
 				}
 
 				BeginIndent();
-					BeginError(Any(t => t.LightingTex == null));
-						Draw("lightingTex", ref updateMaterial, "The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.");
+					Draw("ambientColor", ref dirtyMaterial, "The belt will always be lit by this amount.");
+					Draw("ambientBrightness", ref dirtyMaterial, "The <b>AmbientColor</b> will be multiplied by this.");
+					Draw("maxLights", "The maximum amount of <b>SgtLight</b> components that can light this object."); // Updated automatically
+					Draw("maxSphereShadows", "The maximum amount of <b>SgtShadowSphere</b> components that can shade this object."); // Updated automatically
+					BeginError(Any(tgts, t => t.LightingTex == null));
+						Draw("lightingTex", ref dirtyMaterial, "The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.");
 					EndError();
-					Draw("ambientColor", ref updateMaterial, "The belt will always be lit by this amount.");
 				EndIndent();
 			}
 
-			if (Any(t => t.Lit == true && t.LightingTex == null && t.GetComponent<SgtBeltLightingTex>() == null))
+			if (Any(tgts, t => t.Lit == true && t.LightingTex == null && t.GetComponent<SgtBeltLightingTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add LightingTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtBeltLightingTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtBeltLightingTex>(t.gameObject));
 				}
 			}
-		}
-
-		protected override void DrawMainTex(ref bool updateMaterial, ref bool updateMeshesAndModels)
-		{
-			BeginError(Any(t => t.MainTex == null));
-				Draw("mainTex", ref updateMaterial, "The main texture of this material.");
-			EndError();
-			DrawLayout(ref updateMaterial, ref updateMeshesAndModels);
 		}
 	}
 }

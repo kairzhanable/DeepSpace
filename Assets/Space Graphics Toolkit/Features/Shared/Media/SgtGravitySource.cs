@@ -56,13 +56,16 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtGravitySource;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtGravitySource))]
-	public class SgtGravitySource_Editor : SgtEditor<SgtGravitySource>
+	[UnityEditor.CanEditMultipleObjects]
+	[CustomEditor(typeof(TARGET))]
+	public class SgtGravitySource_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("mass", "The mass of this gravity source.");
 			Draw("autoSetMass", "If you enable this then the Mass setting will be automatically copied from the attached Rigidbody.");
 		}

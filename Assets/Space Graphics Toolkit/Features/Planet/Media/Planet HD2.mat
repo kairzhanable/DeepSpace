@@ -8,8 +8,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Planet HD2
-  m_Shader: {fileID: 4800000, guid: a5f40074ccb50df44ae3999830305ff9, type: 3}
-  m_ShaderKeywords: SGT_A _NORMALMAP _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+  m_Shader: {fileID: 4800000, guid: 8d82487c84181094f812dc054bd6f2f5, type: 3}
+  m_ShaderKeywords: SGT_A _DETAIL _DETAIL_R _NORMALMAP _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -19,6 +19,22 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AlbedoMapA:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AlbedoMapB:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AlbedoMapG:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AlbedoMapR:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 2800000, guid: 9971c1ef4d1d8884e97dbe2e4b2e1c14, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -44,14 +60,42 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMapA:
-        m_Texture: {fileID: 2800000, guid: 88093cc45b3dd9e448d5b9cb9c071856, type: 3}
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMapA_Ext_1:
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMapB:
-        m_Texture: {fileID: 2800000, guid: 99f8ac90b3a9c594aa9c3d8bda689a7c, type: 3}
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMapB_Ext_1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMapG:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMapG_Ext_1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMapR:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMapR_Ext_1:
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMaskMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -83,6 +127,26 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: 48b8c3d56d560304192cad77927cb11b, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMapA:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMapB:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMapG:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMapR:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -99,8 +163,16 @@ Material:
         m_Texture: {fileID: 2800000, guid: 9c94558e33ef46a428ea0d07aabc9b14, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _WaterGradient:
+        m_Texture: {fileID: 2800000, guid: 9c94558e33ef46a428ea0d07aabc9b14, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _WaterLevelMap:
         m_Texture: {fileID: 2800000, guid: 1b5f73039f76d0747aa85997e1ec2b79, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WaterTexture:
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
@@ -109,16 +181,39 @@ Material:
     - _DetailBumpStrength: 2.93
     - _DetailBumpStrengthA: 0.87
     - _DetailBumpStrengthB: 1.93
+    - _DetailFadeRange: 1000
+    - _DetailFadeRange_Ext_1: 1000
+    - _DetailNoiseStrength: 0.1
+    - _DetailNoiseTiling: 0.000001
     - _DetailNormalMapScale: 1
     - _DetailScale: 20
-    - _DetailScaleA: 0.29
-    - _DetailScaleB: 0.61
+    - _DetailScaleA: 0.51
+    - _DetailScaleA_Ext_1: 1
+    - _DetailScaleB: 0.54
+    - _DetailScaleB_Ext_1: 1
+    - _DetailScaleG: 1
+    - _DetailScaleG_Ext_1: 1
+    - _DetailScaleR: 2
+    - _DetailScaleR_Ext_1: 1
     - _DetailStrength: 1
     - _DetailTiling: 500
+    - _DetailTilingA: 100
+    - _DetailTilingB: 1500
+    - _DetailTiling_Ext_1: 10
     - _DstBlend: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.27
     - _GlossyReflections: 1
+    - _HasDetail: 1
+    - _HasDetailA: 0
+    - _HasDetailAlbedo: 0
+    - _HasDetailB: 0
+    - _HasDetailG: 0
+    - _HasDetailNormal: 0
+    - _HasDetailR: 1
+    - _HasDetail_Ext_1: 0
+    - _HasNight: 0
+    - _HasWater: 0
     - _IceOverWater: 0
     - _Metallic: 0
     - _Mode: 0
@@ -137,14 +232,20 @@ Material:
     - _WaterColorScale: 7.83
     - _WaterDistortion: 2
     - _WaterEmission: 0
+    - _WaterGradientScale: 6
     - _WaterLevel: 0
     - _WaterLevelScale: 0.0005
     - _WaterMetallic: 0
+    - _WaterNoiseStrength: 0.1
+    - _WaterNoiseTiling: 0.01
     - _WaterScale: 40
     - _WaterSharpness: 10000
-    - _WaterSmoothness: 1
+    - _WaterSmoothness: 0.9
+    - _WaterStrength: 1
     - _WaterTiling: 1000
     - _ZWrite: 1
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _NightDirection: {r: 0, g: 0, b: 1, a: 1}
+    - _WaterColor: {r: 1, g: 1, b: 1, a: 1}

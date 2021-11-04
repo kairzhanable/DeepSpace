@@ -7,6 +7,6 @@ namespace DeepSpace{
     public class EngineStat : ScriptableObject {
         public ModuleType moduleType;
         public int moduleSize;
-        public int maxTrust;
+        public float maxTrust;
     }
 }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
@@ -6,12 +6,12 @@ using Unity.Mathematics;
 
 namespace SpaceGraphicsToolkit
 {
-	/// <summary></summary>
+	/// <summary>This component can add sine wave heights to your terrain. This is mostly used for debugging the terrain or learning how to implement your own height generators.</summary>
 	[ExecuteInEditMode]
 	[RequireComponent(typeof(SgtTerrain))]
 	public class SgtTerrainSine : MonoBehaviour
 	{
-		/// <summary>This allows you to control where this biome appears based on the <b>SgtTerrainTerra</b> component's <b>Biomes</b> splatmap.</summary>
+		/// <summary>This allows you to control where this biome appears based on the <b>SgtTerrain</b> component's <b>Areas</b> splatmap.</summary>
 		public int Area { set { area = value; MarkAsDirty(); } get { return area; } } [SerializeField] private int area;
 
 		/// <summary>The amount of peaks and valleys across the mesh.</summary>
@@ -43,9 +43,9 @@ namespace SpaceGraphicsToolkit
 			cachedTerrain.OnScheduleHeights         += HandleScheduleHeights;
 			cachedTerrain.OnScheduleCombinedHeights += HandleScheduleHeights;
 
-			cachedTerrain.MarkAsDirty();
-
 			tempWeights = new NativeArray<float>(0, Allocator.Persistent);
+
+			cachedTerrain.MarkAsDirty();
 		}
 
 		protected virtual void OnDisable()
@@ -53,10 +53,14 @@ namespace SpaceGraphicsToolkit
 			cachedTerrain.OnScheduleHeights         -= HandleScheduleHeights;
 			cachedTerrain.OnScheduleCombinedHeights -= HandleScheduleHeights;
 
-			cachedTerrain.MarkAsDirty();
+			cachedTerrain.ScheduleDispose(tempWeights);
 
-			// TODO: Make sure this executes after the job finishes
-			tempWeights.Dispose();
+			cachedTerrain.MarkAsDirty();
+		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			MarkAsDirty();
 		}
 
 		private void HandleScheduleHeights(NativeArray<double3> points, NativeArray<double> heights, ref JobHandle handle)
@@ -145,31 +149,33 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainSine;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainSine))]
-	public class SgtWorldSine_Editor : SgtEditor<SgtTerrainSine>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtWorldSine_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var markAsDirty = false;
 
-			markAsDirty |= SgtTerrain_Editor<SgtTerrain>.DrawArea(serializedObject.FindProperty("area"), Target.GetComponent<SgtTerrain>());
+			markAsDirty |= SgtTerrain_Editor.DrawArea(serializedObject.FindProperty("area"), tgt.GetComponent<SgtTerrain>());
 
-			EditorGUILayout.Separator();
+			Separator();
 
-			BeginError(Any(t => t.Frequency == 0.0));
+			BeginError(Any(tgts, t => t.Frequency == 0.0));
 				Draw("frequency", ref markAsDirty, "The amount of peaks and valleys across the mesh.");
 			EndError();
-			BeginError(Any(t => t.Amplitude == 0.0));
+			BeginError(Any(tgts, t => t.Amplitude == 0.0));
 				Draw("amplitude", ref markAsDirty, "The maximum +- displacement of the first octave.\n\nNOTE: The final displacement may be greater than this range when using multiple octaves.");
 			EndError();
 			Draw("octaves", ref markAsDirty, "The amount of noise layers.");
 
 			if (markAsDirty == true)
 			{
-				Each(t => t.MarkAsDirty());
+				Each(tgts, t => t.MarkAsDirty());
 			}
 		}
 	}

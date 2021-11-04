@@ -55,10 +55,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtStarfieldInfinite Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject        = SgtHelper.CreateGameObject("Starfield Infinite", layer, parent, localPosition, localRotation, localScale);
-			var starfieldInfinite = gameObject.AddComponent<SgtStarfieldInfinite>();
-
-			return starfieldInfinite;
+			return SgtHelper.CreateGameObject("Starfield Infinite", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtStarfieldInfinite>();
 		}
 
 #if UNITY_EDITOR
@@ -123,18 +120,18 @@ namespace SpaceGraphicsToolkit
 
 			if (softness > 0.0f)
 			{
-				SgtHelper.EnableKeyword("LIGHT_2", material); // Softness
+				SgtHelper.EnableKeyword("_SOFTNESS", material);
 
 				material.SetFloat(SgtShader._SoftParticlesFactor, SgtHelper.Reciprocal(softness));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("LIGHT_2", material); // Softness
+				SgtHelper.DisableKeyword("_SOFTNESS", material);
 			}
 
 			if (far == true)
 			{
-				SgtHelper.EnableKeyword("SGT_E", material); // Far
+				SgtHelper.EnableKeyword("_FAR", material);
 
 				material.SetTexture(SgtShader._FarTex, farTex);
 				material.SetFloat(SgtShader._FarRadius, farRadius);
@@ -142,7 +139,7 @@ namespace SpaceGraphicsToolkit
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_E", material); // Far
+				SgtHelper.DisableKeyword("_FAR", material);
 			}
 
 			material.SetVector(SgtShader._WrapSize, size);
@@ -181,7 +178,7 @@ namespace SpaceGraphicsToolkit
 		{
 			base.BuildMesh(mesh, count);
 
-			mesh.bounds = new Bounds(Vector3.zero, Vector3.one * float.MaxValue);
+			mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 1.0e10f);
 		}
 
 		protected override void EndQuads()
@@ -194,65 +191,49 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtStarfieldInfinite;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtStarfieldInfinite))]
-	public class SgtStarfieldInfinite_Editor : SgtStarfield_Editor<SgtStarfieldInfinite>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtStarfieldInfinite_Editor : SgtStarfield_Editor
 	{
 		protected override void OnInspector()
 		{
-			var dirtyMaterial        = false;
-			var dirtyMesh = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			var dirtyMaterial = false;
+			var dirtyMesh     = false;
 
 			DrawMaterial(ref dirtyMaterial);
 
 			Separator();
 
-			DrawMainTex(ref dirtyMaterial, ref dirtyMesh);
-			DrawLayout(ref dirtyMaterial, ref dirtyMesh);
+			DrawMainTex(ref dirtyMaterial);
+			DrawLayout(ref dirtyMesh);
 
 			Separator();
 
 			Draw("softness", ref dirtyMaterial, "Should the stars fade out if they're intersecting solid geometry?");
 
-			if (Any(t => t.Softness > 0.0f))
+			if (Any(tgts, t => t.Softness > 0.0f))
 			{
-				foreach (var camera in Camera.allCameras)
-				{
-					if (SgtHelper.Enabled(camera) == true && camera.depthTextureMode == DepthTextureMode.None)
-					{
-						if ((camera.cullingMask & (1 << Target.gameObject.layer)) != 0)
-						{
-							if (HelpButton("You have enabled soft particles, but the '" + camera.name + "' camera does not write depth textures.", MessageType.Error, "Fix", 50.0f) == true)
-							{
-								var dtm = SgtHelper.GetOrAddComponent<SgtDepthTextureMode>(camera.gameObject);
-
-								dtm.DepthMode = DepthTextureMode.Depth;
-
-								dtm.UpdateDepthMode();
-
-								Selection.activeObject = dtm;
-							}
-						}
-					}
-				}
+				SgtHelper.RequireDepth();
 			}
 
 			DrawPointMaterial(ref dirtyMaterial);
 
 			Draw("far", ref dirtyMaterial, "Should the stars fade out when the camera gets too far away?");
 
-			if (Any(t => t.Far == true))
+			if (Any(tgts, t => t.Far == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.FarTex == null));
+					BeginError(Any(tgts, t => t.FarTex == null));
 						Draw("farTex", ref dirtyMaterial, "The lookup table used to calculate the fading amount based on the distance.");
 					EndError();
-					BeginError(Any(t => t.FarRadius < 0.0f));
+					BeginError(Any(tgts, t => t.FarRadius < 0.0f));
 						Draw("farRadius", ref dirtyMaterial, "The radius of the fading effect in world space.");
 					EndError();
-					BeginError(Any(t => t.FarThickness <= 0.0f));
+					BeginError(Any(tgts, t => t.FarThickness <= 0.0f));
 						Draw("farThickness", ref dirtyMaterial, "The thickness of the fading effect in world space.");
 					EndError();
 				EndIndent();
@@ -261,57 +242,55 @@ namespace SpaceGraphicsToolkit
 			Separator();
 
 			Draw("seed", ref dirtyMesh, "This allows you to set the random seed used during procedural generation.");
-			BeginError(Any(t => t.Size.x <= 0.0f || t.Size.y <= 0.0f || t.Size.z <= 0.0f));
+			BeginError(Any(tgts, t => t.Size.x <= 0.0f || t.Size.y <= 0.0f || t.Size.z <= 0.0f));
 				Draw("size", ref dirtyMesh, ref dirtyMaterial, "The radius of the starfield.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.StarCount < 0));
+			BeginError(Any(tgts, t => t.StarCount < 0));
 				Draw("starCount", ref dirtyMesh, "The amount of stars that will be generated in the starfield.");
 			EndError();
 			Draw("starColors", ref dirtyMesh, "Each star is given a random color from this gradient.");
-			BeginError(Any(t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMin < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMin", ref dirtyMesh, "The minimum radius of stars in the starfield.");
 			EndError();
-			BeginError(Any(t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
+			BeginError(Any(tgts, t => t.StarRadiusMax < 0.0f || t.StarRadiusMin > t.StarRadiusMax));
 				Draw("starRadiusMax", ref dirtyMesh, "The maximum radius of stars in the starfield.");
 			EndError();
-			BeginError(Any(t => t.StarRadiusBias < 1.0f));
+			BeginError(Any(tgts, t => t.StarRadiusBias < 1.0f));
 				Draw("starRadiusBias", ref dirtyMesh, "How likely the size picking will pick smaller stars over larger ones (1 = default/linear).");
 			EndError();
 			Draw("starPulseMax", ref dirtyMesh, "The maximum amount a star's size can pulse over time. A value of 1 means the star can potentially pulse between its maximum size, and 0.");
 		
-			RequireCamera();
+			SgtHelper.RequireCamera();
 
-			serializedObject.ApplyModifiedProperties();
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 
-			if (dirtyMaterial == true) DirtyEach(t => t.DirtyMaterial());
-			if (dirtyMesh     == true) DirtyEach(t => t.DirtyMesh    ());
-
-			if (Any(t => t.Far == true && t.FarTex == null && t.GetComponent<SgtStarfieldInfiniteFarTex>() == null))
+			if (Any(tgts, t => t.Far == true && t.FarTex == null && t.GetComponent<SgtStarfieldInfiniteFarTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add FarTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtStarfieldInfiniteFarTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtStarfieldInfiniteFarTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.GetComponentInParent<SgtFloatingObject>()))
+			if (Any(tgts, t => t.GetComponentInParent<SgtFloatingObject>()))
 			{
-				EditorGUILayout.HelpBox("SgtStarfieldInfinite automatically snaps with the floating origin system, using SgtFloatingObject may cause issues with this GameObject.", MessageType.Warning);
+				Warning("SgtStarfieldInfinite automatically snaps with the floating origin system, using SgtFloatingObject may cause issues with this GameObject.");
 			}
 
-			if (SgtFloatingCamera.Instances.Count > 0 && Any(t => t.transform.rotation != Quaternion.identity))
+			if (SgtFloatingCamera.Instances.Count > 0 && Any(tgts, t => t.transform.rotation != Quaternion.identity))
 			{
-				EditorGUILayout.HelpBox("This transform is rotated, this may cause issues with the floating origin system.", MessageType.Warning);
+				Warning("This transform is rotated, this may cause issues with the floating origin system.");
 			}
 
-			if (SgtFloatingCamera.Instances.Count > 0 && Any(t => IsUniform(t.transform) == false))
+			if (SgtFloatingCamera.Instances.Count > 0 && Any(tgts, t => IsUniform(t.transform) == false))
 			{
-				EditorGUILayout.HelpBox("This transform is non-uniformly scaled, this may cause issues with the floating origin system.", MessageType.Warning);
+				Warning("This transform is non-uniformly scaled, this may cause issues with the floating origin system.");
 			}
 		}
 

@@ -4,11 +4,12 @@
 Material:
   serializedVersion: 6
   m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_Name: BackdropClouds2
   m_Shader: {fileID: 4800000, guid: 03e5507c2e5f9e84d80b016802c075d7, type: 3}
-  m_ShaderKeywords: SGT_C
+  m_ShaderKeywords: SGT_C _CLAMP_SIZE
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0

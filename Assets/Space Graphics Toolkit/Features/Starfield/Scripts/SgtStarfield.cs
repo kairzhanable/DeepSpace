@@ -200,52 +200,52 @@ namespace SpaceGraphicsToolkit
 
 			if (powerRgb == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B", material); // PowerRgb
+				SgtHelper.EnableKeyword("_POWER_RGB", material);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B", material); // PowerRgb
+				SgtHelper.DisableKeyword("_POWER_RGB", material);
 			}
 
 			if (clampSize == true)
 			{
-				SgtHelper.EnableKeyword("LIGHT_2", material); // Clamp Size
+				SgtHelper.EnableKeyword("_CLAMP_SIZE", material);
 
 				material.SetFloat(SgtShader._ClampSizeMin, clampSizeMin);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("LIGHT_2", material); // Clamp Size
+				SgtHelper.DisableKeyword("_CLAMP_SIZE", material);
 			}
 
 			if (stretch == true)
 			{
-				SgtHelper.EnableKeyword("SGT_C", material); // Stretch
+				SgtHelper.EnableKeyword("_STRETCH", material);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_C", material); // Stretch
+				SgtHelper.DisableKeyword("_STRETCH", material);
 			}
 
 			if (near == true)
 			{
-				SgtHelper.EnableKeyword("SGT_D", material); // Near
+				SgtHelper.EnableKeyword("_NEAR", material);
 
 				material.SetTexture(SgtShader._NearTex, nearTex);
 				material.SetFloat(SgtShader._NearScale, SgtHelper.Reciprocal(nearThickness));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_D", material); // Near
+				SgtHelper.DisableKeyword("_NEAR", material);
 			}
 
 			if (pulse == true)
 			{
-				SgtHelper.EnableKeyword("LIGHT_1", material); // Pulse
+				SgtHelper.EnableKeyword("_PULSE", material);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("LIGHT_1", material); // Pulse
+				SgtHelper.DisableKeyword("_PULSE", material);
 			}
 		}
 
@@ -345,72 +345,73 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtStarfield;
 
-	public class SgtStarfield_Editor<T> : SgtQuads_Editor<T>
-		where T : SgtStarfield
+	public class SgtStarfield_Editor : SgtQuads_Editor
 	{
-		protected void DrawPointMaterial(ref bool updateMaterial)
+		protected void DrawPointMaterial(ref bool dirtyMaterial)
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Separator();
 
-			Draw("powerRgb", ref updateMaterial, "Instead of just tinting the stars with the colors, should the RGB values be raised to the power of the color?");
-			Draw("clampSize", ref updateMaterial, "Prevent the quads from being too small on screen?");
-			if (Any(t => t.ClampSize == true))
+			Draw("powerRgb", ref dirtyMaterial, "Instead of just tinting the stars with the colors, should the RGB values be raised to the power of the color?");
+			Draw("clampSize", ref dirtyMaterial, "Prevent the quads from being too small on screen?");
+			if (Any(tgts, t => t.ClampSize == true))
 			{
 				BeginIndent();
-					Draw("clampSizeMin", ref updateMaterial, "The minimum size each star can be on screen in pixels. If the star goes below this size, it loses opacity proportional to the amount it would have gone under.");
+					Draw("clampSizeMin", ref dirtyMaterial, "The minimum size each star can be on screen in pixels. If the star goes below this size, it loses opacity proportional to the amount it would have gone under.");
 				EndIndent();
 			}
 
-			Draw("stretch", ref updateMaterial, "Should the stars stretch if an observer moves?");
+			Draw("stretch", ref dirtyMaterial, "Should the stars stretch if an observer moves?");
 
-			if (Any(t => t.Stretch == true))
+			if (Any(tgts, t => t.Stretch == true))
 			{
 				BeginIndent();
-					Draw("stretchVector", ref updateMaterial, "The vector of the stretching.");
-					BeginError(Any(t => t.StretchScale < 0.0f));
-						Draw("stretchScale", ref updateMaterial, "The scale of the stretching relative to the velocity.");
+					Draw("stretchVector", ref dirtyMaterial, "The vector of the stretching.");
+					BeginError(Any(tgts, t => t.StretchScale < 0.0f));
+						Draw("stretchScale", ref dirtyMaterial, "The scale of the stretching relative to the velocity.");
 					EndError();
-					BeginError(Any(t => t.StretchLimit <= 0.0f));
+					BeginError(Any(tgts, t => t.StretchLimit <= 0.0f));
 						Draw("stretchLimit", "When warping with the floating origin system the camera velocity can get too large, this allows you to limit it.");
 					EndError();
 				EndIndent();
 			}
 
-			Draw("pulse", ref updateMaterial, "Should the stars pulse in size over time?");
+			Draw("pulse", ref dirtyMaterial, "Should the stars pulse in size over time?");
 
-			if (Any(t => t.Pulse == true))
+			if (Any(tgts, t => t.Pulse == true))
 			{
 				BeginIndent();
 					Draw("pulseOffset", "The amount of seconds this starfield has been animating.");
-					BeginError(Any(t => t.PulseSpeed == 0.0f));
+					BeginError(Any(tgts, t => t.PulseSpeed == 0.0f));
 						Draw("pulseSpeed", "The animation speed of this starfield.");
 					EndError();
 				EndIndent();
 			}
 
-			Draw("near", ref updateMaterial, "Should the stars fade out when the camera gets near?");
+			Draw("near", ref dirtyMaterial, "Should the stars fade out when the camera gets near?");
 
-			if (Any(t => t.Near == true))
+			if (Any(tgts, t => t.Near == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.NearTex == null));
-						Draw("nearTex", ref updateMaterial, "The lookup table used to calculate the fading amount based on the distance.");
+					BeginError(Any(tgts, t => t.NearTex == null));
+						Draw("nearTex", ref dirtyMaterial, "The lookup table used to calculate the fading amount based on the distance.");
 					EndError();
-					BeginError(Any(t => t.NearThickness < 0.0f));
-						Draw("nearThickness", ref updateMaterial, "The thickness of the fading effect in world space.");
+					BeginError(Any(tgts, t => t.NearThickness < 0.0f));
+						Draw("nearThickness", ref dirtyMaterial, "The thickness of the fading effect in world space.");
 					EndError();
 				EndIndent();
 			}
 
-			if (Any(t => t.Near == true && t.NearTex == null && t.GetComponent<SgtStarfieldNearTex>() == null))
+			if (Any(tgts, t => t.Near == true && t.NearTex == null && t.GetComponent<SgtStarfieldNearTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add NearTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtStarfieldNearTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtStarfieldNearTex>(t.gameObject));
 				}
 			}
 		}

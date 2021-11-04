@@ -113,6 +113,11 @@ namespace SpaceGraphicsToolkit
 			SgtHelper.Destroy(generatedTexture);
 		}
 
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyTexture();
+		}
+
 		private void UpdateTexture()
 		{
 			if (width > 0)
@@ -154,7 +159,7 @@ namespace SpaceGraphicsToolkit
 			var fade  = SgtHelper.Saturate(SgtEase.Evaluate(ease, SgtHelper.Sharpness(Mathf.InverseLerp(offset, 1.0f, u), sharpness)));
 			var color = new Color(fade, fade, fade, fade);
 
-			generatedTexture.SetPixel(x, 0, color);
+			generatedTexture.SetPixel(x, 0, SgtHelper.ToGamma(color));
 		}
 	}
 }
@@ -162,17 +167,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtStarfieldNearTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtStarfieldNearTex))]
-	public class SgtStarfieldNearTex_Editor : SgtEditor<SgtStarfieldNearTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtStarfieldNearTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The texture format of the generated texture.");
@@ -180,12 +187,14 @@ namespace SpaceGraphicsToolkit
 			Separator();
 
 			Draw("ease", ref dirtyTexture, "The transition style.");
-			Draw("sharpness", ref dirtyTexture, "The sharpness of the transition.");
-			BeginError(Any(t => t.Offset >= 1.0f));
+			BeginError(Any(tgts, t => t.Sharpness == 0.0f));
+				Draw("sharpness", ref dirtyTexture, "The sharpness of the transition.");
+			EndError();
+			BeginError(Any(tgts, t => t.Offset >= 1.0f));
 				Draw("offset", ref dirtyTexture, "The start point of the fading.");
 			EndError();
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true, true);
 		}
 	}
 }

@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Collections;
 using Unity.Mathematics;
 
 namespace SpaceGraphicsToolkit
 {
-	/// <summary>This class contains the core classes and methods used to construct the SgtWorld mesh.</summary>
+	/// <summary>This class contains the core classes and methods used to construct the SgtTerrain mesh.</summary>
 	public static class SgtTerrainTopology
 	{
 		public static double3[] CubeC = new double3[] { new double3( 1.0, -1.0, -1.0), new double3( 1.0,  1.0, -1.0), new double3( 1.0, -1.0,  1.0), new double3(-1.0, -1.0,  1.0), new double3(-1.0, -1.0, -1.0), new double3(-1.0, -1.0, -1.0) };

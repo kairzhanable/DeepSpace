@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -90,9 +90,9 @@ namespace SpaceGraphicsToolkit
 						// Inner
 						{
 							var point   = position;
-							var offsetX = sin * i1;
-							var offsetY = 0.0;
-							var offsetZ = cos * i2;
+							var offsetX = orbit.Offset.x + sin * i1;
+							var offsetY = orbit.Offset.y + 0.0;
+							var offsetZ = orbit.Offset.z + cos * i2;
 
 							SgtFloatingOrbit.Rotate(rotation, ref offsetX, ref offsetY, ref offsetZ);
 
@@ -108,9 +108,9 @@ namespace SpaceGraphicsToolkit
 						// Outer
 						{
 							var point   = position;
-							var offsetX = sin * o1;
-							var offsetY = 0.0;
-							var offsetZ = cos * o2;
+							var offsetX = orbit.Offset.x + sin * o1;
+							var offsetY = orbit.Offset.y + 0.0;
+							var offsetZ = orbit.Offset.z + cos * o2;
 
 							SgtFloatingOrbit.Rotate(rotation, ref offsetX, ref offsetY, ref offsetZ);
 
@@ -167,18 +167,20 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingOrbitVisual;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingOrbitVisual))]
-	public class SgtFloatingOrbitVisual_Editor : SgtEditor<SgtFloatingOrbitVisual>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingOrbitVisual_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Orbit == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Orbit == null));
 				Draw("orbit", "The orbit that will be rendered by this component.");
 			EndError();
-			BeginError(Any(t => t.Material == null));
+			BeginError(Any(tgts, t => t.Material == null));
 				Draw("material", "The material of the orbit.");
 			EndError();
 			Draw("thickness", "The thickness of the visual ring in local space.");

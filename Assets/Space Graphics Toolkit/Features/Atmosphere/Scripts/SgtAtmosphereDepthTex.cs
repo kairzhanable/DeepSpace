@@ -215,9 +215,9 @@ namespace SpaceGraphicsToolkit
 			var alphaU = SgtHelper.Sharpness(u, alphaSharpness); alphaU = SgtEase.Evaluate(ease, alphaU);
 			var color  = Color.Lerp(baseColor, horizonColor, colorU);
 
-			color.a = alphaU;
+			color.a = SgtHelper.ToGamma(alphaU);
 
-			texture2D.SetPixel(x, 0, SgtHelper.Saturate(color));
+			texture2D.SetPixel(x, 0, SgtHelper.ToGamma(SgtHelper.Saturate(color)));
 		}
 	}
 }
@@ -225,17 +225,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAtmosphereDepthTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAtmosphereDepthTex))]
-	public class SgtAtmosphereDepthTex_Editor : SgtEditor<SgtAtmosphereDepthTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAtmosphereDepthTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTextures = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTextures, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTextures, "The format of the generated texture.");
@@ -255,7 +257,7 @@ namespace SpaceGraphicsToolkit
 			Draw("outerColorSharpness", ref dirtyTextures, "The strength of the outer texture transition.");
 			Draw("outerAlphaSharpness", ref dirtyTextures, "The strength of the outer texture transition.");
 
-			if (dirtyTextures == true) DirtyEach(t => t.DirtyTextures());
+			if (dirtyTextures == true) Each(tgts, t => t.DirtyTextures(), true, true);
 		}
 	}
 }

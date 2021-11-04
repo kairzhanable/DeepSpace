@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using Unity.Collections;
@@ -151,14 +151,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainAreas;
 
-	//[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainAreas))]
-	public class SgtTerrainAreas_Editor : SgtEditor<SgtTerrainAreas>
+	//[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainAreas_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("texture", "");
 
 			Separator();

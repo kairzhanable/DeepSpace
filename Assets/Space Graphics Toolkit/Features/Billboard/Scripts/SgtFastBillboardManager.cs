@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -83,15 +83,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFastBillboardManager;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFastBillboardManager))]
-	public class SgtFastBillboardManager_Editor : SgtEditor<SgtFastBillboardManager>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFastBillboardManager_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			EditorGUILayout.HelpBox("This component marks where all spawned SgtFloatingObjects will be attached to.", MessageType.Info);
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Info("This component marks where all spawned SgtFloatingObjects will be attached to.");
 		}
 	}
 }

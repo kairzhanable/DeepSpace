@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
@@ -11,7 +11,7 @@ namespace SpaceGraphicsToolkit
 	[RequireComponent(typeof(SgtTerrain))]
 	public class SgtTerrainSimplex : MonoBehaviour
 	{
-		/// <summary>This allows you to control where this biome appears based on the <b>SgtTerrainTerra</b> component's <b>Biomes</b> splatmap.</summary>
+		/// <summary>This allows you to control where this biome appears based on the <b>SgtTerrain</b> component's <b>Areas</b> splatmap.</summary>
 		public int Area { set { area = value; MarkAsDirty(); } get { return area; } } [SerializeField] private int area = -1;
 
 		/// <summary>The amount of peaks and valleys across the mesh.</summary>
@@ -49,9 +49,9 @@ namespace SpaceGraphicsToolkit
 			cachedTerrain.OnScheduleHeights         += HandleScheduleHeights;
 			cachedTerrain.OnScheduleCombinedHeights += HandleScheduleHeights;
 
-			cachedTerrain.MarkAsDirty();
-
 			tempWeights = new NativeArray<float>(0, Allocator.Persistent);
+
+			cachedTerrain.MarkAsDirty();
 		}
 
 		protected virtual void OnDisable()
@@ -59,10 +59,14 @@ namespace SpaceGraphicsToolkit
 			cachedTerrain.OnScheduleHeights         -= HandleScheduleHeights;
 			cachedTerrain.OnScheduleCombinedHeights -= HandleScheduleHeights;
 
-			cachedTerrain.MarkAsDirty();
+			cachedTerrain.ScheduleDispose(tempWeights);
 
-			// TODO: Make sure this executes after the job finishes
-			tempWeights.Dispose();
+			cachedTerrain.MarkAsDirty();
+		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			MarkAsDirty();
 		}
 
 		private void HandleScheduleHeights(NativeArray<double3> points, NativeArray<double> heights, ref JobHandle handle)
@@ -168,24 +172,26 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainSimplex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainSimplex))]
-	public class SgtWorldSimplex_Editor : SgtEditor<SgtTerrainSimplex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtWorldSimplex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var markAsDirty = false;
 
-			markAsDirty |= SgtTerrain_Editor<SgtTerrain>.DrawArea(serializedObject.FindProperty("area"), Target.GetComponent<SgtTerrain>());
+			markAsDirty |= SgtTerrain_Editor.DrawArea(serializedObject.FindProperty("area"), tgt.GetComponent<SgtTerrain>());
 
-			EditorGUILayout.Separator();
+			Separator();
 
-			BeginError(Any(t => t.Frequency == 0.0));
+			BeginError(Any(tgts, t => t.Frequency == 0.0));
 				Draw("frequency", ref markAsDirty, "The amount of peaks and valleys across the mesh.");
 			EndError();
-			BeginError(Any(t => t.Amplitude == 0.0));
+			BeginError(Any(tgts, t => t.Amplitude == 0.0));
 				Draw("amplitude", ref markAsDirty, "The maximum +- displacement of the first octave.\n\nNOTE: The final displacement may be greater than this range when using multiple octaves.");
 			EndError();
 			Draw("ridged", ref markAsDirty, "Use ridged simplex noise?");
@@ -194,9 +200,7 @@ namespace SpaceGraphicsToolkit
 
 			if (markAsDirty == true)
 			{
-				serializedObject.ApplyModifiedProperties();
-
-				Each(t => t.MarkAsDirty());
+				Each(tgts, t => t.MarkAsDirty(), true, true);
 			}
 		}
 	}

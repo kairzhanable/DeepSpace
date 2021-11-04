@@ -10,71 +10,24 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Spacetime")]
 	public class SgtSpacetime : MonoBehaviour
 	{
-		public enum DisplacementType
-		{
-			Pinch,
-			Offset
-		}
+		/// <summary>The <b>Material</b> used to render all the spacetime meshes. This should use the <b>Space Graphics Toolkit/Spacetime</b> material.</summary>
+		public Material Material { set { if (material != value) { material = value; DirtyMaterial(); } } get { return material; } } [SerializeField] private Material material;
 
-		/// <summary>The center of the spacetime grid in local space.</summary>
-		public Vector2 Center { set { center = value; } get { return center; } } [SerializeField] private Vector2 center;
+		/// <summary>The spacetime data collected by this component will be rendered to these Renderers.
+		/// NOTE: If you modify this list you should call the <b>DirtyRenderers</b> or <b>ApplyMaterialToRenderers</b> method.</summary>
+		public List<Renderer> Renderers { get { if (renderers == null) renderers = new List<Renderer>(); return renderers; } } [SerializeField] private List<Renderer> renderers = null;
 
-		/// <summary>The size of the spacetime grid in local space.</summary>
-		public Vector2 Size { set { size = value; } get { return size; } } [SerializeField] private Vector2 size = new Vector2(100.0f, 100.0f);
+		/// <summary>The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Gaussian</b> distribution that can be rendered by this spacetime.</summary>
+		public int MaxGaussianWells { set { maxGaussianWells = value; } get { return maxGaussianWells; } } [SerializeField] [Range(0, MAX_GAUSSIAN_WELLS)] private int maxGaussianWells = 12;
 
-		/// <summary>The mesh used to render the spacetime.</summary>
-		public Mesh Mesh { set { mesh = value; } get { return mesh; } } [SerializeField] private Mesh mesh;
+		/// <summary>The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Ripple</b> distribution that can be rendered by this spacetime.</summary>
+		public int MaxRippleWells { set { maxRippleWells = value; } get { return maxRippleWells; } } [SerializeField] [Range(0, MAX_RIPPLE_WELLS)] private int maxRippleWells = 1;
 
-		/// <summary>The base color will be multiplied by this.</summary>
-		public Color Color { set { if (color != value) { color = value; DirtyMaterial(); } } get { return color; } } [FSA("Color")] [SerializeField] private Color color = Color.white;
+		/// <summary>The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Twist</b> distribution that can be rendered by this spacetime.</summary>
+		public int MaxTwistWells { set { maxTwistWells = value; } get { return maxTwistWells; } } [SerializeField] [Range(0, MAX_TWIST_WELLS)] private int maxTwistWells = 1;
 
-		/// <summary>The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.</summary>
-		public float Brightness { set { if (brightness != value) { brightness = value; DirtyMaterial(); } } get { return brightness; } } [FSA("Brightness")] [SerializeField] private float brightness = 1.0f;
-
-		/// <summary>This allows you to adjust the render queue of the spacetime material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.</summary>
-		public SgtRenderQueue RenderQueue { set { if (renderQueue != value) { renderQueue = value; DirtyMaterial(); } } get { return renderQueue; } } [FSA("RenderQueue")] [SerializeField] private SgtRenderQueue renderQueue = SgtRenderQueue.GroupType.Transparent;
-
-		/// <summary>The main texture applied to the spacetime.</summary>
-		public Texture2D MainTex { set { if (mainTex != value) { mainTex = value; DirtyMaterial(); } } get { return mainTex; } } [FSA("MainTex")] [SerializeField] private Texture2D mainTex;
-
-		/// <summary>How many times should the spacetime texture be tiled?</summary>
-		public int Tile { set { if (tile != value) { tile = value; DirtyMaterial(); } } get { return tile; } } [FSA("Tile")] [SerializeField] private int tile = 50;
-
-		/// <summary>The ambient color.</summary>
-		public Color AmbientColor { set { if (ambientColor != value) { ambientColor = value; DirtyMaterial(); } } get { return ambientColor; } } [FSA("AmbientColor")] [SerializeField] private Color ambientColor = Color.white;
-
-		/// <summary>The ambient brightness.</summary>
-		public float AmbientBrightness { set { if (ambientBrightness != value) { ambientBrightness = value; DirtyMaterial(); } } get { return ambientBrightness; } } [FSA("AmbientBrightness")] [SerializeField] private float ambientBrightness = 0.25f;
-
-		/// <summary>The displacement color.</summary>
-		public Color DisplacementColor { set { if (displacementColor != value) { displacementColor = value; DirtyMaterial(); } } get { return displacementColor; } } [FSA("DisplacementColor")] [SerializeField] private Color displacementColor = Color.white;
-
-		/// <summary>The displacement brightness.</summary>
-		public float DisplacementBrightness { set { if (displacementBrightness != value) { displacementBrightness = value; DirtyMaterial(); } } get { return displacementBrightness; } } [FSA("DisplacementBrightness")] [SerializeField] private float displacementBrightness = 1.0f;
-
-		/// <summary>The color of the highlight.</summary>
-		public Color HighlightColor { set { if (highlightColor != value) { highlightColor = value; DirtyMaterial(); } } get { return highlightColor; } } [FSA("HighlightColor")] [SerializeField] private Color highlightColor = Color.white;
-
-		/// <summary>The brightness of the highlight.</summary>
-		public float HighlightBrightness { set { if (highlightBrightness != value) { highlightBrightness = value; DirtyMaterial(); } } get { return highlightBrightness; } } [FSA("HighlightBrightness")] [SerializeField] private float highlightBrightness = 0.1f;
-
-		/// <summary>The scale of the highlight.</summary>
-		public float HighlightScale { set { if (highlightScale != value) { highlightScale = value; DirtyMaterial(); } } get { return highlightScale; } } [FSA("HighlightScale")] [SerializeField] private float highlightScale = 3.0f;
-
-		/// <summary>The sharpness of the highlight.</summary>
-		public float HighlightPower { set { if (highlightPower != value) { highlightPower = value; DirtyMaterial(); } } get { return highlightPower; } } [FSA("HighlightPower")] [SerializeField] private float highlightPower = 1.0f;
-
-		/// <summary>How should the vertices in the spacetime get displaced when a well is nearby?</summary>
-		public DisplacementType Displacement { set { if (displacement != value) { displacement = value; DirtyMaterial(); } } get { return displacement; } } [FSA("Displacement")] [SerializeField] private DisplacementType displacement = DisplacementType.Pinch;
-
-		/// <summary>Should the displacement effect additively stack if wells overlap?</summary>
-		public bool Accumulate { set { if (accumulate != value) { accumulate = value; DirtyMaterial(); } } get { return accumulate; } } [FSA("Accumulate")] [SerializeField] private bool accumulate;
-
-		/// <summary>The pinch power.</summary>
-		public float Power { set { if (power != value) { power = value; DirtyMaterial(); } } get { return power; } } [FSA("Power")] [SerializeField] private float power = 3.0f;
-
-		/// <summary>The offset direction/vector for vertices within range of a well.</summary>
-		public Vector3 Offset { set { if (offset != value) { offset = value; DirtyMaterial(); } } get { return offset; } } [FSA("Offset")] [SerializeField] private Vector3 offset = new Vector3(0.0f, -1.0f, 0.0f);
+		/// <summary>The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Pinch</b> distribution that can be rendered by this spacetime.</summary>
+		public int MaxPinchWells { set { maxPinchWells = value; } get { return maxPinchWells; } } [SerializeField] [Range(0, MAX_GAUSSIAN_WELLS)] private int maxPinchWells = 12;
 
 		/// <summary>Filter all the wells to require the same layer at this GameObject.</summary>
 		public bool RequireSameLayer { set { if (requireSameLayer != value) { requireSameLayer = value; DirtyMaterial(); } } get { return requireSameLayer; } } [FSA("RequireSameLayer")] [SerializeField] private bool requireSameLayer;
@@ -85,69 +38,41 @@ namespace SpaceGraphicsToolkit
 		/// <summary>Filter all the wells to require a name that contains this.</summary>
 		public string RequireNameContains { set { if (requireNameContains != value) { requireNameContains = value; DirtyMaterial(); } } get { return requireNameContains; } } [FSA("RequireNameContains")] [SerializeField] private string requireNameContains;
 
-		// The material added to all spacetime renderers
-		[System.NonSerialized]
-		private Material material;
+		private bool dirtyApply = true;
+
+		private const int MAX_GAUSSIAN_WELLS = 16;
+
+		private const int MAX_RIPPLE_WELLS = 16;
+
+		private const int MAX_TWIST_WELLS = 16;
+
+		private const int MAX_PINCH_WELLS = 16;
 
 		// The well data arrays that get copied to the shader
-		[System.NonSerialized] private Vector4  [] gauPos = new Vector4[12];
-		[System.NonSerialized] private Vector4  [] gauDat = new Vector4[12];
-		[System.NonSerialized] private Vector4  [] ripPos = new Vector4[1];
-		[System.NonSerialized] private Vector4  [] ripDat = new Vector4[1];
-		[System.NonSerialized] private Vector4  [] twiPos = new Vector4[1];
-		[System.NonSerialized] private Vector4  [] twiDat = new Vector4[1];
-		[System.NonSerialized] private Matrix4x4[] twiMat = new Matrix4x4[1];
+		[System.NonSerialized] private Vector4  [] gauPos = new Vector4[MAX_GAUSSIAN_WELLS];
+		[System.NonSerialized] private Vector4  [] gauStr = new Vector4[MAX_GAUSSIAN_WELLS];
 
-		public void DirtyMaterial()
+		[System.NonSerialized] private Vector4  [] ripPos = new Vector4[MAX_RIPPLE_WELLS];
+		[System.NonSerialized] private Vector4  [] ripStr = new Vector4[MAX_RIPPLE_WELLS];
+		[System.NonSerialized] private Vector4  [] ripDat = new Vector4[MAX_RIPPLE_WELLS];
+
+		[System.NonSerialized] private Vector4  [] twiPos = new Vector4[MAX_TWIST_WELLS];
+		[System.NonSerialized] private Vector4  [] twiStr = new Vector4[MAX_TWIST_WELLS];
+		[System.NonSerialized] private Vector4  [] twiDat = new Vector4[MAX_TWIST_WELLS];
+		[System.NonSerialized] private Matrix4x4[] twiMat = new Matrix4x4[MAX_TWIST_WELLS];
+
+		[System.NonSerialized] private Vector4  [] pinPos = new Vector4[MAX_PINCH_WELLS];
+		[System.NonSerialized] private Vector4  [] pinStr = new Vector4[MAX_PINCH_WELLS];
+
+		[System.NonSerialized]
+		private List<SgtSpacetimeWell> wells = new List<SgtSpacetimeWell>();
+
+		/// <summary>This tells you which wells this spacetime is currently rendering based on the current <b>Require</b> settings.</summary>
+		public List<SgtSpacetimeWell> Wells
 		{
-			UpdateMaterial();
-		}
-
-		private void UpdateMaterial()
-		{
-			if (material == null)
+			get
 			{
-				material = SgtHelper.CreateTempMaterial("Spacetime (Generated)", SgtHelper.ShaderNamePrefix + "Spacetime");
-			}
-
-			var ambientColor      = SgtHelper.Brighten(this.ambientColor, ambientBrightness);
-			var displacementColor = SgtHelper.Brighten(this.displacementColor, displacementBrightness);
-			var higlightColor     = SgtHelper.Brighten(highlightColor, highlightBrightness);
-
-			material.renderQueue = renderQueue;
-
-			material.SetTexture(SgtShader._MainTex, mainTex);
-			material.SetColor(SgtShader._Color, SgtHelper.Brighten(color, brightness));
-			material.SetColor(SgtShader._AmbientColor, ambientColor);
-			material.SetColor(SgtShader._DisplacementColor, displacementColor);
-			material.SetColor(SgtShader._HighlightColor, higlightColor);
-			material.SetFloat(SgtShader._HighlightPower, highlightPower);
-			material.SetFloat(SgtShader._HighlightScale, highlightScale);
-			material.SetFloat(SgtShader._Tile, tile);
-
-			if (displacement == DisplacementType.Pinch)
-			{
-				material.SetFloat(SgtShader._Power, power);
-			}
-
-			if (displacement == DisplacementType.Offset)
-			{
-				SgtHelper.EnableKeyword("SGT_A", material);
-
-				material.SetVector(SgtShader._Offset, offset);
-			}
-			else
-			{
-				SgtHelper.DisableKeyword("SGT_A", material);
-			}
-
-			if (accumulate == true)
-			{
-				SgtHelper.EnableKeyword("SGT_B", material);
-			}
-			else
-			{
-				SgtHelper.DisableKeyword("SGT_B", material);
+				return wells;
 			}
 		}
 
@@ -159,85 +84,122 @@ namespace SpaceGraphicsToolkit
 				var gaussianCount = 0;
 				var rippleCount   = 0;
 				var twistCount    = 0;
+				var pinchCount    = 0;
 
-				WriteWells(ref gaussianCount, ref rippleCount, ref twistCount); // 12 is the shader instruction limit
+				WriteWells(ref gaussianCount, ref rippleCount, ref twistCount, ref pinchCount);
 			}
 		}
 
+		/// <summary>This will immediately apply the <b>Material</b> to all <b>Renderers</b> if you've changed any.</summary>
+		[ContextMenu("Apply Material To Renderers")]
+		public void ApplyMaterialToRenderers()
+		{
+			dirtyApply = false;
+
+			if (renderers != null)
+			{
+				foreach (var renderer in renderers)
+				{
+					if (renderer != null)
+					{
+						renderer.sharedMaterial = material;
+					}
+				}
+			}
+		}
+
+		/// <summary>If you manually modified the <b>Material</b>, then you can call this method so they will be updated at the end of the frame.
+		/// NOTE: This will automatically be called when modifying the <b>Material</b> property.</summary>
+		[ContextMenu("Dirty Material")]
+		public void DirtyMaterial()
+		{
+			dirtyApply = true;
+		}
+
+		/// <summary>If you manually modified the <b>Renderers</b> list, then you can call this method so they will be updated at the end of the frame.</summary>
+		[ContextMenu("Dirty Renderers")]
+		public void DirtyRenderers()
+		{
+			dirtyApply = true;
+		}
+
+		/// <summary>This allows you create a new GameObject with the <b>SgtSpacetime</b> component attached.</summary>
 		public static SgtSpacetime Create(int layer = 0, Transform parent = null)
 		{
 			return Create(layer, parent, Vector3.zero, Quaternion.identity, Vector3.one);
 		}
 
+		/// <summary>This allows you create a new GameObject with the <b>SgtSpacetime</b> component attached.</summary>
 		public static SgtSpacetime Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Spacetime", layer, parent, localPosition, localRotation, localScale);
-			var spacetime  = gameObject.AddComponent<SgtSpacetime>();
-
-			return spacetime;
+			return SgtHelper.CreateGameObject("Spacetime", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtSpacetime>();
 		}
 
-		protected virtual void OnEnable()
+#if UNITY_EDITOR
+		protected virtual void Reset()
 		{
-			SgtCamera.OnCameraDraw += HandleCameraDraw;
-
-			UpdateMaterial();
-			UpdateWells();
-		}
-
-		protected virtual void OnDisable()
-		{
-			SgtCamera.OnCameraDraw -= HandleCameraDraw;
-		}
-
-		private void HandleCameraDraw(Camera camera)
-		{
-			if (SgtHelper.CanDraw(gameObject, camera) == false) return;
-
-			UpdateWells();
-
-			if (mesh != null)
+			if (material == null)
 			{
-				var modifier = GetComponent<SgtSpacetimeModifier>();
+				var guids = UnityEditor.AssetDatabase.FindAssets("t:Material Spacetime (Default)");
 
-				if (modifier != null)
+				foreach (var guid in guids)
 				{
-					foreach (var matrix in modifier.GetMatrices())
+					var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+
+					if (path.Contains("Space Graphics Toolkit/Features/Spacetime/Media/Spacetime (Default)") == true)
 					{
-						Graphics.DrawMesh(mesh, matrix, material, 0, camera);
-					}
-				}
-				else
-				{
-					var matrix = transform.localToWorldMatrix;
-				
-					matrix *= Matrix4x4.Translate(new Vector3(center.x, 0.0f, center.y));
-					matrix *= Matrix4x4.Scale(new Vector3(size.x, 1.0f, size.y));
+						material = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);
 
-					Graphics.DrawMesh(mesh, matrix, material, 0, camera);
+						break;
+					}
 				}
 			}
 		}
+#endif
 
-		private void WriteWells(ref int gaussianCount, ref int rippleCount, ref int twistCount)
+		protected virtual void LateUpdate()
 		{
+			if (dirtyApply == true)
+			{
+				ApplyMaterialToRenderers();
+			}
+
+			UpdateWells();
+		}
+
+		// We don't know what was modified, so update everything
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyMaterial();
+			DirtyRenderers();
+		}
+
+		private void WriteWells(ref int gaussianCount, ref int rippleCount, ref int twistCount, ref int pinchCount)
+		{
+			wells.Clear();
+
 			var well = SgtSpacetimeWell.FirstInstance;
 
 			for (var i = 0; i < SgtSpacetimeWell.InstanceCount; i++)
 			{
 				if (SgtHelper.Enabled(well) == true && well.Radius > 0.0f)
 				{
-					if (well.Distribution == SgtSpacetimeWell.DistributionType.Gaussian && gaussianCount >= gauPos.Length)
+					if (well.Distribution == SgtSpacetimeWell.DistributionType.Gaussian && gaussianCount >= maxGaussianWells)
 					{
 						continue;
 					}
 
-					if (well.Distribution == SgtSpacetimeWell.DistributionType.Ripple && rippleCount >= ripPos.Length)
+					if (well.Distribution == SgtSpacetimeWell.DistributionType.Ripple && rippleCount >= maxRippleWells)
 					{
 						continue;
 					}
 
-					if (well.Distribution == SgtSpacetimeWell.DistributionType.Twist && twistCount >= twiPos.Length)
+					if (well.Distribution == SgtSpacetimeWell.DistributionType.Twist && twistCount >= maxTwistWells)
+					{
+						continue;
+					}
+
+					if (well.Distribution == SgtSpacetimeWell.DistributionType.Pinch && pinchCount >= maxPinchWells)
 					{
 						continue;
 					}
@@ -267,7 +229,9 @@ namespace SpaceGraphicsToolkit
 							var index = gaussianCount++;
 
 							gauPos[index] = new Vector4(wellPos.x, wellPos.y, wellPos.z, well.Radius);
-							gauDat[index] = new Vector4(well.Strength, 0.0f, 0.0f, 0.0f);
+							gauStr[index] = new Vector4(well.FinalStrength, well.Opacity, 0.0f, 0.0f);
+
+							wells.Add(well);
 						}
 						break;
 
@@ -276,7 +240,10 @@ namespace SpaceGraphicsToolkit
 							var index = rippleCount++;
 
 							ripPos[index] = new Vector4(wellPos.x, wellPos.y, wellPos.z, well.Radius);
-							ripDat[index] = new Vector4(well.Strength, well.Frequency, well.Offset, 0.0f);
+							ripStr[index] = new Vector4(well.FinalStrength, well.Opacity, 0.0f, 0.0f);
+							ripDat[index] = new Vector4(well.Frequency, well.Offset, 0.0f, 0.0f);
+
+							wells.Add(well);
 						}
 						break;
 
@@ -285,8 +252,22 @@ namespace SpaceGraphicsToolkit
 							var index = twistCount++;
 
 							twiPos[index] = new Vector4(wellPos.x, wellPos.y, wellPos.z, well.Radius);
-							twiDat[index] = new Vector4(well.Strength, well.Frequency, well.HoleSize, well.HolePower);
-							twiMat[index] = well.transform.worldToLocalMatrix;
+							twiStr[index] = new Vector4(well.FinalStrength, well.Opacity, 0.0f, 0.0f);
+							twiDat[index] = new Vector4(well.Frequency, well.HoleSize, well.HolePower, 0.0f);
+							twiMat[index] = Matrix4x4.Rotate(Quaternion.Euler(0.0f, well.Offset, 0.0f)) * well.transform.worldToLocalMatrix;
+
+							wells.Add(well);
+						}
+						break;
+
+						case SgtSpacetimeWell.DistributionType.Pinch:
+						{
+							var index = pinchCount++;
+
+							pinPos[index] = new Vector4(wellPos.x, wellPos.y, wellPos.z, well.Radius);
+							pinStr[index] = new Vector4(well.FinalStrength, well.Opacity, 0.0f, 0.0f);
+
+							wells.Add(well);
 						}
 						break;
 					}
@@ -297,16 +278,22 @@ namespace SpaceGraphicsToolkit
 
 			material.SetInt(SgtShader._Gau, gaussianCount);
 			material.SetVectorArray(SgtShader._GauPos, gauPos);
-			material.SetVectorArray(SgtShader._GauDat, gauDat);
+			material.SetVectorArray(SgtShader._GauStr, gauStr);
 			
 			material.SetInt(SgtShader._Rip, rippleCount);
 			material.SetVectorArray(SgtShader._RipPos, ripPos);
+			material.SetVectorArray(SgtShader._RipStr, ripStr);
 			material.SetVectorArray(SgtShader._RipDat, ripDat);
 			
 			material.SetInt(SgtShader._Twi, twistCount);
 			material.SetVectorArray(SgtShader._TwiPos, twiPos);
+			material.SetVectorArray(SgtShader._TwiStr, twiStr);
 			material.SetVectorArray(SgtShader._TwiDat, twiDat);
 			material.SetMatrixArray(SgtShader._TwiMat, twiMat);
+
+			material.SetInt(SgtShader._Pin, pinchCount);
+			material.SetVectorArray(SgtShader._PinPos, pinPos);
+			material.SetVectorArray(SgtShader._PinStr, pinStr);
 		}
 	}
 }
@@ -315,78 +302,43 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtSpacetime;
 
 	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSpacetime))]
-	public class SgtSpacetime_Editor : SgtEditor<SgtSpacetime>
+	[CustomEditor(typeof(TARGET))]
+	public class SgtSpacetime_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			var dirtyMaterial = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			Draw("color", ref dirtyMaterial, "The base color will be multiplied by this.");
-			BeginError(Any(t => t.Brightness < 0.0f));
-				Draw("brightness", ref dirtyMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
-			EndError();
-			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the spacetime material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
+			var dirtyMaterial  = false;
+			var dirtyRenderers = false;
+			var renderersExist = Any(tgts, t => t.Renderers.Exists(r => r != null));
 
-			Separator();
-
-			Draw("center", "The center of the spacetime grid in local space.");
-			BeginError(Any(t => t.Size == Vector2.zero));
-				Draw("size", "The size of the spacetime grid in local space.");
+			BeginError(Any(tgts, t => t.Material == null));
+				Draw("material", ref dirtyMaterial, "The <b>Material</b> used to render all the spacetime meshes. This should use the <b>Space Graphics Toolkit/Spacetime</b> material.");
 			EndError();
-			BeginError(Any(t => t.Mesh == null));
-				Draw("mesh", "The mesh used to render the spacetime.");
-			EndError();
-			BeginError(Any(t => t.MainTex == null));
-				Draw("mainTex", ref dirtyMaterial, "The main texture applied to the spacetime.");
-			EndError();
-			BeginError(Any(t => t.Tile <= 0));
-				Draw("tile", ref dirtyMaterial, "How many times should the spacetime texture be tiled?");
+			BeginError(renderersExist == false);
+				Draw("renderers", ref dirtyRenderers, "The spacetime data collected by this component will be rendered to these Renderers.\n\nNOTE: If you modify this list you should call the <b>DirtyRenderers</b> or <b>ApplyMaterialToRenderers</b> method.");
 			EndError();
 
-			Separator();
+			if (renderersExist == false)
+			{
+				Separator();
 
-			Draw("ambientColor", ref dirtyMaterial, "The ambient color.");
-			BeginError(Any(t => t.AmbientBrightness < 0.0f));
-				Draw("ambientBrightness", ref dirtyMaterial, "The ambient brightness.");
-			EndError();
-
-			Separator();
-
-			Draw("displacementColor", ref dirtyMaterial, "The displacement color.");
-			BeginError(Any(t => t.DisplacementBrightness < 0.0f));
-				Draw("displacementBrightness", ref dirtyMaterial, "The displacement brightness.");
-			EndError();
-
-			Separator();
-
-			Draw("highlightColor", ref dirtyMaterial, "The color of the highlight.");
-			Draw("highlightBrightness", ref dirtyMaterial, "The brightness of the highlight.");
-			Draw("highlightScale", ref dirtyMaterial, "The scale of the highlight.");
-			BeginError(Any(t => t.HighlightPower < 0.0f));
-				Draw("highlightPower", ref dirtyMaterial, "The sharpness of the highlight.");
-			EndError();
-
-			Separator();
-
-			Draw("displacement", ref dirtyMaterial, "How should the vertices in the spacetime get displaced when a well is nearby?");
-			BeginIndent();
-				Draw("accumulate", ref dirtyMaterial, "Should the displacement effect additively stack if wells overlap?");
-
-				if (Any(t => t.Displacement == SgtSpacetime.DisplacementType.Pinch))
+				if (HelpButton("This Spacetime has no Renderers set.", UnityEditor.MessageType.Warning, "Add", 40) == true)
 				{
-					BeginError(Any(t => t.Power < 0.0f));
-						Draw("power", ref dirtyMaterial, "The pinch power.");
-					EndError();
+					Each(tgts, t => { var child = SgtSpacetimeMesh.Create(t.gameObject.layer, t.transform); SgtHelper.SelectAndPing(child); });
 				}
+			}
 
-				if (Any(t => t.Displacement == SgtSpacetime.DisplacementType.Offset))
-				{
-					Draw("offset", ref dirtyMaterial, "The offset direction/vector for vertices within range of a well.");
-				}
-			EndIndent();
+			Separator();
+
+			Draw("maxGaussianWells", "The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Gaussian</b> distribution that can be rendered by this spacetime.");
+			Draw("maxRippleWells", "The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Ripple</b> distribution that can be rendered by this spacetime.");
+			Draw("maxTwistWells", "The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Twist</b> distribution that can be rendered by this spacetime.");
+			Draw("maxPinchWells", "The maximum amount of <b>SgtSpacetimeWell</b> components with the <b>Pinch</b> distribution that can be rendered by this spacetime.");
 
 			Separator();
 
@@ -394,29 +346,47 @@ namespace SpaceGraphicsToolkit
 			Draw("requireSameTag", "Filter all the wells to require the same tag at this GameObject.");
 			Draw("requireNameContains", "Filter all the wells to require a name that contains this.");
 
-			if (Any(t => t.Mesh == null && t.GetComponent<SgtSpacetimeMesh>() == null))
-			{
-				Separator();
+			Separator();
 
-				if (Button("Add Mesh") == true)
-				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtSpacetimeMesh>(t.gameObject));
-				}
+			EditorGUILayout.LabelField("Wells", EditorStyles.boldLabel);
+
+			if (tgt.Wells.Count == 0)
+			{
+				Warning("Either your scene contains no active and enabled SgtSpacetimeWell components, or based on the above Require___ settings, none were found.");
 			}
+
+			BeginDisabled();
+				foreach (var well in tgt.Wells)
+				{
+					var title = "";
+
+					if (well != null)
+					{
+						title = well.Distribution.ToString();
+					}
+
+					EditorGUILayout.ObjectField(title, well, typeof(Object), true);
+				}
+			EndDisabled();
 
 			if (dirtyMaterial == true)
 			{
-				DirtyEach(t => t.DirtyMaterial());
+				Each(tgts, t => t.DirtyMaterial(), true, true);
+			}
+
+			if (dirtyRenderers == true)
+			{
+				Each(tgts, t => t.DirtyRenderers(), true, true);
 			}
 		}
 
 		[MenuItem(SgtHelper.GameObjectMenuPrefix + "Spacetime", false, 10)]
 		public static void CreateItem()
 		{
-			var parent    = SgtHelper.GetSelectedParent();
-			var spacetime = SgtSpacetime.Create(parent != null ? parent.gameObject.layer : 0, parent);
+			var parent   = SgtHelper.GetSelectedParent();
+			var instance = SgtSpacetime.Create(parent != null ? parent.gameObject.layer : 0, parent);
 
-			SgtHelper.SelectAndPing(spacetime);
+			SgtHelper.SelectAndPing(instance);
 		}
 	}
 }

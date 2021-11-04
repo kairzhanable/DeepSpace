@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGraphicsToolkit
@@ -9,6 +9,8 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Shared Material")]
 	public class SgtSharedMaterial : MonoBehaviour
 	{
+		public delegate void OverrideSharedMaterialSignature(ref SgtSharedMaterial sharedMaterial, Camera camera);
+
 		/// <summary>The material that will be applied to all renderers.</summary>
 		public Material Material
 		{
@@ -139,21 +141,23 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtSharedMaterial;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSharedMaterial))]
-	public class SgtSharedMaterial_Editor : SgtEditor<SgtSharedMaterial>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtSharedMaterial_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			BeginDisabled();
 				Draw("material", "The material that will be applied to all renderers.");
 			EndDisabled();
 
-			Each(t => t.RemoveMaterial());
+			Each(tgts, t => t.RemoveMaterial());
 			Draw("renderers", "The renderers the Material will be applied to.");
-			Each(t => { if (SgtHelper.Enabled(t) == true) { t.ApplyMaterial(); } });
+			Each(tgts, t => { if (SgtHelper.Enabled(t) == true) { t.ApplyMaterial(); } });
 		}
 	}
 }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -66,15 +66,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtSimpleOrbit;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSimpleOrbit))]
-	public class SgtSimpleOrbit_Editor : SgtEditor<SgtSimpleOrbit>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtSimpleOrbit_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Radius == 0.0f));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Radius == 0.0f));
 				Draw("radius", "The radius of the orbit in local coordinates.");
 			EndError();
 			Draw("scale", "How squashed the orbit is.");

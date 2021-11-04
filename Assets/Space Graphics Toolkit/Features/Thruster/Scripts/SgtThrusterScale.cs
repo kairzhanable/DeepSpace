@@ -84,15 +84,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtThrusterScale;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtThrusterScale))]
-	public class SgtThrusterScale_Editor : SgtEditor<SgtThrusterScale>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtThrusterScale_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Thruster == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Thruster == null));
 				Draw("thruster", "The thruster the scale will be based on.");
 			EndError();
 			Draw("damping", "The speed at which the scale reaches its target value.");

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace SpaceGraphicsToolkit
@@ -90,21 +90,23 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtLightPointer;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtLightPointer))]
-	public class SgtLightPointer_Editor : SgtEditor<SgtLightPointer>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtLightPointer_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			EditorGUILayout.HelpBox("This component points the current light toward the rendering camera, giving you the illusion that it's a point light. This is useful for distant lights that you want to cast shadows.", MessageType.Info);
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Info("This component points the current light toward the rendering camera, giving you the illusion that it's a point light. This is useful for distant lights that you want to cast shadows.");
 			
-			if (Any(t => t.CachedLight.type != LightType.Directional))
+			if (Any(tgts, t => t.CachedLight.type != LightType.Directional))
 			{
-				if (HelpButton("The attached light isn't set to be directional.", MessageType.Warning, "Fix", 30.0f) == true)
+				if (HelpButton("The attached light isn't set to be directional.", UnityEditor.MessageType.Warning, "Fix", 30.0f) == true)
 				{
-					Each(t => t.CachedLight.type = LightType.Directional);
+					Each(tgts, t => t.CachedLight.type = LightType.Directional);
 				}
 			}
 		}

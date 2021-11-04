@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -8,64 +9,55 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Camera Look")]
 	public class SgtCameraLook : MonoBehaviour
 	{
-		/// <summary>The speed the camera rotates relative to the mouse/finger drag distance.</summary>
-		public float Sensitivity { set { sensitivity = value; } get { return sensitivity; } } [FSA("Sensitivity")] [SerializeField] private float sensitivity = 0.1f;
+		/// <summary>Is this component currently listening for inputs?</summary>
+		public bool Listen { set { listen = value; } get { return listen; } } [SerializeField] private bool listen = true;
 
 		/// <summary>How quickly the rotation transitions from the current to the target value (-1 = instant).</summary>
 		public float Damping { set { damping = value; } get { return damping; } } [FSA("Dampening")] [SerializeField] private float damping = 10.0f;
 
-		/// <summary>The degrees per second of roll.</summary>
-		public float RollSpeed { set { rollSpeed = value; } get { return rollSpeed; } } [FSA("RollSpeed")] [SerializeField] private float rollSpeed = 45.0f;
+		/// <summary>The keys/fingers required to pitch down/up.</summary>
+		public SgtInputManager.Axis PitchControls { set { pitchControls = value; } get { return pitchControls; } } [SerializeField] private SgtInputManager.Axis pitchControls = new SgtInputManager.Axis(1, true, SgtInputManager.AxisGesture.VerticalDrag, -0.1f, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, 45.0f);
 
-		/// <summary>The key required to roll left.</summary>
-		public KeyCode RollLeftKey { set { rollLeftKey = value; } get { return rollLeftKey; } } [FSA("RollLeftKey")] [SerializeField] private KeyCode rollLeftKey = KeyCode.Q;
+		/// <summary>The keys/fingers required to yaw left/right.</summary>
+		public SgtInputManager.Axis YawControls { set { yawControls = value; } get { return yawControls; } } [SerializeField] private SgtInputManager.Axis yawControls = new SgtInputManager.Axis(1, true, SgtInputManager.AxisGesture.HorizontalDrag, 0.1f, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, 45.0f);
 
-		/// <summary>The key required to roll right.</summary>
-		public KeyCode RollRightKey { set { rollRightKey = value; } get { return rollRightKey; } } [FSA("RollRightKey")] [SerializeField] private KeyCode rollRightKey = KeyCode.E;
+		/// <summary>The keys/fingers required to roll left/right.</summary>
+		public SgtInputManager.Axis RollControls { set { rollControls = value; } get { return rollControls; } } [SerializeField] private SgtInputManager.Axis rollControls = new SgtInputManager.Axis(2, true, SgtInputManager.AxisGesture.Twist, -75.0f, KeyCode.E, KeyCode.Q, KeyCode.None, KeyCode.None, 45.0f);
 
 		[System.NonSerialized]
 		private Quaternion remainingDelta = Quaternion.identity;
 
-		[System.NonSerialized]
-		private SgtInputManager inputManager = new SgtInputManager();
+		protected virtual void OnEnable()
+		{
+			SgtInputManager.EnsureThisComponentExists();
+		}
 
 		protected virtual void Update()
 		{
-			inputManager.Update();
+			if (listen == true)
+			{
+				AddToDelta();
+			}
 
-			AddToDelta();
 			DampenDelta();
 		}
 
 		private void AddToDelta()
 		{
-			// Calculate delta
-			var delta = inputManager.GetAverageDeltaScaled() * sensitivity;
+			// Get delta from binds
+			var delta = default(Vector3);
 
-			if (inputManager.Fingers.Count > 1)
-			{
-				delta = Vector2.zero;
-			}
+			delta.x = pitchControls.GetValue(Time.deltaTime);
+			delta.y = yawControls  .GetValue(Time.deltaTime);
+			delta.z = rollControls .GetValue(Time.deltaTime);
 
 			// Store old rotation
 			var oldRotation = transform.localRotation;
 
 			// Rotate
-			transform.Rotate(delta.y, -delta.x, 0.0f, Space.Self);
+			transform.Rotate(delta.x, delta.y, 0.0f, Space.Self);
 
-			var roll = 0.0f;
-
-			if (Input.GetKey(rollLeftKey) == true)
-			{
-				roll += 1.0f;
-			}
-
-			if (Input.GetKey(rollRightKey) == true)
-			{
-				roll -= 1.0f;
-			}
-
-			transform.Rotate(0.0f, 0.0f, roll * rollSpeed * Time.deltaTime, Space.Self);
+			transform.Rotate(0.0f, 0.0f, delta.z, Space.Self);
 
 			// Add to remaining
 			remainingDelta *= Quaternion.Inverse(oldRotation) * transform.localRotation;
@@ -92,21 +84,24 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCameraLook;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCameraLook))]
-	public class SgtCameraLook_Editor : SgtEditor<SgtCameraLook>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCameraLook_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Sensitivity == 0.0f));
-				Draw("sensitivity", "The speed the camera rotates relative to the mouse/finger drag distance.");
-			EndError();
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("listen", "Is this component currently listening for inputs?");
 			Draw("damping", "How quickly the rotation transitions from the current to the target value (-1 = instant).");
-			Draw("rollSpeed", "The degrees per second of roll.");
-			Draw("rollLeftKey", "The key required to roll left.");
-			Draw("rollRightKey", "The key required to roll right.");
+
+			Separator();
+
+			Draw("pitchControls", "The keys/fingers required to pitch down/up.");
+			Draw("yawControls", "The keys/fingers required to yaw left/right.");
+			Draw("rollControls", "The keys/fingers required to roll left/right.");
 		}
 	}
 }

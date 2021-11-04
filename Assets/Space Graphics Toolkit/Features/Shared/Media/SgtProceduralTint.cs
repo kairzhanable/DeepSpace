@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -24,14 +24,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtProceduralTint;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtProceduralTint))]
-	public class SgtProceduralTint_Editor : SgtProcedural_Editor<SgtProceduralTint>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtProceduralTint_Editor : SgtProcedural_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
 			Draw("colors", "A color will be randomly picked from this gradient.");

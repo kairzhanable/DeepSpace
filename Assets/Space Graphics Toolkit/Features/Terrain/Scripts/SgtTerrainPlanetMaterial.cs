@@ -1,7 +1,4 @@
-﻿using UnityEngine;
-using Unity.Jobs;
-using Unity.Burst;
-using Unity.Collections;
+using UnityEngine;
 using Unity.Mathematics;
 
 namespace SpaceGraphicsToolkit
@@ -18,22 +15,16 @@ namespace SpaceGraphicsToolkit
 		/// <summary>Normals bend incorrectly on high detail planets, so it's a good idea to fade them out. This allows you to set the camera distance at which the normals begin to fade out in local space.</summary>
 		public double NormalFadeRange { set { normalFadeRange = value; } get { return normalFadeRange; } } [SerializeField] private double normalFadeRange;
 
-		/// <summary>The current water level.
-		/// 0 = Radius.
-		/// 1 = Radius + Displacement.</summary>
-		public float WaterLevel { set { if (waterLevel != value) { waterLevel = value; MarkAsDirty(); } } get { return waterLevel; } } [Range(-2.0f, 2.0f)] [SerializeField] private float waterLevel;
+		/// <summary>This allows you to specify the terrain used for the water surface. This is used to control where the beaches appear, if you enable that material feature.</summary>
+		public SgtTerrain Water { set { if (water != value) { water = value; MarkAsDirty(); } } get { return water; } } [SerializeField] private SgtTerrain water;
 
-		/// <summary>Should the terrain heights be clamped if they go below the water level?</summary>
-		public bool ClampHeights { set { clampHeights = value; } get { return clampHeights; } } [SerializeField] private bool clampHeights;
-
-		/// <summary>This allows you to eliminate visual errors where water intersects with land when using a heightmap.</summary>
-		public double HeightmapBias { set { if (heightmapBias != value) { heightmapBias = value; MarkAsDirty(); } } get { return heightmapBias; } } [SerializeField] [Range(0.0f, 1.0f)] private double heightmapBias = 0.125;
-
-		//public float CameraOffset { set { cameraOffset = value; } get { return cameraOffset; } } [SerializeField] private float cameraOffset;
-
-		private SgtTerrain cachedTerrain;
+		protected SgtTerrain cachedTerrain;
 
 		private float bumpScale;
+
+		protected int bakedDetailTilingA;
+		protected int bakedDetailTilingB;
+		protected int bakedDetailTilingC;
 
 		public void MarkAsDirty()
 		{
@@ -48,24 +39,23 @@ namespace SpaceGraphicsToolkit
 			cachedTerrain = GetComponent<SgtTerrain>();
 
 			cachedTerrain.OnDrawQuad += HandleDrawQuad;
-
-			cachedTerrain.OnScheduleHeights         += HandleScheduleHeights;
-			cachedTerrain.OnScheduleCombinedHeights += HandleScheduleHeights;
 		}
 
 		protected virtual void OnDisable()
 		{
 			cachedTerrain.OnDrawQuad -= HandleDrawQuad;
 
-			cachedTerrain.OnScheduleHeights         -= HandleScheduleHeights;
-			cachedTerrain.OnScheduleCombinedHeights -= HandleScheduleHeights;
+			MarkAsDirty();
+		}
 
+		protected virtual void OnDidApplyAnimationProperties()
+		{
 			MarkAsDirty();
 		}
 
 		protected virtual void Update()
 		{
-			if (normalFadeRange > 0.0)
+			if (normalFadeRange > 0.0 && SgtHelper.Enabled(cachedTerrain) == true)
 			{
 				var localPosition = cachedTerrain.GetObserverLocalPosition();
 				var localAltitude = math.length(localPosition);
@@ -77,6 +67,15 @@ namespace SpaceGraphicsToolkit
 			{
 				bumpScale = 1.0f;
 			}
+
+			var cachedTerrainPlanet = cachedTerrain as SgtTerrainPlanet;
+
+			if (cachedTerrainPlanet != null)
+			{
+				bakedDetailTilingA = cachedTerrainPlanet.BakedDetailTilingA;
+				bakedDetailTilingB = cachedTerrainPlanet.BakedDetailTilingB;
+				bakedDetailTilingC = cachedTerrainPlanet.BakedDetailTilingC;
+			}
 		}
 
 		private void HandleDrawQuad(Camera camera, SgtTerrainQuad quad, Matrix4x4 matrix, int layer)
@@ -85,16 +84,7 @@ namespace SpaceGraphicsToolkit
 			{
 				var properties = quad.Properties;
 
-				properties.SetFloat(SgtShader._BumpScale, bumpScale);
-
-				properties.SetFloat(SgtShader._WaterLevel, waterLevel);
-
-				//if (cameraOffset != 0.0f)
-				//{
-				//	var direction = Vector3.Normalize(camera.transform.position - transform.position);
-				//
-				//	matrix = Matrix4x4.Translate(direction * cameraOffset) * matrix;
-				//}
+				PreRenderMeshes(properties);
 
 				foreach (var mesh in quad.CurrentMeshes)
 				{
@@ -103,38 +93,18 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		private void HandleScheduleHeights(NativeArray<double3> points, NativeArray<double> heights, ref JobHandle handle)
+		protected virtual void PreRenderMeshes(SgtProperties properties)
 		{
-			if (clampHeights == true)
+			properties.SetFloat(SgtShader._BumpScale, bumpScale);
+
+			properties.SetInt(Shader.PropertyToID("_BakedDetailTilingA"), bakedDetailTilingA);
+			properties.SetFloat(Shader.PropertyToID("_BakedDetailTilingAMul"), bakedDetailTilingA / 64.0f);
+			properties.SetInt(Shader.PropertyToID("_BakedDetailTilingB"), bakedDetailTilingB);
+			properties.SetInt(Shader.PropertyToID("_BakedDetailTilingC"), bakedDetailTilingC);
+
+			if (water != null)
 			{
-				var terrainHeightmap = GetComponent<SgtTerrainHeightmap>();
-
-				if (terrainHeightmap != null)
-				{
-					var job          = new HeightsJob();
-					var displacement = terrainHeightmap.Displacement;
-
-					job.WaterLevel = cachedTerrain.Radius + displacement * waterLevel + displacement * heightmapBias;
-					job.Heights    = heights;
-
-					handle = job.Schedule(heights.Length, 32, handle);
-				}
-			}
-		}
-
-		[BurstCompile]
-		public struct HeightsJob : IJobParallelFor
-		{
-			public double WaterLevel;
-
-			public NativeArray<double> Heights;
-
-			public void Execute(int i)
-			{
-				if (double.IsNegativeInfinity(Heights[i]) == false)
-				{
-					Heights[i] = math.max(Heights[i], WaterLevel);
-				}
+				properties.SetFloat(Shader.PropertyToID("_ShoreHeight"), (float)(water.Radius - cachedTerrain.Radius));
 			}
 		}
 	}
@@ -143,28 +113,27 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainPlanetMaterial;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainPlanetMaterial))]
-	public class SgtTerrainPlanetMaterial_Editor : SgtEditor<SgtTerrainPlanetMaterial>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainPlanetMaterial_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var markAsDirty = false;
 
-			BeginError(Any(t => t.Material == null));
+			BeginError(Any(tgts, t => t.Material == null));
 				Draw("material", "The planet material that will be rendered.");
 			EndError();
-			//Draw("cameraOffset");
 			Draw("normalFadeRange", "Normals bend incorrectly on high detail planets, so it's a good idea to fade them out. This allows you to set the camera distance at which the normals begin to fade out in local space.");
-			Draw("waterLevel", ref markAsDirty, "The current water level.\n\n0 = Radius.\n\n1 = Radius + Displacement.");
-			Draw("clampHeights", ref markAsDirty, "Should the terrain heights be clamped if they go below the water level?");
-			Draw("heightmapBias", ref markAsDirty, "This allows you to eliminate visual errors where water intersects with land when using a heightmap.");
+			Draw("water", "This allows you to specify the terrain used for the water surface. This is used to control where the beaches appear, if you enable that material feature.");
 
 			if (markAsDirty == true)
 			{
-				Each(t => t.MarkAsDirty());
+				Each(tgts, t => t.MarkAsDirty());
 			}
 		}
 	}

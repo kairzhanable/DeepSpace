@@ -53,15 +53,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAtmosphereHeight;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAtmosphereHeight))]
-	public class SgtAtmosphereHeight_Editor : SgtEditor<SgtAtmosphereHeight>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAtmosphereHeight_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.DistanceMin > t.DistanceMax));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.DistanceMin > t.DistanceMax));
 				Draw("distanceMin", "The minimum distance between the atmosphere center and the camera position.");
 				Draw("distanceMax", "The maximum distance between the atmosphere center and the camera position.");
 			EndError();

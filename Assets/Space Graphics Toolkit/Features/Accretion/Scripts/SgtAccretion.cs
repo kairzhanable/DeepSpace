@@ -79,10 +79,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtAccretion Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Accretion", layer, parent, localPosition, localRotation, localScale);
-			var accretion  = gameObject.AddComponent<SgtAccretion>();
-
-			return accretion;
+			return SgtHelper.CreateGameObject("Accretion", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtAccretion>();
 		}
 
 #if UNITY_EDITOR
@@ -175,7 +172,7 @@ namespace SpaceGraphicsToolkit
 
 			if (detail == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B", material); // Detail
+				SgtHelper.EnableKeyword("_DETAIL", material);
 
 				material.SetTexture(SgtShader._DetailTex, detailTex);
 				material.SetVector(SgtShader._DetailScale, new Vector2(detailScaleX, detailScaleY));
@@ -184,19 +181,19 @@ namespace SpaceGraphicsToolkit
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B", material); // Detail
+				SgtHelper.DisableKeyword("_DETAIL", material);
 			}
 
 			if (near == true)
 			{
-				SgtHelper.EnableKeyword("SGT_C", material); // Near
+				SgtHelper.EnableKeyword("_NEAR", material);
 
 				material.SetTexture(SgtShader._NearTex, nearTex);
 				material.SetFloat(SgtShader._NearScale, SgtHelper.Reciprocal(nearDistance));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_C", material); // Near
+				SgtHelper.DisableKeyword("_NEAR", material);
 			}
 		}
 	}
@@ -205,32 +202,34 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAccretion;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAccretion))]
-	public class SgtAccretion_Editor : SgtEditor<SgtAccretion>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAccretion_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterial = false;
 
 			Draw("color", ref dirtyMaterial, "The base color will be multiplied by this.");
-			BeginError(Any(t => t.Brightness < 0.0f));
+			BeginError(Any(tgts, t => t.Brightness < 0.0f));
 				Draw("brightness", ref dirtyMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
 			EndError();
 			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the disc material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
 
 			Separator();
 
-			BeginError(Any(t => t.MainTex == null));
+			BeginError(Any(tgts, t => t.MainTex == null));
 				Draw("mainTex", ref dirtyMaterial, "The texture applied to the accretion, where the left side is the inside, and the right side is the outside.");
 			EndError();
 
-			BeginError(Any(t => t.Segments < 1));
+			BeginError(Any(tgts, t => t.Segments < 1));
 				Draw("segments", "This allows you to set how many copies of the Mesh are required to complete the disc. For example, if the Mesh is 1/4 of the ring, then Segments should be set to 4.");
 			EndError();
-			BeginError(Any(t => t.Mesh == null));
+			BeginError(Any(tgts, t => t.Mesh == null));
 				Draw("mesh", "This allows you to set the mesh used to render the disc.");
 			EndError();
 
@@ -238,22 +237,22 @@ namespace SpaceGraphicsToolkit
 
 			Draw("detail", ref dirtyMaterial, "Should the disc have a detail texture? For example, dust noise when you get close.");
 
-			if (Any(t => t.Detail == true))
+			if (Any(tgts, t => t.Detail == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.DetailTex == null));
+					BeginError(Any(tgts, t => t.DetailTex == null));
 						Draw("detailTex", ref dirtyMaterial, "This allows you to set the detail texture that gets repeated on the disc surface.");
 					EndError();
-					BeginError(Any(t => t.DetailScaleX < 0.0f));
+					BeginError(Any(tgts, t => t.DetailScaleX < 0.0f));
 						Draw("detailScaleX", ref dirtyMaterial, "The detail texture horizontal tiling.");
 					EndError();
-					BeginError(Any(t => t.DetailScaleY < 1));
+					BeginError(Any(tgts, t => t.DetailScaleY < 1));
 						Draw("detailScaleY", ref dirtyMaterial, "The detail texture vertical tiling.");
 					EndError();
 					Draw("detailOffset", ref dirtyMaterial, "The UV offset of the detail texture.");
 					Draw("detailSpeed", ref dirtyMaterial, "The scroll speed of the detail texture UV offset.");
 					Draw("detailTwist", ref dirtyMaterial, "The amount the detail texture is twisted around the disc.");
-					BeginError(Any(t => t.DetailTwistBias < 1.0f));
+					BeginError(Any(tgts, t => t.DetailTwistBias < 1.0f));
 						Draw("detailTwistBias", ref dirtyMaterial, "The amount the twisting is pushed to the outer edge.");
 					EndError();
 				EndIndent();
@@ -263,41 +262,41 @@ namespace SpaceGraphicsToolkit
 
 			Draw("near", ref dirtyMaterial, "Enable this if you want the disc to fade out as the camera approaches.");
 
-			if (Any(t => t.Near == true))
+			if (Any(tgts, t => t.Near == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.NearTex == null));
+					BeginError(Any(tgts, t => t.NearTex == null));
 						Draw("nearTex", ref dirtyMaterial, "The lookup table used to calculate the fade opacity based on distance, where the left side is used when the camera is close, and the right side is used when the camera is far.");
 					EndError();
-					BeginError(Any(t => t.NearDistance <= 0.0f));
+					BeginError(Any(tgts, t => t.NearDistance <= 0.0f));
 						Draw("nearDistance", ref dirtyMaterial, "The distance the fading begins from in world space.");
 					EndError();
 				EndIndent();
 			}
 
-			if (Any(t => t.Mesh == null && t.GetComponent<SgtAccretionMesh>() == null))
+			if (Any(tgts, t => t.Mesh == null && t.GetComponent<SgtAccretionMesh>() == null))
 			{
 				Separator();
 
 				if (Button("Add Mesh") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAccretionMesh>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAccretionMesh>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Near == true && t.NearTex == null && t.GetComponent<SgtAccretionNearTex>() == null))
+			if (Any(tgts, t => t.Near == true && t.NearTex == null && t.GetComponent<SgtAccretionNearTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add NearTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAccretionNearTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAccretionNearTex>(t.gameObject));
 				}
 			}
 
 			if (dirtyMaterial == true)
 			{
-				DirtyEach(t => t.DirtyMaterial());
+				Each(tgts, t => t.DirtyMaterial(), true, true);
 			}
 		}
 	}

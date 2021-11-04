@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace SpaceGraphicsToolkit
@@ -67,15 +67,15 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFollowCamera;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFollowCamera))]
-	public class SgtFollowCamera_Editor : SgtEditor<SgtFollowCamera>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFollowCamera_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			EditorGUILayout.HelpBox("This makes the current GameObject snap to the currently rendering camera.", MessageType.Info);
+			Info("This makes the current GameObject snap to the currently rendering camera.");
 		}
 	}
 }

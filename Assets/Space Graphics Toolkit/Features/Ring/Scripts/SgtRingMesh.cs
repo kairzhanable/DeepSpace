@@ -127,14 +127,14 @@ namespace SpaceGraphicsToolkit
 		{
 			Gizmos.matrix = transform.localToWorldMatrix;
 
-			SgtHelper.DrawCircle(Vector3.zero, Vector3.up, RadiusMin);
-			SgtHelper.DrawCircle(Vector3.zero, Vector3.up, RadiusMax);
+			SgtHelper.DrawCircle(Vector3.zero, Vector3.up, radiusMin);
+			SgtHelper.DrawCircle(Vector3.zero, Vector3.up, radiusMax);
 		}
 #endif
 
 		private void UpdateMesh()
 		{
-			if (Segments > 0 && SegmentDetail > 0 && RadiusDetail > 0)
+			if (segments > 0 && segmentDetail > 0 && radiusDetail > 0)
 			{
 				if (generatedMesh == null)
 				{
@@ -143,17 +143,17 @@ namespace SpaceGraphicsToolkit
 					ApplyMesh();
 				}
 
-				var slices     = SegmentDetail + 1;
-				var rings      = RadiusDetail + 1;
+				var slices     = segmentDetail + 1;
+				var rings      = radiusDetail + 1;
 				var total      = slices * rings * 2;
 				var positions  = new Vector3[total];
 				var coords1    = new Vector2[total];
 				var coords2    = new Vector2[total];
 				var colors     = new Color[total];
-				var indices    = new int[SegmentDetail * RadiusDetail * 6];
-				var yawStep    = (Mathf.PI * 2.0f) / Segments / SegmentDetail;
-				var sliceStep  = 1.0f / SegmentDetail;
-				var ringStep   = 1.0f / RadiusDetail;
+				var indices    = new int[segmentDetail * radiusDetail * 6];
+				var yawStep    = (Mathf.PI * 2.0f) / segments / segmentDetail;
+				var sliceStep  = 1.0f / segmentDetail;
+				var ringStep   = 1.0f / radiusDetail;
 
 				for (var slice = 0; slice < slices; slice++)
 				{
@@ -166,7 +166,7 @@ namespace SpaceGraphicsToolkit
 						var v       = rings * slice + ring;
 						var slice01 = sliceStep * slice;
 						var ring01  = ringStep * ring;
-						var radius  = Mathf.Lerp(RadiusMin, RadiusMax, ring01);
+						var radius  = Mathf.Lerp(radiusMin, radiusMax, ring01);
 
 						positions[v] = new Vector3(x * radius, 0.0f, z * radius);
 						colors[v] = new Color(1.0f, 1.0f, 1.0f, 0.0f);
@@ -175,11 +175,11 @@ namespace SpaceGraphicsToolkit
 					}
 				}
 
-				for (var slice = 0; slice < SegmentDetail; slice++)
+				for (var slice = 0; slice < segmentDetail; slice++)
 				{
-					for (var ring = 0; ring < RadiusDetail; ring++)
+					for (var ring = 0; ring < radiusDetail; ring++)
 					{
-						var i  = (slice * RadiusDetail + ring) * 6;
+						var i  = (slice * radiusDetail + ring) * 6;
 						var v0 = slice * rings + ring;
 						var v1 = v0 + rings;
 
@@ -203,13 +203,13 @@ namespace SpaceGraphicsToolkit
 
 				var bounds = generatedMesh.bounds;
 
-				generatedMesh.bounds = SgtHelper.NewBoundsCenter(bounds, bounds.center + bounds.center.normalized * BoundsShift);
+				generatedMesh.bounds = SgtHelper.NewBoundsCenter(bounds, bounds.center + bounds.center.normalized * boundsShift);
 			}
 
-			if (Shadow != null)
+			if (shadow != null)
 			{
-				Shadow.RadiusMin = RadiusMin;
-				Shadow.RadiusMax = RadiusMax;
+				shadow.RadiusMin = radiusMin;
+				shadow.RadiusMax = radiusMax;
 			}
 
 			ApplyMesh();
@@ -220,25 +220,27 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtRingMesh;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtRingMesh))]
-	public class SgtRingMesh_Editor : SgtEditor<SgtRingMesh>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtRingMesh_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Segments < 1));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Segments < 1));
 				Draw("segments", "The amount of segments the final ring will be comprised of.");
 			EndError();
-			BeginError(Any(t => t.SegmentDetail < 1));
+			BeginError(Any(tgts, t => t.SegmentDetail < 1));
 				Draw("segmentDetail", "The amount of triangle edges along the inner and outer edges of each segment.");
 			EndError();
-			BeginError(Any(t => t.RadiusMin == t.RadiusMax));
+			BeginError(Any(tgts, t => t.RadiusMin == t.RadiusMax));
 				Draw("radiusMin", "The radius of the inner edge in local space.");
 				Draw("radiusMax", "The radius of the outer edge in local space.");
 			EndError();
-			BeginError(Any(t => t.RadiusDetail < 1));
+			BeginError(Any(tgts, t => t.RadiusDetail < 1));
 				Draw("radiusDetail", "The amount of edge loops around the generated ring. If you have a very large ring then you can end up with very skinny triangles, so increasing this can give them a better shape.");
 			EndError();
 			Draw("boundsShift", "The amount the mesh bounds should get pushed out by in local space. This should be used with 8+ Segments.");

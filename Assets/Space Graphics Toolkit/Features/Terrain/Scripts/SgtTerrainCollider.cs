@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using Unity.Jobs;
 using Unity.Burst;
@@ -13,11 +13,30 @@ namespace SpaceGraphicsToolkit
 	[RequireComponent(typeof(SgtTerrain))]
 	public class SgtTerrainCollider : MonoBehaviour
 	{
-		struct Coord
+		struct Coord : System.IEquatable<Coord>
 		{
 			public int  Face;
 			public long X;
 			public long Y;
+
+			public override int GetHashCode()
+			{
+				var hash = 43270662;
+				hash = hash * -1521134295 + Face.GetHashCode();
+				hash = hash * -1521134295 + X.GetHashCode();
+				hash = hash * -1521134295 + Y.GetHashCode();
+				return hash;
+			}
+
+			public override bool Equals(object obj)
+			{
+				return obj is Coord ? Equals((Coord)obj) : false;
+			}
+
+			public bool Equals(Coord other)
+			{
+				return Face == other.Face && X == other.X && Y == other.Y;
+			}
 		}
 
 		class Chunk
@@ -149,10 +168,16 @@ namespace SpaceGraphicsToolkit
 		protected virtual void OnEnable()
 		{
 			cachedTerrain = GetComponent<SgtTerrain>();
+
+			cachedTerrain.OnDisabled += HandleDisabled;
 		}
 
 		protected virtual void OnDisable()
 		{
+			cachedTerrain.OnDisabled -= HandleDisabled;
+
+			Complete();
+
 			foreach (var chunk in chunks.Values)
 			{
 				chunk.Dispose();
@@ -166,8 +191,18 @@ namespace SpaceGraphicsToolkit
 			if (indices.IsCreated == true) indices.Dispose();
 		}
 
+		private void HandleDisabled()
+		{
+			Complete();
+		}
+
 		protected virtual void Update()
 		{
+			if (cachedTerrain.enabled == false)
+			{
+				return;
+			}
+
 			// Finish collider gen?
 			if (currentTerrain == cachedTerrain)
 			{
@@ -196,7 +231,7 @@ namespace SpaceGraphicsToolkit
 				foreach (var chunk in chunks.Values)
 				{
 					// Needs collider?
-					if (chunk.Shape.sharedMesh == null && chunk.Distance < radius * radius)
+					if (chunk.Shape.sharedMesh == null)// && chunk.Distance < radius * radius)
 					{
 						if (bestChunk == null || chunk.Distance < bestChunk.Distance)
 						{
@@ -225,10 +260,14 @@ namespace SpaceGraphicsToolkit
 			for (var i = 0; i < 6; i++)
 			{
 				var quadBounds = SgtTerrainTopology.GetQuadBounds(i, bounds);
+				var centerX    = (quadBounds.minX + quadBounds.maxX) / 2;
+				var centerY    = (quadBounds.minY + quadBounds.maxY) / 2;
+				var centerZ    = (quadBounds.minZ + quadBounds.maxZ) / 2;
+				var quadCenter = new SgtLong3(centerX, centerY, centerZ);
 
 				quadBounds.ClampTo(outer);
 
-				UpdateColliders(i, quadBounds, middle);
+				UpdateColliders(i, quadBounds, quadCenter, middle);
 			}
 
 			Sweep();
@@ -250,7 +289,7 @@ namespace SpaceGraphicsToolkit
 			return chunk;
 		}
 
-		private void UpdateColliders(int face, SgtLongBounds rect, long middle)
+		private void UpdateColliders(int face, SgtLongBounds rect, SgtLong3 center, long middle)
 		{
 			var cubeC   = SgtTerrainTopology.CubeC[face];
 			var cubeH   = SgtTerrainTopology.CubeH[face];
@@ -259,8 +298,6 @@ namespace SpaceGraphicsToolkit
 			var stepX   = cubeH * step;
 			var stepY   = cubeV * step;
 			var corner  = cubeC + stepX * middle + stepY * middle;
-			var centerX = (rect.minX + rect.maxX) / 2;
-			var centerY = (rect.minY + rect.maxY) / 2;
 
 			if (rect.SizeZ > 0)
 			{
@@ -296,10 +333,11 @@ namespace SpaceGraphicsToolkit
 							chunks.Add(coord, chunk);
 						}
 
-						var distX = math.abs(centerX - x);
-						var distY = math.abs(centerY - y);
+						var distX = math.abs(center.x - x);
+						var distY = math.abs(center.y - y);
+						var distZ = math.abs(center.z - (rect.minZ + rect.maxZ) / 2);
 
-						chunk.Distance = distX * distX + distY * distY;
+						chunk.Distance = distX * distX + distY * distY + distZ * distZ;
 					}
 				}
 			}
@@ -378,15 +416,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainCollider;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainCollider))]
-	public class SgtTerrainCollider_Editor : SgtEditor<SgtTerrainCollider>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainCollider_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Resolution <= 0.0));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Resolution <= 0.0));
 				Draw("resolution", "The terrain will be split into this many cells on each axis.");
 			EndError();
 			Draw("radius", "The radius in chunks around the camera that will have colliders.\n\n1 = 3x3 chunks.\n\n2 = 5x5 chunks.\n\n3 = 7x7 chunks.");

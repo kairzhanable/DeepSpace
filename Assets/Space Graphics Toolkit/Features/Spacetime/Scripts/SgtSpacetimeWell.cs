@@ -13,7 +13,8 @@ namespace SpaceGraphicsToolkit
 		{
 			Gaussian,
 			Ripple,
-			Twist
+			Twist,
+			Pinch
 		}
 
 		/// <summary>The method used to deform the spacetime.</summary>
@@ -22,11 +23,17 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The radius of this spacetime well.</summary>
 		public float Radius { set { radius = value; } get { return radius; } } [FSA("Radius")] [SerializeField] private float radius = 1.0f;
 
+		/// <summary>The well will modify the spacetime positions by this amount.</summary>
+		public float Strength { set { strength = value; } get { return strength; } } [FSA("Strength")] [SerializeField] private float strength = 1.0f;
+
+		/// <summary>The overall effect of the well will be multiplied by this.</summary>
+		public float Opacity { set { opacity = value; } get { return opacity; } } [SerializeField] [Range(0.0f, 1.0f)] private float opacity = 1.0f;
+
+		/// <summary>Should the <b>Strength</b> get multiplied by the <b>Opacity</b>?</summary>
+		public bool Combine { set { combine = value; } get { return combine; } } [SerializeField] private bool combine;
+
 		/// <summary>The frequency of the ripple.</summary>
 		public float Frequency { set { frequency = value; } get { return frequency; } } [FSA("Frequency")] [SerializeField] private float frequency = 1.0f;
-
-		/// <summary>The minimum strength of the well.</summary>
-		public float Strength { set { strength = value; } get { return strength; } } [FSA("Strength")] [SerializeField] private float strength = 1.0f;
 
 		/// <summary>The frequency offset.</summary>
 		public float Offset { set { offset = value; } get { return offset; } } [FSA("Offset")] [SerializeField] private float offset;
@@ -40,29 +47,31 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The power of the twist hole.</summary>
 		public float HolePower { set { holePower = value; } get { return holePower; } } [FSA("HolePower")] [SerializeField] private float holePower = 10.0f;
 
+		/// <summary>This returns the <b>Strength</b> value depending on the <b>Combine</b> and <b>Opacity</b> settings.</summary>
+		public float FinalStrength
+		{
+			get
+			{
+				if (combine == true)
+				{
+					return strength * opacity;
+				}
+
+				return strength;
+			}
+		}
+
+		/// <summary>This allows you create a new GameObject with the <b>SgtSpacetimeWell</b> component attached.</summary>
 		public static SgtSpacetimeWell Create(int layer = 0, Transform parent = null)
 		{
 			return Create(layer, parent, Vector3.zero, Quaternion.identity, Vector3.one);
 		}
 
+		/// <summary>This allows you create a new GameObject with the <b>SgtSpacetimeWell</b> component attached.</summary>
 		public static SgtSpacetimeWell Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject    = SgtHelper.CreateGameObject("Spacetime Well", layer, parent, localPosition, localRotation, localScale);
-			var spacetimeWell = gameObject.AddComponent<SgtSpacetimeWell>();
-
-			return spacetimeWell;
+			return SgtHelper.CreateGameObject("Spacetime Well", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtSpacetimeWell>();
 		}
-
-#if UNITY_EDITOR
-		[UnityEditor.MenuItem(SgtHelper.GameObjectMenuPrefix + "Spacetime Well", false, 10)]
-		public static void CreateItem()
-		{
-			var parent        = SgtHelper.GetSelectedParent();
-			var spacetimeWell = Create(parent != null ? parent.gameObject.layer : 0, parent);
-
-			SgtHelper.SelectAndPing(spacetimeWell);
-		}
-#endif
 
 		protected virtual void Update()
 		{
@@ -88,41 +97,58 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtSpacetimeWell;
 
 	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSpacetimeWell))]
-	public class SgtSpacetimeWell_Editor : SgtEditor<SgtSpacetimeWell>
+	[CustomEditor(typeof(TARGET))]
+	public class SgtSpacetimeWell_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Radius < 0.0f));
-				Draw("radius", "The radius of this spacetime well.");
-			EndError();
-			Draw("strength", "The minimum strength of the well.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("distribution", "The method used to deform the spacetime.");
 
 			Separator();
 
-			Draw("distribution", "The method used to deform the spacetime.");
-			BeginIndent();
-				if (Any(t => t.Distribution == SgtSpacetimeWell.DistributionType.Ripple || t.Distribution == SgtSpacetimeWell.DistributionType.Twist))
-				{
-					Draw("frequency", "The frequency of the ripple.");
-				}
+			BeginError(Any(tgts, t => t.Radius < 0.0f));
+				Draw("radius", "The radius of this spacetime well.");
+			EndError();
+			Draw("strength", "The well will modify the spacetime positions by this amount.");
+			Draw("opacity", "The overall effect of the well will be multiplied by this.");
+			Draw("combine", "Should the <b>Strength</b> get multiplied by the <b>Opacity</b>?");
 
-				if (Any(t => t.Distribution == SgtSpacetimeWell.DistributionType.Ripple))
-				{
-					Draw("offset", "The frequency offset.");
-					Draw("offsetSpeed", "The frequency offset speed per second.");
-				}
+			Separator();
 
-				if (Any(t => t.Distribution == SgtSpacetimeWell.DistributionType.Twist))
-				{
-					BeginError(Any(t => t.HoleSize < 0.0f));
-						Draw("holeSize", "The size of the twist hole.");
-					EndError();
-					Draw("holePower", "The power of the twist hole.");
-				}
-			EndIndent();
+			if (Any(tgts, t => t.Distribution == SgtSpacetimeWell.DistributionType.Ripple || t.Distribution == SgtSpacetimeWell.DistributionType.Twist))
+			{
+				Draw("frequency", "The frequency of the ripple.");
+			}
+
+			if (Any(tgts, t => t.Distribution == SgtSpacetimeWell.DistributionType.Twist))
+			{
+				BeginError(Any(tgts, t => t.HoleSize < 0.0f));
+					Draw("holeSize", "The size of the twist hole.");
+				EndError();
+				Draw("holePower", "The power of the twist hole.");
+			}
+
+			Separator();
+
+			if (Any(tgts, t => t.Distribution == SgtSpacetimeWell.DistributionType.Ripple || t.Distribution == SgtSpacetimeWell.DistributionType.Twist))
+			{
+				Draw("offset", "The frequency offset.");
+				Draw("offsetSpeed", "The frequency offset speed per second.");
+			}
+		}
+
+		[MenuItem(SgtHelper.GameObjectMenuPrefix + "Spacetime Well", false, 10)]
+		public static void CreateItem()
+		{
+			var parent   = SgtHelper.GetSelectedParent();
+			var instance = SgtSpacetimeWell.Create(parent != null ? parent.gameObject.layer : 0, parent);
+
+			SgtHelper.SelectAndPing(instance);
 		}
 	}
 }

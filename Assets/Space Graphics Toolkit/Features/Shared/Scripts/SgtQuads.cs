@@ -88,6 +88,10 @@ namespace SpaceGraphicsToolkit
 			{
 				mesh = SgtHelper.CreateTempMesh("Quads Mesh (Generated)");
 			}
+			else
+			{
+				mesh.Clear();
+			}
 
 			BuildMesh(mesh, count);
 
@@ -135,6 +139,20 @@ namespace SpaceGraphicsToolkit
 			SgtHelper.Destroy(material);
 		}
 
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyMesh();
+			DirtyMaterial();
+		}
+
+#if UNITY_EDITOR
+		protected virtual void OnValidate()
+		{
+			UpdateMesh();
+			UpdateMaterial();
+		}
+#endif
+
 		protected abstract void HandleCameraDraw(Camera camera);
 
 		protected abstract int BeginQuads();
@@ -155,7 +173,7 @@ namespace SpaceGraphicsToolkit
 			}
 
 			material.SetTexture(SgtShader._MainTex, mainTex);
-			material.SetColor(SgtShader._Color, SgtHelper.Brighten(Color, Color.a * Brightness));
+			material.SetColor(SgtShader._Color, SgtHelper.Brighten(Color, Color.a * Brightness, false));
 		}
 
 		protected void BuildAdditive()
@@ -164,7 +182,7 @@ namespace SpaceGraphicsToolkit
 			material.SetInt(SgtShader._DstMode, (int)UnityEngine.Rendering.BlendMode.One);
 			material.SetInt(SgtShader._ZWriteMode, 0);
 
-			SgtHelper.DisableKeyword("SGT_A", material); // Alpha Test
+			SgtHelper.DisableKeyword("_ALPHA_TEST", material);
 		}
 
 		protected void BuildAlphaTest()
@@ -173,7 +191,7 @@ namespace SpaceGraphicsToolkit
 			material.SetInt(SgtShader._DstMode, (int)UnityEngine.Rendering.BlendMode.Zero);
 			material.SetInt(SgtShader._ZWriteMode, 1);
 
-			SgtHelper.EnableKeyword("SGT_A", material); // Alpha Test
+			SgtHelper.EnableKeyword("_ALPHA_TEST", material);
 		}
 
 		protected void BuildAdditiveSmooth()
@@ -182,7 +200,7 @@ namespace SpaceGraphicsToolkit
 			material.SetInt(SgtShader._DstMode, (int)UnityEngine.Rendering.BlendMode.OneMinusSrcColor);
 			material.SetInt(SgtShader._ZWriteMode, 0);
 
-			SgtHelper.DisableKeyword("SGT_A", material); // Alpha Test
+			SgtHelper.DisableKeyword("_ALPHA_TEST", material);
 		}
 
 		protected void BuildRects()
@@ -254,43 +272,50 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	public class SgtQuads_Editor<T> : SgtEditor<T>
-		where T : SgtQuads
+	using TARGET = SgtQuads;
+
+	public class SgtQuads_Editor : SgtEditor
 	{
-		protected virtual void DrawMaterial(ref bool updateMaterial)
+		protected virtual void DrawMaterial(ref bool dirtyMaterial)
 		{
-			Draw("color", ref updateMaterial, "The base color will be multiplied by this.");
-			BeginError(Any(t => t.Brightness < 0.0f));
-				Draw("brightness", ref updateMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("color", ref dirtyMaterial, "The base color will be multiplied by this.");
+			BeginError(Any(tgts, t => t.Brightness < 0.0f));
+				Draw("brightness", ref dirtyMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
 			EndError();
-			Draw("blendMode", ref updateMaterial, "The blend mode used to render the material.");
-			Draw("renderQueue", ref updateMaterial, "This allows you to adjust the render queue of the quads material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
+			Draw("blendMode", ref dirtyMaterial, "The blend mode used to render the material.");
+			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the quads material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
 		}
 
-		protected virtual void DrawMainTex(ref bool updateMaterial, ref bool updateMeshesAndModels)
+		protected virtual void DrawMainTex(ref bool dirtyMaterial)
 		{
-			BeginError(Any(t => t.MainTex == null));
-				Draw("mainTex", ref updateMaterial, "The main texture of this material.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.MainTex == null));
+				Draw("mainTex", ref dirtyMaterial, "The main texture of this material.");
 			EndError();
 		}
 
-		protected virtual void DrawLayout(ref bool updateMaterial, ref bool updateMeshesAndModels)
+		protected virtual void DrawLayout(ref bool dirtyMesh)
 		{
-			Draw("layout", ref updateMeshesAndModels, "The layout of cells in the texture.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("layout", ref dirtyMesh, "The layout of cells in the texture.");
 			BeginIndent();
-				if (Any(t => t.Layout == SgtQuads.LayoutType.Grid))
+				if (Any(tgts, t => t.Layout == SgtQuads.LayoutType.Grid))
 				{
-					BeginError(Any(t => t.LayoutColumns <= 0));
-						Draw("layoutColumns", ref updateMeshesAndModels, "The amount of columns in the texture.");
+					BeginError(Any(tgts, t => t.LayoutColumns <= 0));
+						Draw("layoutColumns", ref dirtyMesh, "The amount of columns in the texture.");
 					EndError();
-					BeginError(Any(t => t.LayoutRows <= 0));
-						Draw("layoutRows", ref updateMeshesAndModels, "The amount of rows in the texture.");
+					BeginError(Any(tgts, t => t.LayoutRows <= 0));
+						Draw("layoutRows", ref dirtyMesh, "The amount of rows in the texture.");
 					EndError();
 				}
 
-				if (Any(t => t.Layout == SgtQuads.LayoutType.Custom))
+				if (Any(tgts, t => t.Layout == SgtQuads.LayoutType.Custom))
 				{
-					Draw("rects", ref updateMeshesAndModels, "The rects of each cell in the texture.");
+					Draw("rects", ref dirtyMesh, "The rects of each cell in the texture.");
 				}
 			EndIndent();
 		}

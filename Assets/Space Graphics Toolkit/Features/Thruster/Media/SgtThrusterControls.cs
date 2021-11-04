@@ -9,10 +9,10 @@ namespace SpaceGraphicsToolkit
 	public class SgtThrusterControls : MonoBehaviour
 	{
 		[System.Serializable]
-		public class Bind
+		public class ThrusterGroup
 		{
-			[Tooltip("The control axis used for these thrusters")]
-			public string Axis;
+			[Tooltip("The fingers or keys used to control these thrusters.")]
+			public SgtInputManager.Axis Controls;
 
 			public bool Inverse;
 
@@ -23,26 +23,40 @@ namespace SpaceGraphicsToolkit
 			public List<SgtThruster> Negative;
 		}
 
-		public List<Bind> Binds { get { if (binds == null) binds = new List<Bind>(); return binds; } } [FSA("Binds")] [SerializeField] private List<Bind> binds;
+		/// <summary>Is this component currently listening for inputs?</summary>
+		public bool Listen { set { listen = value; } get { return listen; } } [SerializeField] private bool listen = true;
 
+		/// <summary>This allows you to specify each thruster group, each of which is controlled separately.</summary>
+		public List<ThrusterGroup> Groups { get { if (groups == null) groups = new List<ThrusterGroup>(); return groups; } } [FSA("binds")] [FSA("controls")] [SerializeField] private List<ThrusterGroup> groups;
+
+		protected virtual void OnEnable()
+		{
+			SgtInputManager.EnsureThisComponentExists();
+		}
+		
 		protected virtual void Update()
 		{
-			if (binds != null)
+			if (groups != null)
 			{
-				for (var i = binds.Count - 1; i >= 0; i--)
+				for (var i = groups.Count - 1; i >= 0; i--)
 				{
-					var bind = binds[i];
+					var control = groups[i];
 
-					if (bind != null)
+					if (control != null)
 					{
-						var throttle = Input.GetAxisRaw(bind.Axis);
+						var throttle = 0.0f;
 
-						if (bind.Inverse == true)
+						if (listen == true)
+						{
+							throttle = control.Controls.GetValue(1.0f);
+						}
+
+						if (control.Inverse == true)
 						{
 							throttle = -throttle;
 						}
 
-						if (bind.Bidirectional == false)
+						if (control.Bidirectional == false)
 						{
 							if (throttle < 0.0f)
 							{
@@ -50,9 +64,9 @@ namespace SpaceGraphicsToolkit
 							}
 						}
 
-						for (var j = bind.Positive.Count - 1; j >= 0; j--)
+						for (var j = control.Positive.Count - 1; j >= 0; j--)
 						{
-							var thruster = bind.Positive[j];
+							var thruster = control.Positive[j];
 
 							if (thruster != null)
 							{
@@ -60,9 +74,9 @@ namespace SpaceGraphicsToolkit
 							}
 						}
 
-						for (var j = bind.Negative.Count - 1; j >= 0; j--)
+						for (var j = control.Negative.Count - 1; j >= 0; j--)
 						{
-							var thruster = bind.Negative[j];
+							var thruster = control.Negative[j];
 
 							if (thruster != null)
 							{
@@ -80,14 +94,17 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtThrusterControls;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtThrusterControls))]
-	public class SgtThrusterControl_Editor : SgtEditor<SgtThrusterControls>
+	[UnityEditor.CanEditMultipleObjects]
+	[CustomEditor(typeof(TARGET))]
+	public class SgtThrusterControls_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("binds");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("groups", "This allows you to specify each thruster group, each of which is controlled separately.");
 		}
 	}
 }

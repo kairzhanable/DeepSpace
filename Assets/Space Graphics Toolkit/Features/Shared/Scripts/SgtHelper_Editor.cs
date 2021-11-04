@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
@@ -26,6 +26,78 @@ namespace SpaceGraphicsToolkit
 			EditorGUILayout.EndVertical();
 
 			return rect;
+		}
+
+		public static void RequireCamera()
+		{
+			if (SgtCamera.InstanceCount == 0)
+			{
+				SgtEditor.Separator();
+
+				if (SgtEditor.HelpButton("Your scene contains no SgtCameras", MessageType.Error, "Fix", 50.0f) == true)
+				{
+					ClearSelection();
+
+					foreach (var camera in Camera.allCameras)
+					{
+						AddToSelection(camera.gameObject);
+
+						GetOrAddComponent<SgtCamera>(camera.gameObject);
+					}
+				}
+			}
+		}
+
+		public static void RequireDepth()
+		{
+			var found = false;
+
+			foreach (var camera in Camera.allCameras)
+			{
+				var mask = camera.depthTextureMode;
+
+				if (mask == DepthTextureMode.DepthNormals || ((int)mask & 1) != 0)
+				{
+					found = true; break;
+				}
+			}
+
+			if (found == false)
+			{
+				SgtEditor.Separator();
+
+				if (Camera.main != null)
+				{
+					if (WritesDepth(Camera.main) == false)
+					{
+						if (SgtEditor.HelpButton("This component requires your camera to render a Depth Texture, but it doesn't.", UnityEditor.MessageType.Error, "Fix", 50.0f) == true)
+						{
+							GetOrAddComponent<SgtDepthTextureMode>(Camera.main.gameObject).DepthMode = DepthTextureMode.Depth;
+
+							SelectAndPing(Camera.main);
+						}
+					}
+				}
+				else
+				{
+					SgtEditor.Error("This component requires your camera to render a Depth Texture, but none of the cameras in your scene do. This can be fixed with the SgtDepthTextureMode component.");
+
+					foreach (var camera in Camera.allCameras)
+					{
+						if (Enabled(camera) == true)
+						{
+							GetOrAddComponent<SgtDepthTextureMode>(camera.gameObject).DepthMode = DepthTextureMode.Depth;
+
+							SelectAndPing(camera);
+						}
+					}
+				}
+			}
+		}
+
+		private static bool WritesDepth(Camera camera)
+		{
+			return camera != null && camera.depthTextureMode == DepthTextureMode.DepthNormals || ((int)camera.depthTextureMode & 1) != 0;
 		}
 
 		public static T LoadFirstAsset<T>(string pattern) // e.g. "Name t:mesh"

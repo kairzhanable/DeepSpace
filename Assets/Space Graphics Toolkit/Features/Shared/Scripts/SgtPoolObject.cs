@@ -135,18 +135,20 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtPoolObject;
 
-	[CustomEditor(typeof(SgtPoolObject))]
-	public class SgtPoolObject_Editor : SgtEditor<SgtPoolObject>
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtPoolObject_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			BeginDisabled();
 				Draw("TypeName", "The name of the type this pool manages.");
 				Draw("Elements", "The pooled elements in this pool.");
 			EndDisabled();
-			EditorGUILayout.HelpBox("SgtPoolObject are not saved to your scene, so don't worry if you see it in edit mode.", MessageType.Info);
+			Info("SgtPoolObject are not saved to your scene, so don't worry if you see it in edit mode.");
 		}
 	}
 }

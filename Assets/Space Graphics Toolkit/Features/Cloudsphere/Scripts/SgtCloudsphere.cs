@@ -36,11 +36,20 @@ namespace SpaceGraphicsToolkit
 		/// <summary>If you enable this then nearby SgtLight and SgtShadow casters will be found and applied to the lighting calculations.</summary>
 		public bool Lit { set { if (lit != value) { lit = value; DirtyMaterial(); } } get { return lit; } } [FSA("Lit")] [SerializeField] private bool lit;
 
-		/// <summary>The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.</summary>
-		public Texture LightingTex { set { if (lightingTex != value) { lightingTex = value; DirtyMaterial(); } } get { return lightingTex; } } [FSA("LightingTex")] [SerializeField] private Texture lightingTex;
-
 		/// <summary>The cloudsphere will always be lit by this amount.</summary>
 		public Color AmbientColor { set { if (ambientColor != value) { ambientColor = value; DirtyMaterial(); } } get { return ambientColor; } } [FSA("AmbientColor")] [SerializeField] private Color ambientColor;
+
+		/// <summary>The <b>AmbientColor</b> will be multiplied by this.</summary>
+		public float AmbientBrightness { set { if (ambientBrightness != value) { ambientBrightness = value; DirtyMaterial(); } } get { return ambientBrightness; } } [SerializeField] private float ambientBrightness = 1.0f;
+
+		/// <summary>The maximum amount of <b>SgtLight</b> components that can light this object.</summary>
+		public int MaxLights { set { if (maxLights != value) { maxLights = value; DirtyMaterial(); } } get { return maxLights; } } [SerializeField] [Range(0, SgtLight.MAX_LIGHTS)] private int maxLights = 2;
+
+		/// <summary>The maximum amount of <b>SgtShadowSphere</b> components that can shade this object.</summary>
+		public int MaxSphereShadows { set { if (maxSphereShadows != value) { maxSphereShadows = value; DirtyMaterial(); } } get { return maxSphereShadows; } } [SerializeField] [Range(0, SgtShadow.MAX_SPHERE_SHADOWS)] private int maxSphereShadows = 2;
+
+		/// <summary>The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.</summary>
+		public Texture LightingTex { set { if (lightingTex != value) { lightingTex = value; DirtyMaterial(); } } get { return lightingTex; } } [FSA("LightingTex")] [SerializeField] private Texture lightingTex;
 
 		/// <summary>Enable this if you want the cloudsphere to fade out as the camera approaches.</summary>
 		public bool Near { set { if (near != value) { near = value; DirtyMaterial(); } } get { return near; } } [FSA("Near")] [SerializeField] private bool near;
@@ -57,7 +66,7 @@ namespace SpaceGraphicsToolkit
 		/// <summary>This allows you to set the detail map texture, the detail should be stored in the alpha channel.</summary>
 		public Texture DetailTex { set { if (detailTex != value) { detailTex = value; DirtyMaterial(); } } get { return detailTex; } } [FSA("DetailTex")] [SerializeField] private Texture detailTex;
 
-		/// <summary>This allows you to set how many times the detail texture is repeating along the cloud surface.</summary>
+		/// <summary>This allows you to set the strength of the cloud detail texture.</summary>
 		public float DetailScale { set { if (detailScale != value) { detailScale = value; DirtyMaterial(); } } get { return detailScale; } } [FSA("DetailScale")] [SerializeField] private float detailScale = 8.0f;
 
 		/// <summary>This allows you to set how many times the detail texture is repeating along the cloud surface.</summary>
@@ -87,10 +96,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtCloudsphere Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject  = SgtHelper.CreateGameObject("Cloudsphere", layer, parent, localPosition, localRotation, localScale);
-			var cloudsphere = gameObject.AddComponent<SgtCloudsphere>();
-
-			return cloudsphere;
+			return SgtHelper.CreateGameObject("Cloudsphere", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtCloudsphere>();
 		}
 
 #if UNITY_EDITOR
@@ -128,10 +134,11 @@ namespace SpaceGraphicsToolkit
 
 			SgtShadow.Find(lit, mask, lights);
 			SgtShadow.FilterOutSphere(cachedTransform.position);
-			SgtShadow.Write(lit, 2);
+			SgtShadow.WriteSphere(maxSphereShadows);
+			SgtShadow.WriteRing(1);
 
 			SgtLight.FilterOut(cachedTransform.position);
-			SgtLight.Write(lit, cachedTransform.position, null, null, 1.0f, 2);
+			SgtLight.Write(cachedTransform.position, null, null, 1.0f, maxLights);
 		}
 
 		private void HandleCameraDraw(Camera camera)
@@ -183,24 +190,30 @@ namespace SpaceGraphicsToolkit
 			if (lit == true)
 			{
 				generatedMaterial.SetTexture(SgtShader._LightingTex, lightingTex);
-				generatedMaterial.SetColor(SgtShader._AmbientColor, ambientColor);
+				generatedMaterial.SetColor(SgtShader._AmbientColor, SgtHelper.Brighten(ambientColor, ambientBrightness));
+
+				SgtHelper.EnableKeyword("_LIT", generatedMaterial);
+			}
+			else
+			{
+				SgtHelper.DisableKeyword("_LIT", generatedMaterial);
 			}
 
 			if (near == true)
 			{
-				SgtHelper.EnableKeyword("SGT_A", generatedMaterial); // Near
+				SgtHelper.EnableKeyword("_NEAR", generatedMaterial);
 
 				generatedMaterial.SetTexture(SgtShader._NearTex, nearTex);
 				generatedMaterial.SetFloat(SgtShader._NearScale, SgtHelper.Reciprocal(nearDistance));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_A", generatedMaterial); // Near
+				SgtHelper.DisableKeyword("_NEAR", generatedMaterial);
 			}
 
 			if (detail == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B", generatedMaterial); // Detail
+				SgtHelper.EnableKeyword("_DETAIL", generatedMaterial);
 
 				generatedMaterial.SetTexture(SgtShader._DetailTex, detailTex);
 				generatedMaterial.SetFloat(SgtShader._DetailScale, detailScale);
@@ -208,18 +221,18 @@ namespace SpaceGraphicsToolkit
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B", generatedMaterial); // Detail
+				SgtHelper.DisableKeyword("_DETAIL", generatedMaterial);
 			}
 
 			if (softness > 0.0f)
 			{
-				SgtHelper.EnableKeyword("SGT_C", generatedMaterial); // Softness
+				SgtHelper.EnableKeyword("_SOFTNESS", generatedMaterial);
 
 				generatedMaterial.SetFloat(SgtShader._SoftParticlesFactor, SgtHelper.Reciprocal(softness));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_C", generatedMaterial); // Softness
+				SgtHelper.DisableKeyword("_SOFTNESS", generatedMaterial);
 			}
 		}
 	}
@@ -228,31 +241,33 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCloudsphere;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCloudsphere))]
-	public class SgtCloudsphere_Editor : SgtEditor<SgtCloudsphere>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCloudsphere_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterial = false;
 
 			Draw("color", ref dirtyMaterial, "The base color will be multiplied by this.");
-			BeginError(Any(t => t.Brightness <= 0.0f));
+			BeginError(Any(tgts, t => t.Brightness <= 0.0f));
 				Draw("brightness", ref dirtyMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
 			EndError();
 			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the cloudsphere material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
 
 			Separator();
 
-			BeginError(Any(t => t.MainTex == null));
+			BeginError(Any(tgts, t => t.MainTex == null));
 				Draw("mainTex", ref dirtyMaterial, "The cube map applied to the cloudsphere surface.");
 			EndError();
-			BeginError(Any(t => t.DepthTex == null));
+			BeginError(Any(tgts, t => t.DepthTex == null));
 				Draw("depthTex", ref dirtyMaterial, "The look up table associating optical depth with cloud color. The left side is used when the depth is thin (e.g. edge of the cloudsphere when looking from space). The right side is used when the depth is thick (e.g. center of the cloudsphere when looking from space).");
 			EndError();
-			BeginError(Any(t => t.Radius < 0.0f));
+			BeginError(Any(tgts, t => t.Radius < 0.0f));
 				Draw("radius", "This allows you to set the radius of the cloudsphere in local space.");
 			EndError();
 			Draw("cameraOffset", "This allows you to offset the camera distance in world space when rendering the cloudsphere, giving you fine control over the render order."); // Updated automatically
@@ -261,45 +276,30 @@ namespace SpaceGraphicsToolkit
 
 			Draw("softness", ref dirtyMaterial, "Should the stars fade out if they're intersecting solid geometry?");
 
-			if (Any(t => t.Softness > 0.0f))
+			if (Any(tgts, t => t.Softness > 0.0f))
 			{
-				foreach (var camera in Camera.allCameras)
-				{
-					if (SgtHelper.Enabled(camera) == true && camera.depthTextureMode == DepthTextureMode.None)
-					{
-						if ((camera.cullingMask & (1 << Target.gameObject.layer)) != 0)
-						{
-							if (HelpButton("You have enabled soft particles, but the '" + camera.name + "' camera does not write depth textures.", MessageType.Error, "Fix", 50.0f) == true)
-							{
-								var dtm = SgtHelper.GetOrAddComponent<SgtDepthTextureMode>(camera.gameObject);
-
-								dtm.DepthMode = DepthTextureMode.Depth;
-
-								dtm.UpdateDepthMode();
-
-								Selection.activeObject = dtm;
-							}
-						}
-					}
-				}
+				SgtHelper.RequireDepth();
 			}
 
 			Separator();
 
 			Draw("lit", ref dirtyMaterial, "If you enable this then nearby SgtLight and SgtShadow casters will be found and applied to the lighting calculations.");
 
-			if (Any(t => t.Lit == true))
+			if (Any(tgts, t => t.Lit == true))
 			{
 				if (SgtLight.InstanceCount == 0)
 				{
-					EditorGUILayout.HelpBox("You need to add the SgtLight component to your scene lights for them to work with SGT.", MessageType.Warning);
+					Warning("You need to add the SgtLight component to your scene lights for them to work with SGT.");
 				}
 
 				BeginIndent();
-					BeginError(Any(t => t.LightingTex == null));
+					Draw("ambientColor", ref dirtyMaterial, "The cloudsphere will always be lit by this amount.");
+					Draw("ambientBrightness", ref dirtyMaterial, "The <b>AmbientColor</b> will be multiplied by this.");
+					Draw("maxLights", "The maximum amount of <b>SgtLight</b> components that can light this object."); // Updated automatically
+					Draw("maxSphereShadows", "The maximum amount of <b>SgtShadowSphere</b> components that can shade this object."); // Updated automatically
+					BeginError(Any(tgts, t => t.LightingTex == null));
 						Draw("lightingTex", ref dirtyMaterial, "The look up table associating light angle with surface color. The left side is used on the dark side, the middle is used on the horizon, and the right side is used on the light side.");
 					EndError();
-					Draw("ambientColor", ref dirtyMaterial, "The cloudsphere will always be lit by this amount.");
 				EndIndent();
 			}
 
@@ -307,13 +307,13 @@ namespace SpaceGraphicsToolkit
 
 			Draw("near", ref dirtyMaterial, "Enable this if you want the cloudsphere to fade out as the camera approaches.");
 
-			if (Any(t => t.Near == true))
+			if (Any(tgts, t => t.Near == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.NearTex == null));
+					BeginError(Any(tgts, t => t.NearTex == null));
 						Draw("nearTex", ref dirtyMaterial, "The lookup table used to calculate the fade opacity based on distance, where the left side is used when the camera is close, and the right side is used when the camera is far.");
 					EndError();
-					BeginError(Any(t => t.NearDistance <= 0.0f));
+					BeginError(Any(tgts, t => t.NearDistance <= 0.0f));
 						Draw("nearDistance", ref dirtyMaterial, "The distance the fading begins from in world space.");
 					EndError();
 				EndIndent();
@@ -321,75 +321,73 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			Draw("detail", ref dirtyMaterial, "");
+			Draw("detail", ref dirtyMaterial, "Enable this if you want the cloud edges to be enhanced with more detail.");
 
-			if (Any(t => t.Detail == true))
+			if (Any(tgts, t => t.Detail == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.DetailTex == null));
-						Draw("detailTex", ref dirtyMaterial, "");
+					BeginError(Any(tgts, t => t.DetailTex == null));
+						Draw("detailTex", ref dirtyMaterial, "This allows you to set the detail map texture, the detail should be stored in the alpha channel.");
 					EndError();
-					BeginError(Any(t => t.DetailScale <= 0.0f));
-						Draw("detailScale", ref dirtyMaterial, "");
-					EndError();
-					BeginError(Any(t => t.DetailTiling <= 0.0f));
-						Draw("detailTiling", ref dirtyMaterial, "");
+					Draw("detailScale", ref dirtyMaterial, "This allows you to set the strength of the cloud detail texture.");
+					BeginError(Any(tgts, t => t.DetailTiling <= 0.0f));
+						Draw("detailTiling", ref dirtyMaterial, "This allows you to set how many times the detail texture is repeating along the cloud surface.");
 					EndError();
 				EndIndent();
 			}
 
 			Separator();
 			
-			BeginError(Any(t => t.Mesh == null));
+			BeginError(Any(tgts, t => t.Mesh == null));
 				Draw("mesh", "This allows you to set the mesh used to render the cloudsphere. This should be a sphere.");
 			EndError();
-			BeginError(Any(t => t.MeshRadius <= 0.0f));
+			BeginError(Any(tgts, t => t.MeshRadius <= 0.0f));
 				Draw("meshRadius", "This allows you to set the radius of the Mesh. If this is incorrectly set then the cloudsphere will render incorrectly.");
 			EndError();
 
-			if (Any(t => t.DepthTex == null && t.GetComponent<SgtCloudsphereDepthTex>() == null))
+			if (Any(tgts, t => t.DepthTex == null && t.GetComponent<SgtCloudsphereDepthTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add InnerDepthTex & OuterDepthTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtCloudsphereDepthTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtCloudsphereDepthTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Lit == true && t.LightingTex == null && t.GetComponent<SgtCloudsphereLightingTex>() == null))
+			if (Any(tgts, t => t.Lit == true && t.LightingTex == null && t.GetComponent<SgtCloudsphereLightingTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add LightingTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtCloudsphereLightingTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtCloudsphereLightingTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Near == true && t.NearTex == null && t.GetComponent<SgtCloudsphereNearTex>() == null))
+			if (Any(tgts, t => t.Near == true && t.NearTex == null && t.GetComponent<SgtCloudsphereNearTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add NearTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtCloudsphereNearTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtCloudsphereNearTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => SetMeshAndMeshRadius(t, false)))
+			if (Any(tgts, t => SetMeshAndMeshRadius(t, false)))
 			{
 				Separator();
 
 				if (Button("Set Mesh & Mesh Radius") == true)
 				{
-					Each(t => SetMeshAndMeshRadius(t, true));
+					Each(tgts, t => SetMeshAndMeshRadius(t, true));
 				}
 			}
 
 			if (dirtyMaterial == true)
 			{
-				DirtyEach(t => t.DirtyMaterial());
+				Each(tgts, t => t.DirtyMaterial(), true, true);
 			}
 		}
 

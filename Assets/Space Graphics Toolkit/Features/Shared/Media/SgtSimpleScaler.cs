@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -75,21 +75,23 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtSimpleScaler;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSimpleScaler))]
-	public class SgtSimpleScaler_Editor : SgtEditor<SgtSimpleScaler>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtSimpleScaler_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Scale == Vector3.zero));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Scale == Vector3.zero));
 				Draw("scale", "The scale of the object when at DistanceMin.");
 			EndError();
-			BeginError(Any(t => t.Multiplier <= 0.0));
+			BeginError(Any(tgts, t => t.Multiplier <= 0.0));
 				Draw("multiplier", "Scale is multiplied by this, allowing you to more easily tweak large scales.");
 			EndError();
-			BeginError(Any(t => t.DistanceMin < 0.0 || t.DistanceMin >= t.DistanceMax));
+			BeginError(Any(tgts, t => t.DistanceMin < 0.0 || t.DistanceMin >= t.DistanceMax));
 				Draw("distanceMin", "The distance where the scaling begins.");
 				Draw("distanceMax", "The distance where the scaling stops.");
 			EndError();

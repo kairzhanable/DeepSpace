@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -24,10 +24,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtSpawnList Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Spawn List", layer, parent, localPosition, localRotation, localScale);
-			var spawnList  = gameObject.AddComponent<SgtSpawnList>();
-
-			return spawnList;
+			return SgtHelper.CreateGameObject("Spawn List", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtSpawnList>();
 		}
 
 #if UNITY_EDITOR
@@ -46,14 +43,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtSpawnList;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtSpawnList))]
-	public class SgtSpawnList_Editor : SgtEditor<SgtSpawnList>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtSpawnList_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("category", "The type of prefabs these are (e.g. Planet).");
 			Draw("prefabs", "The prefabs beloning to this spawn list.");
 		}

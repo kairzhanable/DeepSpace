@@ -10,7 +10,8 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Starfield Custom")]
 	public class SgtStarfieldCustom : SgtStarfield
 	{
-		/// <summary>The stars that will be rendered by this starfield.</summary>
+		/// <summary>The stars that will be rendered by this starfield.
+		/// NOTE: If you modify this then you must then call the <b>DirtyMesh</b> method.</summary>
 		public List<SgtStarfieldStar> Stars { get { if (stars == null) stars = new List<SgtStarfieldStar>(); return stars; } } [FSA("Stars")] [SerializeField] private List<SgtStarfieldStar> stars;
 
 		public static SgtStarfieldCustom Create(int layer = 0, Transform parent = null)
@@ -20,10 +21,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtStarfieldCustom Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject      = SgtHelper.CreateGameObject("Starfield Custom", layer, parent, localPosition, localRotation, localScale);
-			var starfieldCustom = gameObject.AddComponent<SgtStarfieldCustom>();
-
-			return starfieldCustom;
+			return SgtHelper.CreateGameObject("Starfield Custom", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtStarfieldCustom>();
 		}
 
 #if UNITY_EDITOR
@@ -74,14 +72,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtStarfieldCustom;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtStarfieldCustom))]
-	public class SgtStarfieldCustom_Editor : SgtStarfield_Editor<SgtStarfieldCustom>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtStarfieldCustom_Editor : SgtStarfield_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterial = false;
 			var dirtyMesh     = false;
 
@@ -89,7 +89,8 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			DrawMainTex(ref dirtyMaterial, ref dirtyMesh);
+			DrawMainTex(ref dirtyMaterial);
+			DrawLayout(ref dirtyMesh);
 
 			Separator();
 
@@ -99,12 +100,10 @@ namespace SpaceGraphicsToolkit
 
 			Draw("stars", ref dirtyMesh, "The stars that will be rendered by this starfield.");
 
-			RequireCamera();
+			SgtHelper.RequireCamera();
 
-			serializedObject.ApplyModifiedProperties();
-
-			if (dirtyMaterial == true) DirtyEach(t => t.DirtyMaterial());
-			if (dirtyMesh     == true) DirtyEach(t => t.DirtyMesh    ());
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 		}
 	}
 }

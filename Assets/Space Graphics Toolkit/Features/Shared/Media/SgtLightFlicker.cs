@@ -1,18 +1,18 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
-	/// <summary>This component will prcoedurally change the <b>Intensity</b> of the attached <b>Light</b> to simulate flickering.</summary>
-	[RequireComponent(typeof(Light))]
+	/// <summary>This component will procedurally change the <b>Intensity</b> of the attached <b>Light</b> to simulate flickering.</summary>
+	[RequireComponent(typeof(SgtLight))]
 	[HelpURL(SgtHelper.HelpUrlPrefix + "SgtLightFlicker")]
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Light Flicker")]
 	public class SgtLightFlicker : MonoBehaviour
 	{
-		/// <summary>The minimum <b>Intensity</b> value.</summary>
-		public float IntensityMin { set { intensityMin = value; } get { return intensityMin; } } [SerializeField] private float intensityMin = 0.9f;
+		/// <summary>The minimum <b>Multiplier</b> value.</summary>
+		public float MultiplierMin { set { multiplierMin = value; } get { return multiplierMin; } } [SerializeField] private float multiplierMin = 0.9f;
 
-		/// <summary>The maximum <b>Intensity</b> value.</summary>
-		public float IntensityMax { set { intensityMax = value; } get { return intensityMax; } } [SerializeField] private float intensityMax = 1.1f;
+		/// <summary>The maximum <b>Multiplier</b> value.</summary>
+		public float MultiplierMax { set { multiplierMax = value; } get { return multiplierMax; } } [SerializeField] private float multiplierMax = 1.1f;
 
 		/// <summary>The current animation position.</summary>
 		public float Offset { set { offset = value; } get { return offset; } } [SerializeField] private float offset;
@@ -21,14 +21,14 @@ namespace SpaceGraphicsToolkit
 		public float Speed { set { speed = value; } get { return speed; } } [SerializeField] private float speed = 5.0f;
 
 		[System.NonSerialized]
-		private Light cachedLight;
+		private SgtLight cachedLight;
 
 		[System.NonSerialized]
 		private float[] points;
 
 		protected virtual void OnEnable()
 		{
-			cachedLight = GetComponent<Light>();
+			cachedLight = GetComponent<SgtLight>();
 		}
 
 		protected virtual void Update()
@@ -45,7 +45,7 @@ namespace SpaceGraphicsToolkit
 
 			offset += speed * Time.deltaTime;
 
-			cachedLight.intensity = Mathf.Lerp(intensityMin, intensityMax, Sample());
+			cachedLight.Multiplier = Mathf.Lerp(multiplierMin, multiplierMax, Sample());
 		}
 
 		private float Sample()
@@ -66,20 +66,22 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtLightFlicker;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtLightFlicker))]
-	public class SgtLightFlicker_Editor : SgtEditor<SgtLightFlicker>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtLightFlicker_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.IntensityMin == t.IntensityMax));
-				Draw("intensityMin", "The minimum Intensity value.");
-				Draw("intensityMax", "The maximum Intensity value.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.MultiplierMin == t.MultiplierMax));
+				Draw("multiplierMin", "The minimum Multiplier value.");
+				Draw("multiplierMax", "The maximum Multiplier value.");
 			EndError();
 			Draw("offset", "The current animation position.");
-			BeginError(Any(t => t.Speed == 0.0f));
+			BeginError(Any(tgts, t => t.Speed == 0.0f));
 				Draw("speed", "The current animation speed.");
 			EndError();
 		}

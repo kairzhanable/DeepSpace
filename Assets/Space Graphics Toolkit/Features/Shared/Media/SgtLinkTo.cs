@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace SpaceGraphicsToolkit
@@ -84,7 +84,7 @@ namespace SpaceGraphicsToolkit
 
 			if (index >= 0)
 			{
-				if (UnityEngine.SceneManagement.SceneManager.GetSceneByBuildIndex(index).path != scene.path)
+				if (index != scene.buildIndex)
 				{
 					return -1;
 				}

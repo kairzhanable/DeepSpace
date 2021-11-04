@@ -164,14 +164,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCamera;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCamera))]
-	public class SgtCamera_Editor : SgtEditor<SgtCamera>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCamera_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("rollAngle", "The amount of degrees this camera has rolled (used to counteract billboard non-rotation).");
 		}
 	}

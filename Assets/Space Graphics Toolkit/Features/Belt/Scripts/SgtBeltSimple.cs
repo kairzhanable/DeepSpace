@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -11,49 +10,49 @@ namespace SpaceGraphicsToolkit
 	public class SgtBeltSimple : SgtBelt
 	{
 		/// <summary>This allows you to set the random seed used during procedural generation.</summary>
-		public int Seed { set { if (seed != value) { seed = value; DirtyMaterial(); } } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
+		public int Seed { set { if (seed != value) { seed = value; DirtyMesh(); } } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
 
 		/// <summary>The thickness of the belt in local coordinates.</summary>
-		public float Thickness { set { if (thickness != value) { thickness = value; DirtyMaterial(); } } get { return thickness; } } [FSA("Thickness")] [SerializeField] private float thickness;
+		public float Thickness { set { if (thickness != value) { thickness = value; DirtyMesh(); } } get { return thickness; } } [FSA("Thickness")] [SerializeField] private float thickness;
 
 		/// <summary>The higher this value, the less large asteroids will be generated.</summary>
-		public float ThicknessBias { set { if (thicknessBias != value) { thicknessBias = value; DirtyMaterial(); } } get { return thicknessBias; } } [FSA("ThicknessBias")] [SerializeField] private float thicknessBias = 1.0f;
+		public float ThicknessBias { set { if (thicknessBias != value) { thicknessBias = value; DirtyMesh(); } } get { return thicknessBias; } } [FSA("ThicknessBias")] [SerializeField] private float thicknessBias = 1.0f;
 
 		/// <summary>The radius of the inner edge of the belt in local coordinates.</summary>
-		public float InnerRadius { set { if (innerRadius != value) { innerRadius = value; DirtyMaterial(); } } get { return innerRadius; } } [FSA("InnerRadius")] [SerializeField] private float innerRadius = 1.0f;
+		public float InnerRadius { set { if (innerRadius != value) { innerRadius = value; DirtyMesh(); } } get { return innerRadius; } } [FSA("InnerRadius")] [SerializeField] private float innerRadius = 1.0f;
 
 		/// <summary>The speed of asteroids orbiting on the inner edge of the belt in radians.</summary>
-		public float InnerSpeed { set { if (innerSpeed != value) { innerSpeed = value; DirtyMaterial(); } } get { return innerSpeed; } } [FSA("InnerSpeed")] [SerializeField] private float innerSpeed = 0.1f;
+		public float InnerSpeed { set { if (innerSpeed != value) { innerSpeed = value; DirtyMesh(); } } get { return innerSpeed; } } [FSA("InnerSpeed")] [SerializeField] private float innerSpeed = 0.1f;
 
 		/// <summary>The radius of the outer edge of the belt in local coordinates.</summary>
-		public float OuterRadius { set { if (outerRadius != value) { outerRadius = value; DirtyMaterial(); } } get { return outerRadius; } } [FSA("OuterRadius")] [SerializeField] private float outerRadius = 2.0f;
+		public float OuterRadius { set { if (outerRadius != value) { outerRadius = value; DirtyMesh(); } } get { return outerRadius; } } [FSA("OuterRadius")] [SerializeField] private float outerRadius = 2.0f;
 
 		/// <summary>The speed of asteroids orbiting on the outer edge of the belt in radians.</summary>
-		public float OuterSpeed { set { if (outerSpeed != value) { outerSpeed = value; DirtyMaterial(); } } get { return outerSpeed; } } [FSA("OuterSpeed")] [SerializeField] private float outerSpeed = 0.05f;
+		public float OuterSpeed { set { if (outerSpeed != value) { outerSpeed = value; DirtyMesh(); } } get { return outerSpeed; } } [FSA("OuterSpeed")] [SerializeField] private float outerSpeed = 0.05f;
 
 		/// <summary>The higher this value, the more likely asteroids will spawn on the inner edge of the ring.</summary>
-		public float RadiusBias { set { if (radiusBias != value) { radiusBias = value; DirtyMaterial(); } } get { return radiusBias; } } [FSA("RadiusBias")] [SerializeField] private float radiusBias = 0.25f;
+		public float RadiusBias { set { if (radiusBias != value) { radiusBias = value; DirtyMesh(); } } get { return radiusBias; } } [FSA("RadiusBias")] [SerializeField] private float radiusBias = 0.25f;
 
 		/// <summary>How much random speed can be added to each asteroid.</summary>
-		public float SpeedSpread { set { if (speedSpread != value) { speedSpread = value; DirtyMaterial(); } } get { return speedSpread; } } [FSA("SpeedSpread")] [SerializeField] private float speedSpread;
+		public float SpeedSpread { set { if (speedSpread != value) { speedSpread = value; DirtyMesh(); } } get { return speedSpread; } } [FSA("SpeedSpread")] [SerializeField] private float speedSpread;
 
 		/// <summary>The amount of asteroids generated in the belt.</summary>
-		public int AsteroidCount { set { if (asteroidCount != value) { asteroidCount = value; DirtyMaterial(); } } get { return asteroidCount; } } [FSA("AsteroidCount")] [SerializeField] private int asteroidCount = 1000;
+		public int AsteroidCount { set { if (asteroidCount != value) { asteroidCount = value; DirtyMesh(); } } get { return asteroidCount; } } [FSA("AsteroidCount")] [SerializeField] private int asteroidCount = 1000;
 
 		/// <summary>Each asteroid is given a random color from this gradient.</summary>
 		public Gradient AsteroidColors { get { if (asteroidColors == null) asteroidColors = new Gradient(); return asteroidColors; } } [FSA("AsteroidColors")] [SerializeField] private Gradient asteroidColors;
 
-		/// <summary>The maximum amount of angular velcoity each asteroid has.</summary>
-		public float AsteroidSpin { set { if (asteroidSpin != value) { asteroidSpin = value; DirtyMaterial(); } } get { return asteroidSpin; } } [FSA("AsteroidSpin")] [SerializeField] private float asteroidSpin = 1.0f;
+		/// <summary>The maximum amount of angular velocity each asteroid has.</summary>
+		public float AsteroidSpin { set { if (asteroidSpin != value) { asteroidSpin = value; DirtyMesh(); } } get { return asteroidSpin; } } [FSA("AsteroidSpin")] [SerializeField] private float asteroidSpin = 1.0f;
 
 		/// <summary>The minimum asteroid radius in local coordinates.</summary>
-		public float AsteroidRadiusMin { set { if (asteroidRadiusMin != value) { asteroidRadiusMin = value; DirtyMaterial(); } } get { return asteroidRadiusMin; } } [FSA("AsteroidRadiusMin")] [SerializeField] private float asteroidRadiusMin = 0.025f;
+		public float AsteroidRadiusMin { set { if (asteroidRadiusMin != value) { asteroidRadiusMin = value; DirtyMesh(); } } get { return asteroidRadiusMin; } } [FSA("AsteroidRadiusMin")] [SerializeField] private float asteroidRadiusMin = 0.025f;
 
 		/// <summary>The maximum asteroid radius in local coordinates.</summary>
-		public float AsteroidRadiusMax { set { if (asteroidRadiusMax != value) { asteroidRadiusMax = value; DirtyMaterial(); } } get { return asteroidRadiusMax; } } [FSA("AsteroidRadiusMax")] [SerializeField] private float asteroidRadiusMax = 0.05f;
+		public float AsteroidRadiusMax { set { if (asteroidRadiusMax != value) { asteroidRadiusMax = value; DirtyMesh(); } } get { return asteroidRadiusMax; } } [FSA("AsteroidRadiusMax")] [SerializeField] private float asteroidRadiusMax = 0.05f;
 
 		/// <summary>How likely the size picking will pick smaller asteroids over larger ones (1 = default/linear).</summary>
-		public float AsteroidRadiusBias { set { if (asteroidRadiusBias != value) { asteroidRadiusBias = value; DirtyMaterial(); } } get { return asteroidRadiusBias; } } [FSA("AsteroidRadiusBias")] [SerializeField] private float asteroidRadiusBias = 0.0f;
+		public float AsteroidRadiusBias { set { if (asteroidRadiusBias != value) { asteroidRadiusBias = value; DirtyMesh(); } } get { return asteroidRadiusBias; } } [FSA("AsteroidRadiusBias")] [SerializeField] private float asteroidRadiusBias = 0.0f;
 
 		public static SgtBeltSimple Create(int layer = 0, Transform parent = null)
 		{
@@ -62,10 +61,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtBeltSimple Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Belt Simple", layer, parent, localPosition, localRotation, localScale);
-			var simpleBelt = gameObject.AddComponent<SgtBeltSimple>();
-
-			return simpleBelt;
+			return SgtHelper.CreateGameObject("Belt Simple", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtBeltSimple>();
 		}
 
 #if UNITY_EDITOR
@@ -118,14 +114,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtBeltSimple;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtBeltSimple))]
-	public class SgtBeltSimple_Editor : SgtBelt_Editor<SgtBeltSimple>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtBeltSimple_Editor : SgtBelt_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMaterial = false;
 			var dirtyMesh     = false;
 
@@ -133,7 +131,8 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			DrawMainTex(ref dirtyMaterial, ref dirtyMesh);
+			DrawMainTex(ref dirtyMaterial);
+			DrawLayout(ref dirtyMesh);
 
 			Separator();
 
@@ -143,14 +142,14 @@ namespace SpaceGraphicsToolkit
 
 			Draw("seed", ref dirtyMesh, "This allows you to set the random seed used during procedural generation.");
 			Draw("thickness", ref dirtyMesh, "The thickness of the belt in local coordinates.");
-			BeginError(Any(t => t.ThicknessBias < 1.0f));
+			BeginError(Any(tgts, t => t.ThicknessBias < 1.0f));
 				Draw("thicknessBias", ref dirtyMesh, "The higher this value, the less large asteroids will be generated.");
 			EndError();
-			BeginError(Any(t => t.InnerRadius < 0.0f || t.InnerRadius > t.OuterRadius));
+			BeginError(Any(tgts, t => t.InnerRadius < 0.0f || t.InnerRadius > t.OuterRadius));
 				Draw("innerRadius", ref dirtyMesh, "The radius of the inner edge of the belt in local coordinates.");
 			EndError();
 			Draw("innerSpeed", ref dirtyMesh, "The speed of asteroids orbiting on the inner edge of the belt in radians.");
-			BeginError(Any(t => t.OuterRadius < 0.0f || t.InnerRadius > t.OuterRadius));
+			BeginError(Any(tgts, t => t.OuterRadius < 0.0f || t.InnerRadius > t.OuterRadius));
 				Draw("outerRadius", ref dirtyMesh, "The radius of the outer edge of the belt in local coordinates.");
 			EndError();
 			Draw("outerSpeed", ref dirtyMesh, "The speed of asteroids orbiting on the outer edge of the belt in radians.");
@@ -162,25 +161,23 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			BeginError(Any(t => t.AsteroidCount < 0));
+			BeginError(Any(tgts, t => t.AsteroidCount < 0));
 				Draw("asteroidCount", ref dirtyMesh, "The amount of asteroids generated in the belt.");
 			EndError();
 			Draw("asteroidColors", ref dirtyMesh, "Each asteroid is given a random color from this gradient.");
-			Draw("asteroidSpin", ref dirtyMesh, "The maximum amount of angular velcoity each asteroid has.");
-			BeginError(Any(t => t.AsteroidRadiusMin < 0.0f || t.AsteroidRadiusMin > t.AsteroidRadiusMax));
+			Draw("asteroidSpin", ref dirtyMesh, "The maximum amount of angular velocity each asteroid has.");
+			BeginError(Any(tgts, t => t.AsteroidRadiusMin < 0.0f || t.AsteroidRadiusMin > t.AsteroidRadiusMax));
 				Draw("asteroidRadiusMin", ref dirtyMesh, "The minimum asteroid radius in local coordinates.");
 			EndError();
-			BeginError(Any(t => t.AsteroidRadiusMax < 0.0f || t.AsteroidRadiusMin > t.AsteroidRadiusMax));
+			BeginError(Any(tgts, t => t.AsteroidRadiusMax < 0.0f || t.AsteroidRadiusMin > t.AsteroidRadiusMax));
 				Draw("asteroidRadiusMax", ref dirtyMesh, "The maximum asteroid radius in local coordinates.");
 			EndError();
 			Draw("asteroidRadiusBias", ref dirtyMesh, "How likely the size picking will pick smaller asteroids over larger ones (0 = default/linear).");
 
-			RequireCamera();
+			SgtHelper.RequireCamera();
 
-			serializedObject.ApplyModifiedProperties();
-
-			if (dirtyMaterial == true) DirtyEach(t => t.DirtyMaterial());
-			if (dirtyMesh     == true) DirtyEach(t => t.DirtyMesh    ());
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 		}
 	}
 }

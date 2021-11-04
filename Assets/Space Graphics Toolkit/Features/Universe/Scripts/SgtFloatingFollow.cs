@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -40,14 +40,15 @@ namespace SpaceGraphicsToolkit
 			if (target != null)
 			{
 				var currentPosition = cachedPoint.Position;
-				var targetPosition  = target.Position + localPosition;
+				var targetRotation  = target.transform.rotation;
+				var targetPosition  = target.Position + targetRotation * localPosition;
 				var factor          = SgtHelper.DampenFactor(damping, Time.deltaTime);
 
 				cachedPoint.SetPosition(SgtPosition.Lerp(ref currentPosition, ref targetPosition, factor));
 
 				if (rotate == true)
 				{
-					var targetRotation = target.transform.rotation * Quaternion.Euler(localRotation);
+					targetRotation *= Quaternion.Euler(localRotation);
 
 					transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, factor);
 				}
@@ -59,15 +60,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingFollow;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingFollow))]
-	public class SgtFloatingFollow_Editor : SgtEditor<SgtFloatingFollow>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingFollow_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Target == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Target == null));
 				Draw("target", "This allows you to specify the <b>SgtFloatingPoint</b> this component will follow.");
 			EndError();
 			Draw("damping", "How quickly this point follows the target.\n\n-1 = instant.");

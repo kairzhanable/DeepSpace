@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -62,14 +62,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtRaycastTranslate;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtRaycastTranslate))]
-	public class SgtRaycastTranslate_Editor : SgtEditor<SgtRaycastTranslate>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtRaycastTranslate_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("localTarget", "The target local translation.");
 			Draw("layers", "The GameObject layers we will raycast against.");
 			Draw("radius", "The radius of the raycast, to prevent surface penetration by cameras.");

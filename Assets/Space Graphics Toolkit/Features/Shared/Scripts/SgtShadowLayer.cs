@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -10,10 +11,10 @@ namespace SpaceGraphicsToolkit
 	public class SgtShadowLayer : MonoBehaviour
 	{
 		/// <summary>The radius of this shadow receiver.</summary>
-		public float Radius = 1.0f;
+		public float Radius { set { radius = value; } get { return radius; } } [FSA("Radius")] [SerializeField] private float radius = 1.0f;
 
 		/// <summary>The renderers you want the shadows to be applied to.</summary>
-		public List<MeshRenderer> Renderers;
+		public List<MeshRenderer> Renderers { get { if (renderers == null) renderers = new List<MeshRenderer>(); return renderers; } } [FSA("Renderers")] [SerializeField] private List<MeshRenderer> renderers;
 
 		// The material added to all spacetime renderers
 		[System.NonSerialized]
@@ -22,11 +23,11 @@ namespace SpaceGraphicsToolkit
 		[ContextMenu("Apply Material")]
 		public void ApplyMaterial()
 		{
-			if (Renderers != null)
+			if (renderers != null)
 			{
-				for (var i = Renderers.Count - 1; i >= 0; i--)
+				for (var i = renderers.Count - 1; i >= 0; i--)
 				{
-					SgtHelper.AddMaterial(Renderers[i], material);
+					SgtHelper.AddMaterial(renderers[i], material);
 				}
 			}
 		}
@@ -34,11 +35,11 @@ namespace SpaceGraphicsToolkit
 		[ContextMenu("Remove Material")]
 		public void RemoveMaterial()
 		{
-			if (Renderers != null)
+			if (renderers != null)
 			{
-				for (var i = Renderers.Count - 1; i >= 0; i--)
+				for (var i = renderers.Count - 1; i >= 0; i--)
 				{
-					SgtHelper.RemoveMaterial(Renderers[i], material);
+					SgtHelper.RemoveMaterial(renderers[i], material);
 				}
 			}
 		}
@@ -47,14 +48,14 @@ namespace SpaceGraphicsToolkit
 		{
 			if (renderer != null)
 			{
-				if (Renderers == null)
+				if (renderers == null)
 				{
-					Renderers = new List<MeshRenderer>();
+					renderers = new List<MeshRenderer>();
 				}
 
-				if (Renderers.Contains(renderer) == false)
+				if (renderers.Contains(renderer) == false)
 				{
-					Renderers.Add(renderer);
+					renderers.Add(renderer);
 
 					SgtHelper.AddMaterial(renderer, material);
 				}
@@ -63,9 +64,9 @@ namespace SpaceGraphicsToolkit
 
 		public void RemoveRenderer(MeshRenderer renderer)
 		{
-			if (renderer != null && Renderers != null)
+			if (renderer != null && renderers != null)
 			{
-				if (Renderers.Remove(renderer) == true)
+				if (renderers.Remove(renderer) == true)
 				{
 					SgtHelper.RemoveMaterial(renderer, material);
 				}
@@ -81,7 +82,7 @@ namespace SpaceGraphicsToolkit
 				material = SgtHelper.CreateTempMaterial("Shadow Layer (Generated)", SgtHelper.ShaderNamePrefix + "ShadowLayer");
 			}
 
-			if (Renderers == null)
+			if (renderers == null)
 			{
 				AddRenderer(GetComponent<MeshRenderer>());
 			}
@@ -92,7 +93,7 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 		protected virtual void OnDrawGizmosSelected()
 		{
-			Gizmos.DrawWireSphere(transform.position, SgtHelper.UniformScale(transform.lossyScale) * Radius);
+			Gizmos.DrawWireSphere(transform.position, SgtHelper.UniformScale(transform.lossyScale) * radius);
 		}
 #endif
 
@@ -114,8 +115,9 @@ namespace SpaceGraphicsToolkit
 
 				SgtShadow.Find(true, mask, lights);
 				SgtShadow.FilterOutSphere(transform.position);
-				SgtShadow.FilterOutMiss(transform.position, SgtHelper.UniformScale(transform.lossyScale) * Radius);
-				SgtShadow.Write(true, 2);
+				SgtShadow.FilterOutMiss(transform.position, SgtHelper.UniformScale(transform.lossyScale) * radius);
+				SgtShadow.WriteSphere(2);
+				SgtShadow.WriteRing(1);
 			}
 		}
 	}
@@ -124,23 +126,25 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtShadowLayer;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtShadowLayer))]
-	public class SgtShadowLayer_Editor : SgtEditor<SgtShadowLayer>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtShadowLayer_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("Radius", "The radius of this shadow receiver.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("radius", "The radius of this shadow receiver.");
 
 			Separator();
 
-			Each(t => { if (t.isActiveAndEnabled == true) t.RemoveMaterial(); });
-				BeginError(Any(t => t.Renderers != null && t.Renderers.Exists(s => s == null)));
-					Draw("Renderers", "The renderers you want the shadows to be applied to.");
+			Each(tgts, t => { if (t.isActiveAndEnabled == true) t.RemoveMaterial(); });
+				BeginError(Any(tgts, t => t.Renderers != null && t.Renderers.Exists(s => s == null)));
+					Draw("renderers", "The renderers you want the shadows to be applied to.");
 				EndError();
-			Each(t => { if (t.isActiveAndEnabled == true) t.ApplyMaterial(); });
+			Each(tgts, t => { if (t.isActiveAndEnabled == true) t.ApplyMaterial(); });
 		}
 	}
 }

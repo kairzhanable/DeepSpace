@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -47,15 +47,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingRoot;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingRoot))]
-	public class SgtFloatingRoot_Editor : SgtEditor<SgtFloatingRoot>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingRoot_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			EditorGUILayout.HelpBox("All prefabs spawned from SgtFloatingLod and SgtFloatingSpawner___ will be attached to this GameObject.", MessageType.Info);
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Info("All prefabs spawned from SgtFloatingLod and SgtFloatingSpawner___ will be attached to this GameObject.");
 		}
 	}
 }

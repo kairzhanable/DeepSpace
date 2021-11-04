@@ -10,88 +10,88 @@ namespace SpaceGraphicsToolkit
 	public class SgtProminence : MonoBehaviour
 	{
 		/// <summary>The main texture of the prominence.</summary>
-		public Texture MainTex { set { if (mainTex != value) { mainTex = value; UpdateMaterial(); } } get { return mainTex; } } [FSA("MainTex")] [SerializeField] private Texture mainTex;
+		public Texture MainTex { set { if (mainTex != value) { mainTex = value; DirtyMaterial(); } } get { return mainTex; } } [FSA("MainTex")] [SerializeField] private Texture mainTex;
 
 		/// <summary>The base color will be multiplied by this.</summary>
-		public Color Color { set { if (color != value) { color = value; UpdateMaterial(); } } get { return color; } } [FSA("Color")] [SerializeField] private Color color = Color.white;
+		public Color Color { set { if (color != value) { color = value; DirtyMaterial(); } } get { return color; } } [FSA("Color")] [SerializeField] private Color color = Color.white;
 
 		/// <summary>The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.</summary>
-		public float Brightness { set { if (brightness != value) { brightness = value; UpdateMaterial(); } } get { return brightness; } } [FSA("Brightness")] [SerializeField] private float brightness = 1.0f;
+		public float Brightness { set { if (brightness != value) { brightness = value; DirtyMaterial(); } } get { return brightness; } } [FSA("Brightness")] [SerializeField] private float brightness = 1.0f;
 
 		/// <summary>This allows you to adjust the render queue of the prominence material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.</summary>
-		public SgtRenderQueue RenderQueue { set { if (renderQueue != value) { renderQueue = value; UpdateMaterial(); } } get { return renderQueue; } } [FSA("RenderQueue")] [SerializeField] private SgtRenderQueue renderQueue = SgtRenderQueue.GroupType.Transparent;
+		public SgtRenderQueue RenderQueue { set { if (renderQueue != value) { renderQueue = value; DirtyMaterial(); } } get { return renderQueue; } } [FSA("RenderQueue")] [SerializeField] private SgtRenderQueue renderQueue = SgtRenderQueue.GroupType.Transparent;
 
 		/// <summary>This allows you to set the random seed used during procedural generation.</summary>
-		public int Seed { set { if (seed != value) { seed = value; UpdateMaterial(); } } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
+		public int Seed { set { if (seed != value) { seed = value; DirtyMesh(); } } get { return seed; } } [FSA("Seed")] [SerializeField] [SgtSeed] private int seed;
 
 		/// <summary>The amount of planes used to build the prominence.</summary>
-		public int PlaneCount { set { if (planeCount != value) { planeCount = value; UpdateMaterial(); } } get { return planeCount; } } [FSA("PlaneCount")] [SerializeField] private int planeCount = 8;
+		public int PlaneCount { set { if (planeCount != value) { planeCount = value; DirtyMesh(); } } get { return planeCount; } } [FSA("PlaneCount")] [SerializeField] private int planeCount = 8;
 
 		/// <summary>The amount of quads used to build each plane.</summary>
-		public int PlaneDetail { set { if (planeDetail != value) { planeDetail = value; UpdateMaterial(); } } get { return planeDetail; } } [FSA("PlaneDetail")] [SerializeField] private int planeDetail = 10;
+		public int PlaneDetail { set { if (planeDetail != value) { planeDetail = value; DirtyMesh(); } } get { return planeDetail; } } [FSA("PlaneDetail")] [SerializeField] private int planeDetail = 10;
 
 		/// <summary>The inner radius of the prominence planes in local coordinates.</summary>
-		public float RadiusMin { set { if (radiusMin != value) { radiusMin = value; UpdateMaterial(); } } get { return radiusMin; } } [FSA("RadiusMin")] [SerializeField] private float radiusMin = 1.0f;
+		public float RadiusMin { set { if (radiusMin != value) { radiusMin = value; DirtyMesh(); } } get { return radiusMin; } } [FSA("RadiusMin")] [SerializeField] private float radiusMin = 1.0f;
 
 		/// <summary>The outer radius of the prominence planes in local coordinates.</summary>
-		public float RadiusMax { set { if (radiusMax != value) { radiusMax = value; UpdateMaterial(); } } get { return radiusMax; } } [FSA("RadiusMax")] [SerializeField] private float radiusMax = 2.0f;
+		public float RadiusMax { set { if (radiusMax != value) { radiusMax = value; DirtyMesh(); } } get { return radiusMax; } } [FSA("RadiusMax")] [SerializeField] private float radiusMax = 2.0f;
 
 		/// <summary>Should the plane fade out when it's viewed edge-on?</summary>
-		public bool FadeEdge { set { if (fadeEdge != value) { fadeEdge = value; UpdateMaterial(); } } get { return fadeEdge; } } [FSA("FadeEdge")] [SerializeField] private bool fadeEdge;
+		public bool FadeEdge { set { if (fadeEdge != value) { fadeEdge = value; DirtyMaterial(); } } get { return fadeEdge; } } [FSA("FadeEdge")] [SerializeField] private bool fadeEdge;
 
 		/// <summary>How sharp the transition between visible and invisible is.</summary>
-		public float FadePower { set { if (fadePower != value) { fadePower = value; UpdateMaterial(); } } get { return fadePower; } } [FSA("FadePower")] [SerializeField] private float fadePower = 2.0f;
+		public float FadePower { set { if (fadePower != value) { fadePower = value; DirtyMaterial(); } } get { return fadePower; } } [FSA("FadePower")] [SerializeField] private float fadePower = 2.0f;
 
 		/// <summary>Should the plane fade out when it's in front of the star?</summary>
-		public bool ClipNear { set { if (clipNear != value) { clipNear = value; UpdateMaterial(); } } get { return clipNear; } } [FSA("ClipNear")] [SerializeField] private bool clipNear;
+		public bool ClipNear { set { if (clipNear != value) { clipNear = value; DirtyMaterial(); } } get { return clipNear; } } [FSA("ClipNear")] [SerializeField] private bool clipNear;
 
 		/// <summary>How sharp the transition between visible and invisible is.</summary>
-		public float ClipPower { set { if (clipPower != value) { clipPower = value; UpdateMaterial(); } } get { return clipPower; } } [FSA("ClipPower")] [SerializeField] private float clipPower = 2.0f;
+		public float ClipPower { set { if (clipPower != value) { clipPower = value; DirtyMaterial(); } } get { return clipPower; } } [FSA("ClipPower")] [SerializeField] private float clipPower = 2.0f;
 
 		/// <summary>This allows you to offset the camera distance in world space when rendering the prominence, giving you fine control over the render order.</summary>
-		public float CameraOffset { set { if (cameraOffset != value) { cameraOffset = value; UpdateMaterial(); } } get { return cameraOffset; } } [FSA("CameraOffset")] [SerializeField] private float cameraOffset;
+		public float CameraOffset { set { if (cameraOffset != value) { cameraOffset = value; DirtyMaterial(); } } get { return cameraOffset; } } [FSA("CameraOffset")] [SerializeField] private float cameraOffset;
 
 		/// <summary>Should the prominence be animated to distort? This makes the edges flicker like a flame.</summary>
-		public bool Distort { set { if (distort != value) { distort = value; UpdateMaterial(); } } get { return distort; } } [FSA("Distort")] [SerializeField] private bool distort;
+		public bool Distort { set { if (distort != value) { distort = value; DirtyMaterial(); } } get { return distort; } } [FSA("Distort")] [SerializeField] private bool distort;
 
 		/// <summary>This allows you to set the distortion texture that gets repeated on the prominence surface.</summary>
-		public Texture DistortTex { set { if (distortTex != value) { distortTex = value; UpdateMaterial(); } } get { return distortTex; } } [FSA("DistortTex")] [SerializeField] private Texture distortTex;
+		public Texture DistortTex { set { if (distortTex != value) { distortTex = value; DirtyMaterial(); } } get { return distortTex; } } [FSA("DistortTex")] [SerializeField] private Texture distortTex;
 
 		/// <summary>The distortion texture horizontal tiling.</summary>
-		public float DistortScaleX { set { if (distortScaleX != value) { distortScaleX = value; UpdateMaterial(); } } get { return distortScaleX; } } [FSA("DistortScaleX")] [SerializeField] private float distortScaleX = 0.1f;
+		public float DistortScaleX { set { if (distortScaleX != value) { distortScaleX = value; DirtyMaterial(); } } get { return distortScaleX; } } [FSA("DistortScaleX")] [SerializeField] private float distortScaleX = 0.1f;
 
 		/// <summary>The distortion texture vertical tiling.</summary>
-		public int DistortScaleY { set { if (distortScaleY != value) { distortScaleY = value; UpdateMaterial(); } } get { return distortScaleY; } } [FSA("DistortScaleY")] [SerializeField] private int distortScaleY = 1;
+		public int DistortScaleY { set { if (distortScaleY != value) { distortScaleY = value; DirtyMaterial(); } } get { return distortScaleY; } } [FSA("DistortScaleY")] [SerializeField] private int distortScaleY = 1;
 
 		/// <summary>The distortion texture strength.</summary>
-		public float DistortStrength { set { if (distortStrength != value) { distortStrength = value; UpdateMaterial(); } } get { return distortStrength; } } [FSA("DistortStrength")] [SerializeField] private float distortStrength = 0.1f;
+		public float DistortStrength { set { if (distortStrength != value) { distortStrength = value; DirtyMaterial(); } } get { return distortStrength; } } [FSA("DistortStrength")] [SerializeField] private float distortStrength = 0.1f;
 
 		/// <summary>The UV offset of the distortion texture.</summary>
-		public Vector2 DistortOffset { set { if (distortOffset != value) { distortOffset = value; UpdateMaterial(); } } get { return distortOffset; } } [FSA("DistortOffset")] [SerializeField] private Vector2 distortOffset;
+		public Vector2 DistortOffset { set { if (distortOffset != value) { distortOffset = value; DirtyMaterial(); } } get { return distortOffset; } } [FSA("DistortOffset")] [SerializeField] private Vector2 distortOffset;
 
 		/// <summary>The scroll speed of the distortion texture UV offset.</summary>
-		public Vector2 DistortSpeed { set { if (distortSpeed != value) { distortSpeed = value; UpdateMaterial(); } } get { return distortSpeed; } } [FSA("DistortSpeed")] [SerializeField] private Vector2 distortSpeed = new Vector2(0.1f, 0.0f);
+		public Vector2 DistortSpeed { set { if (distortSpeed != value) { distortSpeed = value; DirtyMaterial(); } } get { return distortSpeed; } } [FSA("DistortSpeed")] [SerializeField] private Vector2 distortSpeed = new Vector2(0.1f, 0.0f);
 
 		/// <summary>Should the disc have a detail texture? For example, dust noise when you get close.</summary>
-		public bool Detail { set { if (detail != value) { detail = value; UpdateMaterial(); } } get { return detail; } } [FSA("Detail")] [SerializeField] private bool detail;
+		public bool Detail { set { if (detail != value) { detail = value; DirtyMaterial(); } } get { return detail; } } [FSA("Detail")] [SerializeField] private bool detail;
 
 		/// <summary>This allows you to set the detail texture that gets repeated on the prominence surface.</summary>
-		public Texture DetailTex { set { if (detailTex != value) { detailTex = value; UpdateMaterial(); } } get { return detailTex; } } [FSA("DetailTex")] [SerializeField] private Texture detailTex;
+		public Texture DetailTex { set { if (detailTex != value) { detailTex = value; DirtyMaterial(); } } get { return detailTex; } } [FSA("DetailTex")] [SerializeField] private Texture detailTex;
 
 		/// <summary>The detail texture horizontal tiling.</summary>
-		public float DetailScaleX { set { if (detailScaleX != value) { detailScaleX = value; UpdateMaterial(); } } get { return detailScaleX; } } [FSA("DetailScaleX")] [SerializeField] private float detailScaleX = 0.1f;
+		public float DetailScaleX { set { if (detailScaleX != value) { detailScaleX = value; DirtyMaterial(); } } get { return detailScaleX; } } [FSA("DetailScaleX")] [SerializeField] private float detailScaleX = 0.1f;
 
 		/// <summary>The detail texture vertical tiling.</summary>
-		public int DetailScaleY { set { if (detailScaleY != value) { detailScaleY = value; UpdateMaterial(); } } get { return detailScaleY; } } [FSA("DetailScaleY")] [SerializeField] private int detailScaleY = 1;
+		public int DetailScaleY { set { if (detailScaleY != value) { detailScaleY = value; DirtyMaterial(); } } get { return detailScaleY; } } [FSA("DetailScaleY")] [SerializeField] private int detailScaleY = 1;
 
 		/// <summary>The detail texture strength.</summary>
-		public float DetailStrength { set { if (detailStrength != value) { detailStrength = value; UpdateMaterial(); } } get { return detailStrength; } } [FSA("DetailStrength")] [SerializeField] private float detailStrength = 1.0f;
+		public float DetailStrength { set { if (detailStrength != value) { detailStrength = value; DirtyMaterial(); } } get { return detailStrength; } } [FSA("DetailStrength")] [SerializeField] private float detailStrength = 1.0f;
 
 		/// <summary>The UV offset of the detail texture.</summary>
-		public Vector2 DetailOffset { set { if (detailOffset != value) { detailOffset = value; UpdateMaterial(); } } get { return detailOffset; } } [FSA("DetailOffset")] [SerializeField] private Vector2 detailOffset = new Vector2(0.5f, 0.5f);
+		public Vector2 DetailOffset { set { if (detailOffset != value) { detailOffset = value; DirtyMaterial(); } } get { return detailOffset; } } [FSA("DetailOffset")] [SerializeField] private Vector2 detailOffset = new Vector2(0.5f, 0.5f);
 
 		/// <summary>The scroll speed of the detail texture UV offset.</summary>
-		public Vector2 DetailSpeed { set { if (detailSpeed != value) { detailSpeed = value; UpdateMaterial(); } } get { return detailSpeed; } } [FSA("DetailSpeed")] [SerializeField] private Vector2 detailSpeed = new Vector2(0.1f, 0.0f);
+		public Vector2 DetailSpeed { set { if (detailSpeed != value) { detailSpeed = value; DirtyMaterial(); } } get { return detailSpeed; } } [FSA("DetailSpeed")] [SerializeField] private Vector2 detailSpeed = new Vector2(0.1f, 0.0f);
 
 		// The material applied to all segments
 		[System.NonSerialized]
@@ -109,6 +109,16 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
+		public void DirtyMesh()
+		{
+			UpdateMesh();
+		}
+
+		public void DirtyMaterial()
+		{
+			UpdateMaterial();
+		}
+
 		[ContextMenu("Update Material")]
 		public void UpdateMaterial()
 		{
@@ -117,41 +127,39 @@ namespace SpaceGraphicsToolkit
 				material = SgtHelper.CreateTempMaterial("Prominence (Generated)", SgtHelper.ShaderNamePrefix + "Prominence");
 			}
 
-			var color = SgtHelper.Premultiply(SgtHelper.Brighten(this.color, brightness));
-
 			material.renderQueue = renderQueue;
 
 			material.SetTexture(SgtShader._MainTex, mainTex);
-			material.SetColor(SgtShader._Color, color);
+			material.SetColor(SgtShader._Color, SgtHelper.Premultiply(SgtHelper.Brighten(color, brightness)));
 			material.SetVector(SgtShader._WorldPosition, transform.position);
 
 			SgtHelper.SetTempMaterial(material);
 
 			if (fadeEdge == true)
 			{
-				SgtHelper.EnableKeyword("SGT_A");
+				SgtHelper.EnableKeyword("_FADE_EDGE");
 
 				material.SetFloat(SgtShader._FadePower, fadePower);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_A");
+				SgtHelper.DisableKeyword("_FADE_EDGE");
 			}
 
 			if (clipNear == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B");
+				SgtHelper.EnableKeyword("_CLIP_NEAR");
 
 				material.SetFloat(SgtShader._ClipPower, clipPower);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B");
+				SgtHelper.DisableKeyword("_CLIP_NEAR");
 			}
 
 			if (distort == true)
 			{
-				SgtHelper.EnableKeyword("SGT_C", material); // Distort
+				SgtHelper.EnableKeyword("_DISTORT", material);
 
 				material.SetTexture(SgtShader._DistortTex, distortTex);
 				material.SetVector(SgtShader._DistortScale, new Vector2(distortScaleX, distortScaleY));
@@ -159,12 +167,12 @@ namespace SpaceGraphicsToolkit
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_C", material); // Distort
+				SgtHelper.DisableKeyword("_DISTORT", material);
 			}
 
 			if (detail == true)
 			{
-				SgtHelper.EnableKeyword("SGT_D", material); // Detail
+				SgtHelper.EnableKeyword("_DETAIL", material);
 
 				material.SetTexture(SgtShader._DetailTex, detailTex);
 				material.SetVector(SgtShader._DetailScale, new Vector2(detailScaleX, detailScaleY));
@@ -172,7 +180,7 @@ namespace SpaceGraphicsToolkit
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_D", material); // Detail
+				SgtHelper.DisableKeyword("_DETAIL", material);
 			}
 		}
 
@@ -248,10 +256,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtProminence Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Prominence", layer, parent, localPosition, localRotation, localScale);
-			var prominence = gameObject.AddComponent<SgtProminence>();
-
-			return prominence;
+			return SgtHelper.CreateGameObject("Prominence", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtProminence>();
 		}
 
 #if UNITY_EDITOR
@@ -327,6 +332,12 @@ namespace SpaceGraphicsToolkit
 			SgtHelper.Destroy(material);
 		}
 
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyMesh();
+			DirtyMaterial();
+		}
+
 #if UNITY_EDITOR
 		protected virtual void OnDrawGizmosSelected()
 		{
@@ -366,116 +377,117 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtProminence;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtProminence))]
-	public class SgtProminence_Editor : SgtEditor<SgtProminence>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtProminence_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			var updateMaterial = false;
-			var updateMesh     = false;
-			var updatePlanes   = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			Draw("color", ref updateMaterial, "The base color will be multiplied by this.");
-			Draw("brightness", ref updateMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
-			Draw("renderQueue", ref updateMaterial, "This allows you to adjust the render queue of the prominence material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
+			var dirtyMaterial = false;
+			var dirtyMesh     = false;
+
+			Draw("color", ref dirtyMaterial, "The base color will be multiplied by this.");
+			Draw("brightness", ref dirtyMaterial, "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
+			Draw("renderQueue", ref dirtyMaterial, "This allows you to adjust the render queue of the prominence material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
 
 			Separator();
 			
-			BeginError(Any(t => t.MainTex == null));
-				Draw("mainTex", ref updateMaterial, "The main texture of the prominence.");
+			BeginError(Any(tgts, t => t.MainTex == null));
+				Draw("mainTex", ref dirtyMaterial, "The main texture of the prominence.");
 			EndError();
 			Draw("cameraOffset", "This allows you to offset the camera distance in world space when rendering the prominence, giving you fine control over the render order."); // Updated automatically
-			Draw("seed", ref updatePlanes, "This allows you to set the random seed used during procedural generation.");
-			BeginError(Any(t => t.PlaneCount < 1));
-				Draw("planeCount", ref updatePlanes, "The amount of planes used to build the prominence.");
+			Draw("seed", ref dirtyMesh, "This allows you to set the random seed used during procedural generation.");
+			BeginError(Any(tgts, t => t.PlaneCount < 1));
+				Draw("planeCount", ref dirtyMesh, "The amount of planes used to build the prominence.");
 			EndError();
-			BeginError(Any(t => t.PlaneDetail < 3));
-				Draw("planeDetail", ref updateMesh, "The amount of quads used to build each plane.");
+			BeginError(Any(tgts, t => t.PlaneDetail < 3));
+				Draw("planeDetail", ref dirtyMesh, "The amount of quads used to build each plane.");
 			EndError();
-			BeginError(Any(t => t.RadiusMin <= 0.0f || t.RadiusMin >= t.RadiusMax));
-				Draw("radiusMin", ref updateMesh, "The inner radius of the prominence planes in local coordinates.");
+			BeginError(Any(tgts, t => t.RadiusMin <= 0.0f || t.RadiusMin >= t.RadiusMax));
+				Draw("radiusMin", ref dirtyMesh, "The inner radius of the prominence planes in local coordinates.");
 			EndError();
-			BeginError(Any(t => t.RadiusMax < 0.0f || t.RadiusMin >= t.RadiusMax));
-				Draw("radiusMax", ref updateMesh, "The outer radius of the prominence planes in local coordinates.");
+			BeginError(Any(tgts, t => t.RadiusMax < 0.0f || t.RadiusMin >= t.RadiusMax));
+				Draw("radiusMax", ref dirtyMesh, "The outer radius of the prominence planes in local coordinates.");
 			EndError();
 
 			Separator();
 
-			Draw("fadeEdge", ref updateMaterial, "Should the plane fade out when it's viewed edge-on?");
+			Draw("fadeEdge", ref dirtyMaterial, "Should the plane fade out when it's viewed edge-on?");
 
-			if (Any(t => t.FadeEdge == true))
+			if (Any(tgts, t => t.FadeEdge == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.FadePower < 0.0f));
-						Draw("fadePower", ref updateMaterial, "How sharp the transition between visible and invisible is.");
+					BeginError(Any(tgts, t => t.FadePower < 0.0f));
+						Draw("fadePower", ref dirtyMaterial, "How sharp the transition between visible and invisible is.");
 					EndError();
 				EndIndent();
 			}
 
-			Draw("clipNear", ref updateMaterial, "Should the plane fade out when it's in front of the star?");
+			Draw("clipNear", ref dirtyMaterial, "Should the plane fade out when it's in front of the star?");
 
-			if (Any(t => t.ClipNear == true))
+			if (Any(tgts, t => t.ClipNear == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.ClipPower < 0.0f));
-						Draw("clipPower", ref updateMaterial, "How sharp the transition between visible and invisible is.");
+					BeginError(Any(tgts, t => t.ClipPower < 0.0f));
+						Draw("clipPower", ref dirtyMaterial, "How sharp the transition between visible and invisible is.");
 					EndError();
-				EndIndent();
-			}
-
-			Separator();
-
-			Draw("distort", ref updateMaterial, "Should the prominence be animated to distort? This makes the edges flicker like a flame.");
-
-			if (Any(t => t.Distort == true))
-			{
-				BeginIndent();
-					BeginError(Any(t => t.DistortTex == null));
-						Draw("distortTex", ref updateMaterial, "This allows you to set the distortion texture that gets repeated on the prominence surface.");
-					EndError();
-					BeginError(Any(t => t.DistortScaleX < 0.0f));
-						Draw("distortScaleX", ref updateMaterial, "The distortion texture horizontal tiling.");
-					EndError();
-					BeginError(Any(t => t.DistortScaleY < 1));
-						Draw("distortScaleY", ref updateMaterial, "The distortion texture vertical tiling.");
-					EndError();
-					BeginError(Any(t => t.DistortStrength == 0.0f));
-						Draw("distortStrength", ref updateMaterial, "The distortion texture strength.");
-					EndError();
-					Draw("distortOffset", ref updateMaterial, "The UV offset of the distortion texture.");
-					Draw("distortSpeed", ref updateMaterial, "The scroll speed of the distortion texture UV offset.");
 				EndIndent();
 			}
 
 			Separator();
 
-			Draw("detail", ref updateMaterial, "Should the disc have a detail texture? For example, dust noise when you get close.");
+			Draw("distort", ref dirtyMaterial, "Should the prominence be animated to distort? This makes the edges flicker like a flame.");
 
-			if (Any(t => t.Detail == true))
+			if (Any(tgts, t => t.Distort == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.DetailTex == null));
-						Draw("detailTex", ref updateMaterial, "This allows you to set the detail texture that gets repeated on the prominence surface.");
+					BeginError(Any(tgts, t => t.DistortTex == null));
+						Draw("distortTex", ref dirtyMaterial, "This allows you to set the distortion texture that gets repeated on the prominence surface.");
 					EndError();
-					BeginError(Any(t => t.DetailScaleX < 0.0f));
-						Draw("detailScaleX", ref updateMaterial, "The detail texture horizontal tiling.");
+					BeginError(Any(tgts, t => t.DistortScaleX < 0.0f));
+						Draw("distortScaleX", ref dirtyMaterial, "The distortion texture horizontal tiling.");
 					EndError();
-					BeginError(Any(t => t.DetailScaleY < 1));
-						Draw("detailScaleY", ref updateMaterial, "The detail texture vertical tiling.");
+					BeginError(Any(tgts, t => t.DistortScaleY < 1));
+						Draw("distortScaleY", ref dirtyMaterial, "The distortion texture vertical tiling.");
 					EndError();
-					BeginError(Any(t => t.DetailStrength == 0.0f));
-						Draw("detailStrength", ref updateMaterial, "The detail texture strength.");
+					BeginError(Any(tgts, t => t.DistortStrength == 0.0f));
+						Draw("distortStrength", ref dirtyMaterial, "The distortion texture strength.");
 					EndError();
-					Draw("detailOffset", ref updateMaterial, "The UV offset of the detail texture.");
-					Draw("detailSpeed", ref updateMaterial, "The scroll speed of the detail texture UV offset.");
+					Draw("distortOffset", ref dirtyMaterial, "The UV offset of the distortion texture.");
+					Draw("distortSpeed", ref dirtyMaterial, "The scroll speed of the distortion texture UV offset.");
 				EndIndent();
 			}
 
-			if (updateMaterial == true) DirtyEach(t => t.UpdateMaterial());
-			if (updateMesh     == true) DirtyEach(t => t.UpdateMesh    ());
+			Separator();
+
+			Draw("detail", ref dirtyMaterial, "Should the disc have a detail texture? For example, dust noise when you get close.");
+
+			if (Any(tgts, t => t.Detail == true))
+			{
+				BeginIndent();
+					BeginError(Any(tgts, t => t.DetailTex == null));
+						Draw("detailTex", ref dirtyMaterial, "This allows you to set the detail texture that gets repeated on the prominence surface.");
+					EndError();
+					BeginError(Any(tgts, t => t.DetailScaleX < 0.0f));
+						Draw("detailScaleX", ref dirtyMaterial, "The detail texture horizontal tiling.");
+					EndError();
+					BeginError(Any(tgts, t => t.DetailScaleY < 1));
+						Draw("detailScaleY", ref dirtyMaterial, "The detail texture vertical tiling.");
+					EndError();
+					BeginError(Any(tgts, t => t.DetailStrength == 0.0f));
+						Draw("detailStrength", ref dirtyMaterial, "The detail texture strength.");
+					EndError();
+					Draw("detailOffset", ref dirtyMaterial, "The UV offset of the detail texture.");
+					Draw("detailSpeed", ref dirtyMaterial, "The scroll speed of the detail texture UV offset.");
+				EndIndent();
+			}
+
+			if (dirtyMaterial == true) Each(tgts, t => t.DirtyMaterial(), true, true);
+			if (dirtyMesh     == true) Each(tgts, t => t.DirtyMesh    (), true, true);
 		}
 	}
 }

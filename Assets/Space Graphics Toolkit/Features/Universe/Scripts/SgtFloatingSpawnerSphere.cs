@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -11,7 +11,7 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The amount of prefabs that will be spawned.</summary>
 		public int Count { set { count = value; } get { return count; } } [FSA("Count")] [SerializeField] private int count = 10;
 
-		/// <summary>The maximum distance away the prefabs can spawn in meters.</summary>
+		/// <summary>This component will spawn prefabs within this radius in world space.</summary>
 		public SgtLength Radius { set { radius = value; } get { return radius; } } [FSA("Radius")] [SerializeField] private SgtLength radius = new SgtLength(2000000.0, SgtLength.ScaleType.Meter);
 
 		/// <summary>The higher this value, the more likely the spawned objects will be pushed to the edge of the radius.</summary>
@@ -65,30 +65,32 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingSpawnerSphere;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingSpawnerSphere))]
-	public class SgtFloatingSpawnerSphere_Editor : SgtFloatingSpawner_Editor<SgtFloatingSpawnerSphere>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingSpawnerSphere_Editor : SgtFloatingSpawner_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
 			Separator();
 
 			Draw("count", "The amount of prefabs that will be spawned.");
-			BeginError(Any(t => t.Radius <= 0.0));
-				Draw("radius", "The maximum distance away the prefabs can spawn in meters.");
+			BeginError(Any(tgts, t => t.Radius <= 0.0));
+				Draw("radius", "This component will spawn prefabs within this world space radius in world space.");
 			EndError();
 
-			if (Any(t => t.Radius > t.Range))
+			if (Any(tgts, t => t.Radius > t.Range))
 			{
-				EditorGUILayout.HelpBox("The spawn range should be greater than the spawn radius.", MessageType.Warning);
+				Warning("The spawn range should be greater than the spawn radius.");
 			}
 
 			Draw("offset", "The higher this value, the more likely the spawned objects will be pushed to the edge of the radius.");
-			BeginError(Any(t => t.VelocityScale < 0.0f));
+			BeginError(Any(tgts, t => t.VelocityScale < 0.0f));
 				Draw("velocityScale", "This allows you to set how much orbital velocity the spawned objects get if they have a Rigidbody attached.");
 			EndError();
 		}

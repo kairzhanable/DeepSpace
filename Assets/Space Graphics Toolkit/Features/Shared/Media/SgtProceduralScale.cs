@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -27,17 +27,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtProceduralScale;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtProceduralScale))]
-	public class SgtProceduralScale_Editor : SgtProcedural_Editor<SgtProceduralScale>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtProceduralScale_Editor : SgtProcedural_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
-			BeginError(Any(t => t.BaseScale == Vector3.zero));
+			BeginError(Any(tgts, t => t.BaseScale == Vector3.zero));
 				Draw("baseScale", "The default scale of your object.");
 			EndError();
 			Draw("scaleMultiplierMin", "The minimum multiplication of the BaseScale.");

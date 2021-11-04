@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Mathematics;
 
 namespace SpaceGraphicsToolkit
@@ -134,14 +134,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainObject;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainObject))]
-	public class SgtTerrainObject_Editor : SgtEditor<SgtTerrainObject>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainObject_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("terrain", "The heightmap texture used to displace the mesh.\n\nNOTE: The height data should be stored in the alpha channel.\n\nNOTE: This should use the equirectangular cylindrical projection.");
 			Draw("offset", "This allows you to move the object up based on the surface normal in world space.");
 			Draw("radius", "The surface normal will be calculated using this sample radius in world space. Larger values = Smoother.");

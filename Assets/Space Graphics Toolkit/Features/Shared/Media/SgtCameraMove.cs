@@ -1,8 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
+using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace SpaceGraphicsToolkit
 {
@@ -18,17 +16,8 @@ namespace SpaceGraphicsToolkit
 			MainCamera
 		}
 
-		/// <summary>The distance the camera moves per second with keyboard inputs.</summary>
-		public float KeySensitivity { set { keySensitivity = value; } get { return keySensitivity; } } [FSA("KeySensitivity")] [SerializeField] private float keySensitivity = 100.0f;
-
-		/// <summary>The distance the camera moves relative to the finger drag.</summary>
-		public float PanSensitivity { set { panSensitivity = value; } get { return panSensitivity; } } [FSA("PanSensitivity")] [SerializeField] private float panSensitivity = 1.0f;
-
-		/// <summary>The distance the camera moves relative to the finger pinch scale.</summary>
-		public float PinchSensitivity { set { pinchSensitivity = value; } get { return pinchSensitivity; } } [FSA("PinchSensitivity")] [SerializeField] private float pinchSensitivity = 200.0f;
-
-		/// <summary>If you want the mouse wheel to simulate pinching then set the strength of it here.</summary>
-		public float WheelSensitivity { set { wheelSensitivity = value; } get { return wheelSensitivity; } } [FSA("WheelSensitivity")] [SerializeField] [Range(-1.0f, 1.0f)] private float wheelSensitivity = -0.2f;
+		/// <summary>Is this component currently listening for inputs?</summary>
+		public bool Listen { set { listen = value; } get { return listen; } } [SerializeField] private bool listen = true;
 
 		/// <summary>How quickly the position goes to the target value (-1 = instant).</summary>
 		public float Damping { set { damping = value; } get { return damping; } } [FSA("Dampening")] [SerializeField] private float damping = 10.0f;
@@ -40,83 +29,90 @@ namespace SpaceGraphicsToolkit
 		public RotationType TargetRotation { set { targetRotation = value; } get { return targetRotation; } } [FSA("TargetRotation")] [SerializeField] private RotationType targetRotation;
 
 		/// <summary>The speed of the velocity rotation.</summary>
-		public float TargetDampening { set { targetDampening = value; } get { return targetDampening; } } [FSA("TargetDampening")] [SerializeField] private float targetDampening = 1.0f;
+		public float TargetDamping { set { targetDamping = value; } get { return targetDamping; } } [FSA("targetDampening")] [SerializeField] private float targetDamping = 1.0f;
 
-		/// <summary>Slow down movement when approaching planets and other objects?</summary>
-		public bool SlowOnProximity { set { slowOnProximity = value; } get { return slowOnProximity; } } [FSA("SlowOnProximity")] [SerializeField] private bool slowOnProximity;
+		/// <summary>The movement speed will be multiplied by this when near to planets.</summary>
+		public float SpeedMin { set { speedMin = value; } get { return speedMin; } } [SerializeField] private float speedMin = 1.0f;
 
-		public float SlowDistanceMin { set { slowDistanceMin = value; } get { return slowDistanceMin; } } [FSA("SlowDistanceMin")] [SerializeField] private float slowDistanceMin = 10.0f;
+		/// <summary>The movement speed will be multiplied by this when far from planets.</summary>
+		public float SpeedMax { set { speedMax = value; } get { return speedMax; } } [SerializeField] private float speedMax = 10.0f;
 
-		public float SlowDistanceMax { set { slowDistanceMax = value; } get { return slowDistanceMax; } } [FSA("SlowDistanceMax")] [SerializeField] private float slowDistanceMax = 100.0f;
+		/// <summary>The higher you set this, the faster the <b>SpeedMin</b> value will be reached when approaching planets.</summary>
+		public float SpeedRange { set { speedRange = value; } get { return speedRange; } } [SerializeField] private float speedRange = 100.0f;
 
-		public float SlowMultiplier { set { slowMultiplier = value; } get { return slowMultiplier; } } [FSA("SlowMultiplier")] [SerializeField] [Range(0.0f, 1.0f)] private float slowMultiplier = 0.1f;
+		/// <summary></summary>
+		public float SpeedWheel { set { speedWheel = value; } get { return speedWheel; } } [SerializeField] [Range(0.0f, 0.5f)] private float speedWheel = 0.1f;
+
+		/// <summary>The keys/fingers required to move left/right.</summary>
+		public SgtInputManager.Axis HorizontalControls { set { horizontalControls = value; } get { return horizontalControls; } } [SerializeField] private SgtInputManager.Axis horizontalControls = new SgtInputManager.Axis(2, false, SgtInputManager.AxisGesture.HorizontalDrag, 1.0f, KeyCode.A, KeyCode.D, KeyCode.LeftArrow, KeyCode.RightArrow, 100.0f);
+
+		/// <summary>The keys/fingers required to move backward/forward.</summary>
+		public SgtInputManager.Axis DepthControls { set { depthControls = value; } get { return depthControls; } } [SerializeField] private SgtInputManager.Axis depthControls = new SgtInputManager.Axis(2, false, SgtInputManager.AxisGesture.HorizontalDrag, 1.0f, KeyCode.S, KeyCode.W, KeyCode.DownArrow, KeyCode.UpArrow, 100.0f);
+
+		/// <summary>The keys/fingers required to move down/up.</summary>
+		public SgtInputManager.Axis VerticalControls { set { verticalControls = value; } get { return verticalControls; } } [SerializeField] private SgtInputManager.Axis verticalControls = new SgtInputManager.Axis(3, false, SgtInputManager.AxisGesture.HorizontalDrag, 1.0f, KeyCode.F, KeyCode.R, KeyCode.None, KeyCode.None, 100.0f);
 
 		[System.NonSerialized]
 		private Vector3 remainingDelta;
 
-		[System.NonSerialized]
-		private SgtInputManager inputManager = new SgtInputManager();
+		protected virtual void OnEnable()
+		{
+			SgtInputManager.EnsureThisComponentExists();
+		}
 
 		protected virtual void Update()
 		{
-			inputManager.Update();
-
-			if (target == null)
+			if (target == null && listen == true)
 			{
 				AddToDelta();
 				DampenDelta();
+			}
+
+			if (SgtInputManager.MouseExists == true)
+			{
+				speedRange *= 1.0f - Mathf.Clamp(SgtInputManager.MouseWheel, -1.0f, 1.0f) * speedWheel;
 			}
 		}
 
 		protected virtual void FixedUpdate()
 		{
-			if (target != null)
+			if (target != null && listen == true)
 			{
 				AddToDelta();
 				DampenDelta();
 			}
 		}
 
-		private void AddToDelta()
+		private float GetSpeedMultiplier()
 		{
-			// Get delta from fingers
-			var deltaXY = inputManager.GetAverageDeltaScaled() * panSensitivity;
-			var deltaZ  = (inputManager.GetPinchScale() - 1.0f) * pinchSensitivity;
-
-			if (inputManager.Fingers.Count < 2)
-			{
-				deltaXY = Vector2.zero;
-
-				keySensitivity *= inputManager.GetPinchScale(wheelSensitivity);
-			}
-
-			// Add delta from keyboard
-			deltaXY.x += Input.GetAxisRaw("Horizontal") * keySensitivity * Time.deltaTime;
-			deltaZ    += Input.GetAxisRaw("Vertical") * keySensitivity * Time.deltaTime;
-
-			if (slowOnProximity == true)
+			if (speedMax > 0.0f)
 			{
 				var distance = float.PositiveInfinity;
 
 				SgtHelper.InvokeCalculateDistance(transform.position, ref distance);
 
-				if (distance < slowDistanceMax)
-				{
-					var distance01 = Mathf.InverseLerp(slowDistanceMin, slowDistanceMax, distance);
-					var multiplier = Mathf.Lerp(slowMultiplier, 1.0f, distance01);
+				var distance01 = Mathf.InverseLerp(speedMin * speedRange, speedMax * speedRange, distance);
 
-					deltaXY *= multiplier;
-					deltaZ  *= multiplier;
-				}
+				return Mathf.Lerp(speedMin, speedMax, distance01);
 			}
+
+			return 0.0f;
+		}
+
+		private void AddToDelta()
+		{
+			// Get delta from binds
+			var delta = default(Vector3);
+
+			delta.x = horizontalControls.GetValue(Time.deltaTime);
+			delta.y = verticalControls  .GetValue(Time.deltaTime);
+			delta.z = depthControls     .GetValue(Time.deltaTime);
 
 			// Store old position
 			var oldPosition = transform.position;
 
 			// Translate
-			var delta = new Vector3(deltaXY.x, deltaXY.y, deltaZ);
-
-			transform.Translate(delta, Space.Self);
+			transform.Translate(delta * GetSpeedMultiplier(), Space.Self);
 
 			// Add to remaining
 			var acceleration = transform.position - oldPosition;
@@ -129,7 +125,7 @@ namespace SpaceGraphicsToolkit
 			// Rotate to acceleration?
 			if (target != null && targetRotation != RotationType.None && delta != Vector3.zero)
 			{
-				var factor   = SgtHelper.DampenFactor(targetDampening, Time.deltaTime);
+				var factor   = SgtHelper.DampenFactor(targetDamping, Time.deltaTime);
 				var rotation = target.transform.rotation;
 
 				switch (targetRotation)
@@ -182,38 +178,37 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCameraMove;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCameraMove))]
-	public class SgtCameraMove_Editor : SgtEditor<SgtCameraMove>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCameraMove_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.KeySensitivity == 0.0f));
-				Draw("keySensitivity", "The distance the camera moves per second with keyboard inputs.");
-			EndError();
-			BeginError(Any(t => t.PanSensitivity == 0.0f));
-				Draw("panSensitivity", "The distance the camera moves relative to the finger drag.");
-			EndError();
-			BeginError(Any(t => t.PinchSensitivity == 0.0f));
-				Draw("pinchSensitivity", "The distance the camera moves relative to the finger pinch scale.");
-			EndError();
-			Draw("wheelSensitivity", "If you want the mouse wheel to simulate pinching then set the strength of it here.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("listen", "Is this component currently listening for inputs?");
 			Draw("damping", "How quickly the position goes to the target value (-1 = instant).");
 
 			Separator();
 
 			Draw("target", "If you want movements to apply to Rigidbody.velocity, set it here.");
 			Draw("targetRotation", "If the target is something like a spaceship, rotate it based on movement?");
-			Draw("targetDampening", "The speed of the velocity rotation.");
+			Draw("targetDamping", "The speed of the velocity rotation.");
 
 			Separator();
 
-			Draw("slowOnProximity", "Slow down movement when approaching planets and other objects?");
-			Draw("slowDistanceMin", "");
-			Draw("slowDistanceMax", "");
-			Draw("slowMultiplier", "");
+			Draw("speedMin", "The movement speed will be multiplied by this when near to planets.");
+			Draw("speedMax", "The movement speed will be multiplied by this when far from planets.");
+			Draw("speedRange", "The higher you set this, the faster the <b>SpeedMin</b> value will be reached when approaching planets.");
+			Draw("speedWheel");
+
+			Separator();
+
+			Draw("horizontalControls", "The keys/fingers required to move right/left.");
+			Draw("depthControls", "The keys/fingers required to move backward/forward.");
+			Draw("verticalControls", "The keys/fingers required to move down/up.");
 		}
 	}
 }

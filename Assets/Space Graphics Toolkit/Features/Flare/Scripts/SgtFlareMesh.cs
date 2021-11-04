@@ -12,40 +12,40 @@ namespace SpaceGraphicsToolkit
 	public class SgtFlareMesh : MonoBehaviour
 	{
 		/// <summary>The amount of points used to make the flare mesh.</summary>
-		public int Detail { set { detail = value; } get { return detail; } } [FSA("Detail")] [SerializeField] private int detail = 512;
+		public int Detail { set { detail = value; DirtyMesh(); } get { return detail; } } [FSA("Detail")] [SerializeField] private int detail = 512;
 
 		/// <summary>The base radius of the flare in local space.</summary>
-		public float Radius { set { radius = value; } get { return radius; } } [FSA("Radius")] [SerializeField] private float radius = 2.0f;
+		public float Radius { set { radius = value; DirtyMesh(); } get { return radius; } } [FSA("Radius")] [SerializeField] private float radius = 2.0f;
 
 		/// <summary>Deform the flare based on cosine wave?</summary>
-		public bool Wave { set { wave = value; } get { return wave; } } [FSA("Wave")] [SerializeField] private bool wave;
+		public bool Wave { set { wave = value; DirtyMesh(); } get { return wave; } } [FSA("Wave")] [SerializeField] private bool wave;
 
 		/// <summary>The strength of the wave in local space.</summary>
-		public float WaveStrength { set { waveStrength = value; } get { return waveStrength; } } [FSA("WaveStrength")] [SerializeField] private float waveStrength = 5.0f;
+		public float WaveStrength { set { waveStrength = value; DirtyMesh(); } get { return waveStrength; } } [FSA("WaveStrength")] [SerializeField] private float waveStrength = 5.0f;
 
 		/// <summary>The amount of wave peaks.</summary>
-		public int WavePoints { set { wavePoints = value; } get { return wavePoints; } } [FSA("WavePoints")] [SerializeField] private int wavePoints = 4;
+		public int WavePoints { set { wavePoints = value; DirtyMesh(); } get { return wavePoints; } } [FSA("WavePoints")] [SerializeField] private int wavePoints = 4;
 
 		/// <summary>The sharpness of the waves.</summary>
-		public float WavePower { set { wavePower = value; } get { return wavePower; } } [FSA("WavePower")] [SerializeField] private float wavePower = 5.0f;
+		public float WavePower { set { wavePower = value; DirtyMesh(); } get { return wavePower; } } [FSA("WavePower")] [SerializeField] private float wavePower = 5.0f;
 
 		/// <summary>The angle offset of the waves.</summary>
-		public float WavePhase { set { wavePhase = value; } get { return wavePhase; } } [FSA("WavePhase")] [SerializeField] private float wavePhase;
+		public float WavePhase { set { wavePhase = value; DirtyMesh(); } get { return wavePhase; } } [FSA("WavePhase")] [SerializeField] private float wavePhase;
 
 		/// <summary>Deform the flare based on noise?</summary>
-		public bool Noise { set { noise = value; } get { return noise; } } [FSA("Noise")] [SerializeField] private bool noise;
+		public bool Noise { set { noise = value; DirtyMesh(); } get { return noise; } } [FSA("Noise")] [SerializeField] private bool noise;
 
 		/// <summary>The strength of the noise in local space.</summary>
-		public float NoiseStrength { set { noiseStrength = value; } get { return noiseStrength; } } [FSA("NoiseStrength")] [SerializeField] private float noiseStrength = 5.0f;
+		public float NoiseStrength { set { noiseStrength = value; DirtyMesh(); } get { return noiseStrength; } } [FSA("NoiseStrength")] [SerializeField] private float noiseStrength = 5.0f;
 
 		/// <summary>The amount of noise points.</summary>
-		public int NoisePoints { set { noisePoints = value; } get { return noisePoints; } } [FSA("NoisePoints")] [SerializeField] private int noisePoints = 50;
+		public int NoisePoints { set { noisePoints = value; DirtyMesh(); } get { return noisePoints; } } [FSA("NoisePoints")] [SerializeField] private int noisePoints = 50;
 
 		/// <summary>The angle offset of the noise.</summary>
-		public float NoisePhase { set { noisePhase = value; } get { return noisePhase; } } [FSA("NoisePhase")] [SerializeField] private float noisePhase;
+		public float NoisePhase { set { noisePhase = value; DirtyMesh(); } get { return noisePhase; } } [FSA("NoisePhase")] [SerializeField] private float noisePhase;
 
 		/// <summary>The random seed used for the random noise.</summary>
-		public int NoiseSeed { set { noiseSeed = value; } get { return noiseSeed; } } [FSA("NoiseSeed")] [SerializeField] [SgtSeed] private int noiseSeed;
+		public int NoiseSeed { set { noiseSeed = value; DirtyMesh(); } get { return noiseSeed; } } [FSA("NoiseSeed")] [SerializeField] [SgtSeed] private int noiseSeed;
 
 		[System.NonSerialized]
 		private Mesh generatedMesh;
@@ -78,6 +78,11 @@ namespace SpaceGraphicsToolkit
 			{
 				return generatedMesh;
 			}
+		}
+
+		public void DirtyMesh()
+		{
+			UpdateMesh();
 		}
 
 #if UNITY_EDITOR
@@ -225,68 +230,73 @@ namespace SpaceGraphicsToolkit
 				SgtObjectPool<Mesh>.Add(generatedMesh);
 			}
 		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			DirtyMesh();
+		}
 	}
 }
 
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFlareMesh;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFlareMesh))]
-	public class SgtFlareMesh_Editor : SgtEditor<SgtFlareMesh>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFlareMesh_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			var updateMesh  = false;
-			var updateApply = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			BeginError(Any(t => t.Detail <= 2));
-				Draw("detail", ref updateMesh, "The amount of points used to make the flare mesh.");
+			var dirtyMesh = false;
+
+			BeginError(Any(tgts, t => t.Detail <= 2));
+				Draw("detail", ref dirtyMesh, "The amount of points used to make the flare mesh.");
 			EndError();
-			BeginError(Any(t => t.Radius <= 0.0f));
-				Draw("radius", ref updateMesh, "The base radius of the flare in local space.");
+			BeginError(Any(tgts, t => t.Radius <= 0.0f));
+				Draw("radius", ref dirtyMesh, "The base radius of the flare in local space.");
 			EndError();
 
 			Separator();
 
-			Draw("wave", ref updateMesh, "Deform the flare based on cosine wave?");
+			Draw("wave", ref dirtyMesh, "Deform the flare based on cosine wave?");
 
-			if (Any(t => t.Wave == true))
+			if (Any(tgts, t => t.Wave == true))
 			{
 				BeginIndent();
-					Draw("waveStrength", ref updateMesh, "The strength of the wave in local space.");
-					BeginError(Any(t => t.WavePoints < 0));
-						Draw("wavePoints", ref updateMesh, "The amount of wave peaks.");
+					Draw("waveStrength", ref dirtyMesh, "The strength of the wave in local space.");
+					BeginError(Any(tgts, t => t.WavePoints < 0));
+						Draw("wavePoints", ref dirtyMesh, "The amount of wave peaks.");
 					EndError();
-					BeginError(Any(t => t.WavePower < 1.0f));
-						Draw("wavePower", ref updateMesh, "The sharpness of the waves.");
+					BeginError(Any(tgts, t => t.WavePower < 1.0f));
+						Draw("wavePower", ref dirtyMesh, "The sharpness of the waves.");
 					EndError();
-					Draw("wavePhase", ref updateMesh, "The angle offset of the waves.");
+					Draw("wavePhase", ref dirtyMesh, "The angle offset of the waves.");
 				EndIndent();
 			}
 
 			Separator();
 		
-			Draw("noise", ref updateMesh, "Deform the flare based on noise?");
+			Draw("noise", ref dirtyMesh, "Deform the flare based on noise?");
 
-			if (Any(t => t.Noise == true))
+			if (Any(tgts, t => t.Noise == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.NoiseStrength < 0.0f));
-						Draw("noiseStrength", ref updateMesh, "The strength of the noise in local space.");
+					BeginError(Any(tgts, t => t.NoiseStrength < 0.0f));
+						Draw("noiseStrength", ref dirtyMesh, "The strength of the noise in local space.");
 					EndError();
-					BeginError(Any(t => t.NoisePoints <= 0));
-						Draw("noisePoints", ref updateMesh, "The amount of noise points.");
+					BeginError(Any(tgts, t => t.NoisePoints <= 0));
+						Draw("noisePoints", ref dirtyMesh, "The amount of noise points.");
 					EndError();
-					Draw("noisePhase", ref updateMesh, "The angle offset of the noise.");
-					Draw("noiseSeed", ref updateMesh, "The random seed used for the random noise.");
+					Draw("noisePhase", ref dirtyMesh, "The angle offset of the noise.");
+					Draw("noiseSeed", ref dirtyMesh, "The random seed used for the random noise.");
 				EndIndent();
 			}
 
-			if (updateMesh  == true) DirtyEach(t => t.UpdateMesh ());
-			if (updateApply == true) DirtyEach(t => t.ApplyMesh());
+			if (dirtyMesh == true) Each(tgts, t => t.DirtyMesh(), true, true);
 		}
 	}
 }

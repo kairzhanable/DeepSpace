@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -10,6 +11,11 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Floating Warp Pin")]
 	public class SgtFloatingWarpPin : MonoBehaviour
 	{
+		[System.Serializable] public class SgtFloatingTargetEvent : UnityEvent {}
+
+		/// <summary>Fingers that began touching the screen on top of these UI layers will be ignored.</summary>
+		public LayerMask GuiLayers { set { guiLayers = value; } get { return guiLayers; } } [SerializeField] private LayerMask guiLayers = 1 << 5;
+
 		/// <summary>The maximum distance between the tap/click point at the SgtWarpTarget in scaled screen space.</summary>
 		public float PickDistance { set { pickDistance = value; } get { return pickDistance; } } [FSA("PickDistance")] [SerializeField] private float pickDistance = 0.025f;
 
@@ -35,20 +41,27 @@ namespace SpaceGraphicsToolkit
 
 		public Camera WorldCamera { set { worldCamera = value; } get { return worldCamera; } } [FSA("WorldCamera")] [SerializeField] private Camera worldCamera;
 
-		/// <summary>The the pin if we're within warping distance?</summary>
+		/// <summary>Hide the pin if we're within warping distance?</summary>
 		public bool HideIfTooClose { set { hideIfTooClose = value; } get { return hideIfTooClose; } } [FSA("HideIfTooClose")] [SerializeField] private bool hideIfTooClose = true;
 
 		[HideInInspector]
 		public float Alpha { set { alpha = value; } get { return alpha; } } [FSA("Alpha")] [SerializeField] private float alpha;
 
-		[System.NonSerialized]
-		private SgtInputManager inputManager = new SgtInputManager();
+		public SgtFloatingTargetEvent OnWarp { get { if (onWarp == null) onWarp = new SgtFloatingTargetEvent(); return onWarp; } } [SerializeField] private SgtFloatingTargetEvent onWarp;
 
 		public void ClickWarp()
 		{
 			if (currentTarget != null)
 			{
-				warp.WarpTo(currentTarget.CachedPoint.Position, currentTarget.WarpDistance);
+				if (warp != null)
+				{
+					warp.WarpTo(currentTarget);
+				}
+
+				if (onWarp != null)
+				{
+					onWarp.Invoke();
+				}
 			}
 		}
 
@@ -95,18 +108,20 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
+		protected virtual void OnEnable()
+		{
+			SgtInputManager.EnsureThisComponentExists();
+
+			SgtInputManager.OnFingerDown += HandleFingerDown;
+		}
+
+		protected virtual void OnDisable()
+		{
+			SgtInputManager.OnFingerDown -= HandleFingerDown;
+		}
+
 		protected virtual void LateUpdate()
 		{
-			inputManager.Update();
-
-			foreach (var finger in inputManager.Fingers)
-			{
-				if (finger.Down == true)
-				{
-					Pick(finger.Position);
-				}
-			}
-
 			var targetAlpha = 0.0f;
 
 			if (floatingCamera != null && worldCamera != null)
@@ -151,20 +166,33 @@ namespace SpaceGraphicsToolkit
 			group.alpha          = alpha;
 			group.blocksRaycasts = targetAlpha > 0.0f;
 		}
+
+		private void HandleFingerDown(SgtInputManager.Finger finger)
+		{
+			if (SgtInputManager.PointOverGui(finger.ScreenPosition, guiLayers) == true)
+			{
+				return;
+			}
+
+			Pick(finger.ScreenPosition);
+		}
 	}
 }
 
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingWarpPin;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingWarpPin))]
-	public class SgtFloatingWarpPin_Editor : SgtEditor<SgtFloatingWarpPin>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingWarpPin_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("guiLayers", "Fingers that began touching the screen on top of these UI layers will be ignored.");
 			Draw("pickDistance", "The maximum distance between the tap/click point at the SgtWarpTarget in scaled screen space.");
 			Draw("currentTarget", "The currently picked target.");
 
@@ -175,22 +203,26 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			BeginError(Any(t => t.Parent == null));
+			BeginError(Any(tgts, t => t.Parent == null));
 				Draw("parent", "The parent rect of the pin.");
 			EndError();
-			BeginError(Any(t => t.Rect == null));
+			BeginError(Any(tgts, t => t.Rect == null));
 				Draw("rect", "The main rect of the pin that will be placed on the screen on top of the CurrentTarget.");
 			EndError();
-			BeginError(Any(t => t.Title == null));
+			BeginError(Any(tgts, t => t.Title == null));
 				Draw("title", "The name of the pin.");
 			EndError();
-			BeginError(Any(t => t.Group == null));
+			BeginError(Any(tgts, t => t.Group == null));
 				Draw("group", "The group that will control hide/show of the pin.");
 			EndError();
-			BeginError(Any(t => t.Warp == null));
+			BeginError(Any(tgts, t => t.Warp == null));
 				Draw("warp", "The warp component that will be used.");
 			EndError();
-			Draw("hideIfTooClose", "The the pin if we're within warping distance?");
+			Draw("hideIfTooClose", "Hide the pin if we're within warping distance?");
+
+			Separator();
+
+			Draw("onWarp");
 		}
 	}
 }

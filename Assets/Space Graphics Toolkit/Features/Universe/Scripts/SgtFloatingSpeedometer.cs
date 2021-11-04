@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Events;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -86,18 +86,20 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingSpeedometer;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingSpeedometer))]
-	public class SgtFloatingSpeedometer_Editor : SgtEditor<SgtFloatingSpeedometer>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingSpeedometer_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Point == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Point == null));
 				Draw("point", "The point whose speed will be monitored.");
 			EndError();
-			BeginError(Any(t => string.IsNullOrEmpty(t.Format)));
+			BeginError(Any(tgts, t => string.IsNullOrEmpty(t.Format)));
 				Draw("format", "The format of the speed text.");
 			EndError();
 			Draw("updateIn", "This allows you to control where in the game loop the speed will be calculated.");

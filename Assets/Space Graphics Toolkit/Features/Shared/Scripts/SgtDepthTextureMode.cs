@@ -1,4 +1,5 @@
 using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -11,7 +12,7 @@ namespace SpaceGraphicsToolkit
 	public class SgtDepthTextureMode : MonoBehaviour
 	{
 		/// <summary>The depth mode that will be applied to the camera.</summary>
-		public DepthTextureMode DepthMode = DepthTextureMode.None;
+		public DepthTextureMode DepthMode { set { depthMode = value; UpdateDepthMode(); } get { return depthMode; } } [FSA("DepthMode")] [SerializeField] private DepthTextureMode depthMode = DepthTextureMode.None;
 
 		[System.NonSerialized]
 		private Camera cachedCamera;
@@ -20,7 +21,7 @@ namespace SpaceGraphicsToolkit
 		{
 			if (cachedCamera == null) cachedCamera = GetComponent<Camera>();
 
-			cachedCamera.depthTextureMode = DepthMode;
+			cachedCamera.depthTextureMode = depthMode;
 		}
 
 		protected virtual void Update()
@@ -33,14 +34,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtDepthTextureMode;
 
-	[CustomEditor(typeof(SgtDepthTextureMode))]
-	public class SgtDepthTextureMode_Editor : SgtEditor<SgtDepthTextureMode>
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtDepthTextureMode_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("DepthMode", "The depth mode that will be applied to the camera.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("depthMode", "The depth mode that will be applied to the camera.");
 		}
 	}
 }

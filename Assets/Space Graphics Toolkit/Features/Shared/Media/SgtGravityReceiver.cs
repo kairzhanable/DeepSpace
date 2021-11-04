@@ -90,14 +90,17 @@ namespace SpaceGraphicsToolkit
 namespace SpaceGraphicsToolkit
 {
 	using UnityEditor;
+	using TARGET = SgtGravityReceiver;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtGravityReceiver))]
-	public class SgtGravityReceiver_Editor : SgtEditor<SgtGravityReceiver>
+	[UnityEditor.CanEditMultipleObjects]
+	[CustomEditor(typeof(TARGET))]
+	public class SgtGravityReceiver_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			EditorGUILayout.HelpBox("This component applies force to the attached Rigidbody based on nearby SgtGravitySource components.", MessageType.Info);
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Info("This component applies force to the attached Rigidbody based on nearby SgtGravitySource components.");
 
 			Separator();
 

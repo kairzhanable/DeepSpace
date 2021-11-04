@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace SpaceGraphicsToolkit
@@ -40,6 +40,13 @@ namespace SpaceGraphicsToolkit
 			return Mathf.Clamp01(occlusion);
 		}
 
+		private static int CompareDistance(float a, float b)
+		{
+			return a.CompareTo(b);
+		}
+
+		private static System.Comparison<float> CompareDistanceDel = CompareDistance;
+
 		private static void CalculateRaycast(int layers, Vector4 eye, Vector4 tgt, ref float occlusion)
 		{
 			var distance = Vector3.Distance(eye, tgt);
@@ -56,7 +63,7 @@ namespace SpaceGraphicsToolkit
 					distances.Add(distance);
 				}
 
-				distances.Sort();
+				distances.Sort(CompareDistanceDel);
 
 				for (var i = 0; i < distances.Count; i += 2)
 				{

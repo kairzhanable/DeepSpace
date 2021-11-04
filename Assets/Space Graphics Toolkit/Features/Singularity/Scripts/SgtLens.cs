@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -32,7 +32,7 @@ namespace SpaceGraphicsToolkit
 		/// 2 = Every two seconds.</summary>
 		public float Interval { set { interval = value; } get { return interval; } } [SerializeField] private float interval = -1.0f;
 
-		/// <summary>This allows you to control how the edge of the effect fades away into the normal scene. There will usually be some difference between the actual scene and the spatially distored scene rendered from the cubemap, and this can hide that transition.</summary>
+		/// <summary>This allows you to control how the edge of the effect fades away into the normal scene. There will usually be some difference between the actual scene and the spatially distorted scene rendered from the cubemap, and this can hide that transition.</summary>
 		public float FadeOuter { set { fadeOuter = value; } get { return fadeOuter; } } [Range(0.01f, 1.0f)] [SerializeField] private float fadeOuter = 0.1f;
 
 		/// <summary>This allows you control how far from the outer edge the spatial distortion begins.</summary>
@@ -122,10 +122,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtLens Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Lens", layer, parent, localPosition, localRotation, localScale);
-			var lens       = gameObject.AddComponent<SgtLens>();
-
-			return lens;
+			return SgtHelper.CreateGameObject("Lens", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtLens>();
 		}
 
 #if UNITY_EDITOR
@@ -208,11 +205,11 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtLens;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtLens))]
-	public class SgtLens_Editor : SgtEditor<SgtLens>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtLens_Editor : SgtEditor
 	{
 		private static int[] resolutionValues = new int[] { 32, 64, 128, 256, 512, 1024, 2048 };
 
@@ -220,15 +217,17 @@ namespace SpaceGraphicsToolkit
 
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var updateCubemap = false;
 
-			BeginError(Any(t => t.Mesh == null));
+			BeginError(Any(tgts, t => t.Mesh == null));
 				Draw("mesh", "The mesh used to render the lens effect. This should be a sphere.");
 			EndError();
 			DrawIntPopup(resolutionValues, resolutionNames, "resolution", ref updateCubemap, "This allows you to set the width & height of each face in the cubemap this component renders.\n\nNOTE: The higher you set this, the higher the visual quality, but the more expensive the texture updates will be.");
 			//Draw("range", "This allows you to set the world space distance where the specified resolution will be used. Each time the distance doubles, the resolution will be halved.\n\n0 = Ignore distance, and use a fixed resolution.");
 			Draw("interval", "This allows you to control how often the cubemap texture updates in seconds.\n\n-1 = Manual only.\n\n0 = Every frame.\n\n2 = Every two seconds.");
-			Draw("fadeOuter", "This allows you to control how the edge of the effect fades away into the normal scene. There will usually be some difference between the actual scene and the spatially distored scene rendered from the cubemap, and this can hide that transition.");
+			Draw("fadeOuter", "This allows you to control how the edge of the effect fades away into the normal scene. There will usually be some difference between the actual scene and the spatially distorted scene rendered from the cubemap, and this can hide that transition.");
 
 			Separator();
 
@@ -240,26 +239,26 @@ namespace SpaceGraphicsToolkit
 			Draw("holeSize", "This allows you to set the size of the black hole disc.");
 			Draw("holeEdge", "This allows you to control the thickness of the black hole disc (event horizon).");
 
-			if (Any(t => SetMesh(t, false)))
+			if (Any(tgts, t => SetMesh(t, false)))
 			{
 				Separator();
 
 				if (Button("Set Mesh") == true)
 				{
-					Each(t => SetMesh(t, true));
+					Each(tgts, t => SetMesh(t, true));
 				}
 			}
 
-			if (Any(t => t.gameObject.layer == 0))
+			if (Any(tgts, t => t.gameObject.layer == 0))
 			{
-				EditorGUILayout.HelpBox("You should change this GameObject's layer, so it can render normal objects, but not itself.", MessageType.Warning);
+				Warning("You should change this GameObject's layer, so it can render normal objects, but not itself.");
 			}
 
-			if (Any(t => (t.CachedCamera.cullingMask & 1 << t.gameObject.layer) != 0))
+			if (Any(tgts, t => (t.CachedCamera.cullingMask & 1 << t.gameObject.layer) != 0))
 			{
-				if (HelpButton("You should remove this GameObject's layer from the camera culling mask.", MessageType.Warning, "Fix", 30) == true)
+				if (HelpButton("You should remove this GameObject's layer from the camera culling mask.", UnityEditor.MessageType.Warning, "Fix", 30) == true)
 				{
-					DirtyEach(t => t.CachedCamera.cullingMask &= ~(1 << t.gameObject.layer));
+					Each(tgts, t => t.CachedCamera.cullingMask &= ~(1 << t.gameObject.layer), true);
 				}
 			}
 
@@ -267,12 +266,12 @@ namespace SpaceGraphicsToolkit
 
 			if (Button("Update Cubemap") == true)
 			{
-				Each(t => t.UpdateCubemap());
+				Each(tgts, t => t.UpdateCubemap());
 			}
 
 			if (updateCubemap == true)
 			{
-				Each(t => t.UpdateCubemap());
+				Each(tgts, t => t.UpdateCubemap());
 			}
 		}
 

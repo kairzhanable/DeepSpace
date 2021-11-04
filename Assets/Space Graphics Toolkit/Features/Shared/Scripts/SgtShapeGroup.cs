@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -9,7 +10,7 @@ namespace SpaceGraphicsToolkit
 	public class SgtShapeGroup : MonoBehaviour
 	{
 		/// <summary>The shapes associated with this group.</summary>
-		public List<SgtShape> Shapes;
+		public List<SgtShape> Shapes { get { if (shapes == null) shapes = new List<SgtShape>(); return shapes; } } [FSA("Shapes")] [SerializeField] private List<SgtShape> shapes;
 
 		public static SgtShapeGroup Create(int layer = 0, Transform parent = null)
 		{
@@ -18,10 +19,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtShapeGroup Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Shape Group", layer, parent, localPosition, localRotation, localScale);
-			var shapeGroup = gameObject.AddComponent<SgtShapeGroup>();
-
-			return shapeGroup;
+			return SgtHelper.CreateGameObject("Shape Group", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtShapeGroup>();
 		}
 
 #if UNITY_EDITOR
@@ -40,11 +38,11 @@ namespace SpaceGraphicsToolkit
 		{
 			var highestDensity = 0.0f;
 
-			if (Shapes != null)
+			if (shapes != null)
 			{
-				for (var i = Shapes.Count - 1; i >= 0; i--)
+				for (var i = shapes.Count - 1; i >= 0; i--)
 				{
-					var shape = Shapes[i];
+					var shape = shapes[i];
 
 					if (shape != null)
 					{
@@ -66,16 +64,18 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtShapeGroup;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtShapeGroup))]
-	public class SgtShapeGroup_Editor : SgtEditor<SgtShapeGroup>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtShapeGroup_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Shapes == null || t.Shapes.Count == 0 || t.Shapes.Exists(s => s == null) == true));
-				Draw("Shapes", "The shapes associated with this group.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Shapes == null || t.Shapes.Count == 0 || t.Shapes.Exists(s => s == null) == true));
+				Draw("shapes", "The shapes associated with this group.");
 			EndError();
 		}
 	}

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -10,12 +10,16 @@ namespace SpaceGraphicsToolkit
 	[AddComponentMenu(SgtHelper.ComponentMenuPrefix + "Floating Scaler")]
 	public class SgtFloatingScaler : MonoBehaviour
 	{
+		/// <summary>If you want a different <b>Transform</b> to be scaled, you can specify it here.</summary>
 		public Transform Target { set { target = value; } get { return target; } } [SerializeField] private Transform target;
 
+		/// <summary>The base scale of the object.</summary>
 		public Vector3 Scale { set { scale = value; } get { return scale; } } [SerializeField] private Vector3 scale = Vector3.one;
 
+		/// <summary>The final scale will be multiplied by this.</summary>
 		public double Multiplier { set { multiplier = value; } get { return multiplier; } } [SerializeField] private double multiplier = 0.0f;
 
+		/// <summary>If the distance between the camera and this object is beyond this value, this object will be scaled to 0 and be invisible.</summary>
 		public SgtLength Range { set { range = value; } get { return range; } } [SerializeField] private SgtLength range = 1000000.0;
 
 		[System.NonSerialized]
@@ -72,23 +76,25 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingScaler;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingScaler))]
-	public class SgtFloatingScaler_Editor : SgtEditor<SgtFloatingScaler>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingScaler_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("target", "");
-			BeginError(Any(t => t.Scale == Vector3.zero));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			Draw("target", "If you want a different Transform to be scaled, you can specify it here.");
+			BeginError(Any(tgts, t => t.Scale == Vector3.zero));
 				Draw("scale", "The scale of the object when at DistanceMin.");
 			EndError();
-			BeginError(Any(t => t.Multiplier <= 0.0));
-				Draw("multiplier", "");
+			BeginError(Any(tgts, t => t.Multiplier <= 0.0));
+				Draw("multiplier", "The final scale will be multiplied by this.");
 			EndError();
-			BeginError(Any(t => t.Range <= 0.0));
-				Draw("range", "");
+			BeginError(Any(tgts, t => t.Range <= 0.0));
+				Draw("range", "If the distance between the camera and this object is beyond this value, this object will be scaled to 0 and be invisible.");
 			EndError();
 		}
 	}

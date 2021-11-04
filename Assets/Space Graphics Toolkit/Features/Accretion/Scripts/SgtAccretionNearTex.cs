@@ -152,17 +152,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAccretionNearTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAccretionNearTex))]
-	public class SgtAccretionNearTex_Editor : SgtEditor<SgtAccretionNearTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAccretionNearTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
@@ -171,13 +173,13 @@ namespace SpaceGraphicsToolkit
 
 			Draw("ease", ref dirtyTexture, "The ease type used for the transition.");
 			Draw("sharpness", ref dirtyTexture, "The sharpness of the transition.");
-			BeginError(Any(t => t.Offset >= 1.0f));
+			BeginError(Any(tgts, t => t.Offset >= 1.0f));
 				Draw("offset", ref dirtyTexture, "The start point of the fading.");
 			EndError();
 
 			if (dirtyTexture == true)
 			{
-				DirtyEach(t => t.DirtyTexture());
+				Each(tgts, t => t.DirtyTexture(), true, true);
 			}
 		}
 	}

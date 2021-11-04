@@ -174,7 +174,7 @@ namespace SpaceGraphicsToolkit
 
 			color.a = 1.0f - Mathf.Pow(1.0f - Mathf.Pow(u, alphaFade), alphaDensity);
 
-			generatedTexture.SetPixel(x, 0, SgtHelper.Saturate(color));
+			generatedTexture.SetPixel(x, 0, SgtHelper.ToGamma(SgtHelper.Saturate(color)));
 		}
 	}
 }
@@ -182,17 +182,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCloudsphereDepthTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCloudsphereDepthTex))]
-	public class SgtCloudsphereDepthTex_Editor : SgtEditor<SgtCloudsphereDepthTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCloudsphereDepthTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
@@ -201,20 +203,20 @@ namespace SpaceGraphicsToolkit
 
 			Draw("rimEase", ref dirtyTexture, "The rim transition style.");
 			Draw("rimColor", ref dirtyTexture, "The rim color.");
-			BeginError(Any(t => t.RimPower < 1.0f));
+			BeginError(Any(tgts, t => t.RimPower < 1.0f));
 				Draw("rimPower", ref dirtyTexture, "The rim transition sharpness.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.AlphaDensity < 1.0f));
+			BeginError(Any(tgts, t => t.AlphaDensity < 1.0f));
 				Draw("alphaDensity", ref dirtyTexture, "The density of the atmosphere.");
 			EndError();
-			BeginError(Any(t => t.AlphaFade < 1.0f));
+			BeginError(Any(tgts, t => t.AlphaFade < 1.0f));
 				Draw("alphaFade", ref dirtyTexture, "The strength of the density fading in the upper atmosphere.");
 			EndError();
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true);
 		}
 	}
 }

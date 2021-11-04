@@ -1,4 +1,4 @@
-﻿namespace SpaceGraphicsToolkit
+namespace SpaceGraphicsToolkit
 {
 	/// <summary>This implements a Rect using the long data type.</summary>
 	public struct SgtLongRect

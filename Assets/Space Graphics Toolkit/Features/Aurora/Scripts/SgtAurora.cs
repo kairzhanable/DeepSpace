@@ -168,25 +168,25 @@ namespace SpaceGraphicsToolkit
 
 			if (near == true)
 			{
-				SgtHelper.EnableKeyword("SGT_A"); // Near
+				SgtHelper.EnableKeyword("_NEAR");
 
 				material.SetTexture(SgtShader._NearTex, nearTex);
 				material.SetFloat(SgtShader._NearScale, SgtHelper.Reciprocal(nearDistance));
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_A"); // Near
+				SgtHelper.DisableKeyword("_NEAR");
 			}
 
 			if (anim == true)
 			{
-				SgtHelper.EnableKeyword("SGT_B"); // Anim
+				SgtHelper.EnableKeyword("_ANIM");
 
 				material.SetFloat(SgtShader._AnimOffset, animOffset);
 			}
 			else
 			{
-				SgtHelper.DisableKeyword("SGT_B"); // Anim
+				SgtHelper.DisableKeyword("_ANIM");
 			}
 		}
 
@@ -445,10 +445,7 @@ namespace SpaceGraphicsToolkit
 
 		public static SgtAurora Create(int layer, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
 		{
-			var gameObject = SgtHelper.CreateGameObject("Aurora", layer, parent, localPosition, localRotation, localScale);
-			var aurora     = gameObject.AddComponent<SgtAurora>();
-
-			return aurora;
+			return SgtHelper.CreateGameObject("Aurora", layer, parent, localPosition, localRotation, localScale).AddComponent<SgtAurora>();
 		}
 
 #if UNITY_EDITOR
@@ -573,14 +570,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAurora;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAurora))]
-	public class SgtAurora_Editor : SgtEditor<SgtAurora>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAurora_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("color", "The base color will be multiplied by this.");
 			Draw("brightness", "The Color.rgb values are multiplied by this, allowing you to quickly adjust the overall brightness.");
 			Draw("renderQueue", "This allows you to adjust the render queue of the aurora material. You can normally adjust the render queue in the material settings, but since this material is procedurally generated your changes will be lost.");
@@ -588,35 +587,35 @@ namespace SpaceGraphicsToolkit
 
 			Separator();
 
-			BeginError(Any(t => t.MainTex == null));
+			BeginError(Any(tgts, t => t.MainTex == null));
 				Draw("mainTex", "The base texture tiled along the aurora.");
 			EndError();
 			Draw("seed", "This allows you to set the random seed used during procedural generation.");
-			BeginError(Any(t => t.RadiusMin >= t.RadiusMax));
+			BeginError(Any(tgts, t => t.RadiusMin >= t.RadiusMax));
 				Draw("radiusMin", "The inner radius of the aurora mesh in local space.");
 				Draw("radiusMax", "The outer radius of the aurora mesh in local space.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.PathCount < 1));
+			BeginError(Any(tgts, t => t.PathCount < 1));
 				Draw("pathCount", "The amount of aurora paths/ribbons.");
 			EndError();
-			BeginError(Any(t => t.PathDetail < 1));
+			BeginError(Any(tgts, t => t.PathDetail < 1));
 				Draw("pathDetail", "The amount of quads used to build each path.");
 			EndError();
-			BeginError(Any(t => t.PathLengthMin > t.PathLengthMax));
+			BeginError(Any(tgts, t => t.PathLengthMin > t.PathLengthMax));
 				Draw("pathLengthMin", "The minimum length of each aurora path.");
 				Draw("pathLengthMax", "The maximum length of each aurora path.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.StartMin > t.StartMax));
+			BeginError(Any(tgts, t => t.StartMin > t.StartMax));
 				Draw("startMin", "The minimum distance between the pole and the aurora path start point.");
 				Draw("startMax", "The maximum distance between the pole and the aurora path start point.");
 			EndError();
-			BeginError(Any(t => t.StartBias < 1.0f));
+			BeginError(Any(tgts, t => t.StartBias < 1.0f));
 				Draw("startBias", "The probability that the aurora path will begin closer to the pole.");
 			EndError();
 			Draw("startTop", "The probability that the aurora path will start on the northern pole.");
@@ -630,18 +629,18 @@ namespace SpaceGraphicsToolkit
 			Separator();
 
 			Draw("trailTile", "The amount of times the main texture is tiled based on its length.");
-			BeginError(Any(t => t.TrailEdgeFade < 1.0f));
+			BeginError(Any(tgts, t => t.TrailEdgeFade < 1.0f));
 				Draw("trailEdgeFade", "The sharpness of the fading at the start and ends of the aurora paths.");
 			EndError();
 			Draw("trailHeights", "The flatness of the aurora path.");
-			BeginError(Any(t => t.TrailHeightsDetail < 1));
+			BeginError(Any(tgts, t => t.TrailHeightsDetail < 1));
 				Draw("trailHeightsDetail", "The amount of height changes in the aurora path.");
 			EndError();
 
 			Separator();
 
 			Draw("colors", "The possible colors given to the top half of the aurora path.");
-			BeginError(Any(t => t.ColorsDetail < 1));
+			BeginError(Any(tgts, t => t.ColorsDetail < 1));
 				Draw("colorsDetail", "The amount of color changes an aurora path can have based on its length.");
 			EndError();
 			Draw("colorsAlpha", "The minimum opacity multiplier of the aurora path colors.");
@@ -651,13 +650,13 @@ namespace SpaceGraphicsToolkit
 
 			Draw("near", "Should the aurora fade out when the camera gets near?");
 
-			if (Any(t => t.Near == true))
+			if (Any(tgts, t => t.Near == true))
 			{
 				BeginIndent();
-					BeginError(Any(t => t.NearTex == null));
+					BeginError(Any(tgts, t => t.NearTex == null));
 						Draw("nearTex", "The lookup table used to calculate the fading amount based on the distance, where the left side is used when the camera is near, and the right side is used when the camera is far.");
 					EndError();
-					BeginError(Any(t => t.NearDistance < 0.0f));
+					BeginError(Any(tgts, t => t.NearDistance < 0.0f));
 						Draw("nearDistance", "The distance the fading begins from in world space.");
 					EndError();
 				EndIndent();
@@ -667,41 +666,41 @@ namespace SpaceGraphicsToolkit
 
 			Draw("anim", "Should the aurora paths animate?");
 
-			if (Any(t => t.Anim == true))
+			if (Any(tgts, t => t.Anim == true))
 			{
 				BeginIndent();
 					Draw("animOffset", "The current age/offset of the animation."); // Updated automatically
-					BeginError(Any(t => t.AnimSpeed == 0.0f));
+					BeginError(Any(tgts, t => t.AnimSpeed == 0.0f));
 						Draw("animSpeed", "The speed of the animation."); // Updated automatically
 					EndError();
 					Draw("animStrength", "The strength of the aurora path position changes in local space.");
-					BeginError(Any(t => t.AnimStrengthDetail < 1));
+					BeginError(Any(tgts, t => t.AnimStrengthDetail < 1));
 						Draw("animStrengthDetail", "The amount of the animation strength changes along the aurora path based on its length.");
 					EndError();
 					Draw("animAngle", "The maximum angle step between sections of the aurora path.");
-					BeginError(Any(t => t.AnimAngleDetail < 1));
+					BeginError(Any(tgts, t => t.AnimAngleDetail < 1));
 						Draw("animAngleDetail", "The amount of the animation angle changes along the aurora path based on its length.");
 					EndError();
 				EndIndent();
 			}
 
-			if (Any(t => t.MainTex == null && t.GetComponent<SgtAuroraMainTex>() == null))
+			if (Any(tgts, t => t.MainTex == null && t.GetComponent<SgtAuroraMainTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add MainTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAuroraMainTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAuroraMainTex>(t.gameObject));
 				}
 			}
 
-			if (Any(t => t.Near == true && t.NearTex == null && t.GetComponent<SgtAuroraNearTex>() == null))
+			if (Any(tgts, t => t.Near == true && t.NearTex == null && t.GetComponent<SgtAuroraNearTex>() == null))
 			{
 				Separator();
 
 				if (Button("Add NearTex") == true)
 				{
-					Each(t => SgtHelper.GetOrAddComponent<SgtAuroraNearTex>(t.gameObject));
+					Each(tgts, t => SgtHelper.GetOrAddComponent<SgtAuroraNearTex>(t.gameObject));
 				}
 			}
 		}

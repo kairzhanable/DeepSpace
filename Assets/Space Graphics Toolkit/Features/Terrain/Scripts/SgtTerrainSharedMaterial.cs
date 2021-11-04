@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace SpaceGraphicsToolkit
 {
@@ -6,14 +6,26 @@ namespace SpaceGraphicsToolkit
 	/// Components like <b>SgtAtmosphere</b> give you a shared material.</summary>
 	[ExecuteInEditMode]
 	[RequireComponent(typeof(SgtTerrain))]
-	public class SgtTerrainSharedMaterial : MonoBehaviour
+	public class SgtTerrainSharedMaterial : MonoBehaviour, IOverridableSharedMaterial
 	{
 		/// <summary>The shared material that will be rendered.</summary>
 		public SgtSharedMaterial SharedMaterial { set { sharedMaterial = value; } get { return sharedMaterial; } } [SerializeField] private SgtSharedMaterial sharedMaterial;
 
 		//public float CameraOffset { set { cameraOffset = value; } get { return cameraOffset; } } [SerializeField] private float cameraOffset;
 
+		public event SgtSharedMaterial.OverrideSharedMaterialSignature OnOverrideSharedMaterial;
+
 		private SgtTerrain cachedTerrain;
+
+		public void RegisterSharedMaterialOverride(SgtSharedMaterial.OverrideSharedMaterialSignature e)
+		{
+			OnOverrideSharedMaterial += e;
+		}
+
+		public void UnregisterSharedMaterialOverride(SgtSharedMaterial.OverrideSharedMaterialSignature e)
+		{
+			OnOverrideSharedMaterial -= e;
+		}
 
 		protected virtual void OnEnable()
 		{
@@ -29,7 +41,14 @@ namespace SpaceGraphicsToolkit
 
 		private void HandleDrawQuad(Camera camera, SgtTerrainQuad quad, Matrix4x4 matrix, int layer)
 		{
-			if (SgtHelper.Enabled(sharedMaterial) == true && sharedMaterial.Material != null)
+			var finalSharedMaterial = sharedMaterial;
+
+			if (OnOverrideSharedMaterial != null)
+			{
+				OnOverrideSharedMaterial.Invoke(ref finalSharedMaterial, camera);
+			}
+
+			if (SgtHelper.Enabled(finalSharedMaterial) == true && finalSharedMaterial.Material != null)
 			{
 				//if (cameraOffset != 0.0f)
 				//{
@@ -40,7 +59,7 @@ namespace SpaceGraphicsToolkit
 
 				foreach (var mesh in quad.CurrentMeshes)
 				{
-					Graphics.DrawMesh(mesh, matrix, sharedMaterial.Material, gameObject.layer, camera);
+					Graphics.DrawMesh(mesh, matrix, finalSharedMaterial.Material, gameObject.layer, camera);
 				}
 			}
 		}
@@ -50,15 +69,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainSharedMaterial;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainSharedMaterial))]
-	public class SgtTerrainSharedMaterial_Editor : SgtEditor<SgtTerrainSharedMaterial>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainSharedMaterial_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.SharedMaterial == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.SharedMaterial == null));
 				Draw("sharedMaterial", "The shared material that will be rendered.");
 			EndError();
 			//Draw("cameraOffset");

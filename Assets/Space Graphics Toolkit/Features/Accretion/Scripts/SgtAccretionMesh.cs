@@ -199,31 +199,35 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
+	using TARGET = SgtAccretionMesh;
+
 	[UnityEditor.CanEditMultipleObjects]
-	[UnityEditor.CustomEditor(typeof(SgtAccretionMesh))]
-	public class SgtAccretionMesh_Editor : SgtEditor<SgtAccretionMesh>
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAccretionMesh_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyMesh = false;
 
-			BeginError(Any(t => t.Segments < 1));
+			BeginError(Any(tgts, t => t.Segments < 1));
 				Draw("segments", ref dirtyMesh, "The amount of segments the final disc will be comprised of.");
 			EndError();
-			BeginError(Any(t => t.SegmentDetail < 1));
+			BeginError(Any(tgts, t => t.SegmentDetail < 1));
 				Draw("segmentDetail", ref dirtyMesh, "The amount of triangle edges along the inner and outer edges of each segment.");
 			EndError();
-			BeginError(Any(t => t.SegmentTiling < 1));
+			BeginError(Any(tgts, t => t.SegmentTiling < 1));
 				Draw("segmentTiling", ref dirtyMesh, "The amount of times the main texture is tiled around the ring segment.");
 			EndError();
 
 			Separator();
 
-			BeginError(Any(t => t.RadiusMin == t.RadiusMax));
+			BeginError(Any(tgts, t => t.RadiusMin == t.RadiusMax));
 				Draw("radiusMin", ref dirtyMesh, "The radius of the inner edge in local space.");
 				Draw("radiusMax", ref dirtyMesh, "The radius of the outer edge in local space.");
 			EndError();
-			BeginError(Any(t => t.RadiusDetail < 1));
+			BeginError(Any(tgts, t => t.RadiusDetail < 1));
 				Draw("radiusDetail", ref dirtyMesh, "The amount of edge loops around the generated disc. If you have a very large ring then you can end up with very skinny triangles, so increasing this can give them a better shape.");
 			EndError();
 
@@ -233,7 +237,7 @@ namespace SpaceGraphicsToolkit
 
 			if (dirtyMesh == true)
 			{
-				DirtyEach(t => t.DirtyMesh());
+				Each(tgts, t => t.DirtyMesh(), true, true);
 			}
 		}
 	}

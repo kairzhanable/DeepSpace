@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -21,7 +21,7 @@ namespace SpaceGraphicsToolkit
 
 		public int Face { get { return face; } } private int face;
 
-		public MaterialPropertyBlock Properties { get { if (properties == null) properties = new MaterialPropertyBlock(); return properties; } } private MaterialPropertyBlock properties;
+		public SgtProperties Properties { get { if (properties == null) properties = new SgtProperties(); return properties; } } private SgtProperties properties;
 
 		public List<Mesh> CurrentMeshes = new List<Mesh>();
 		public List<Mesh> PendingMeshes = new List<Mesh>();
@@ -32,6 +32,8 @@ namespace SpaceGraphicsToolkit
 		public NativeArray<double3> Points;
 		public NativeArray<int>     Biomes;
 
+		public float3        CurrentCorner;
+		public float3        PendingCorner;
 		public SgtLongBounds CurrentInner;
 		public SgtLongBounds CurrentOuter;
 		public SgtLongBounds PendingOuter;
@@ -125,8 +127,9 @@ namespace SpaceGraphicsToolkit
 				PendingSplat = null;
 			}
 
-			CurrentOuter = PendingOuter;
-			CurrentInner = PendingInner;
+			CurrentOuter  = PendingOuter;
+			CurrentInner  = PendingInner;
+			CurrentCorner = PendingCorner;
 		}
 	}
 }

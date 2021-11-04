@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -88,22 +88,24 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingWarpSmoothstep;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingWarpSmoothstep))]
-	public class SgtFloatingWarpSmoothstep_Editor : SgtFloatingWarp_Editor<SgtFloatingWarpSmoothstep>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingWarpSmoothstep_Editor : SgtFloatingWarp_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
 			Separator();
 
-			BeginError(Any(t => t.WarpTime < 0.0));
+			BeginError(Any(tgts, t => t.WarpTime < 0.0));
 				Draw("warpTime", "Seconds it takes to complete a warp.");
 			EndError();
-			BeginError(Any(t => t.Smoothness < 1));
+			BeginError(Any(tgts, t => t.Smoothness < 1));
 				Draw("smoothness", "Warp smoothstep iterations.");
 			EndError();
 

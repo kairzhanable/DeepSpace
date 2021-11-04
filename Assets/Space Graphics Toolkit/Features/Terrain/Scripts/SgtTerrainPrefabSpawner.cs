@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Collections;
 using Unity.Mathematics;
 using System.Collections.Generic;
@@ -17,11 +17,30 @@ namespace SpaceGraphicsToolkit
 			ToPlanetCenter
 		}
 
-		struct Coord
+		struct Coord : System.IEquatable<Coord>
 		{
 			public int  Face;
 			public long X;
 			public long Y;
+
+			public override int GetHashCode()
+			{
+				var hash = 43270662;
+				hash = hash * -1521134295 + Face.GetHashCode();
+				hash = hash * -1521134295 + X.GetHashCode();
+				hash = hash * -1521134295 + Y.GetHashCode();
+				return hash;
+			}
+
+			public override bool Equals(object obj)
+			{
+				return obj is Coord ? Equals((Coord)obj) : false;
+			}
+
+			public bool Equals(Coord other)
+			{
+				return Face == other.Face && X == other.X && Y == other.Y;
+			}
 		}
 
 		class Chunk
@@ -49,7 +68,7 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		/// <summary>This allows you to control where this biome appears based on the <b>SgtTerrainTerra</b> component's <b>Biomes</b> splatmap.</summary>
+		/// <summary>This allows you to control where this biome appears based on the <b>SgtTerrain</b> component's <b>Areas</b> splatmap.</summary>
 		public int Area { set { if (area != value) { area = value; MarkAsDirty(); } } get { return area; } } [SerializeField] private int area = -1;
 
 		/// <summary>If the prefabs are set to spawn in a specific area, this allows you to specify how far into the area you must travel before prefabs begin spawning.</summary>
@@ -110,8 +129,7 @@ namespace SpaceGraphicsToolkit
 
 			chunks.Clear();
 
-			// TODO: Make sure this executes after the job finishes
-			tempWeights.Dispose();
+			cachedTerrain.ScheduleDispose(tempWeights);
 		}
 
 		protected virtual void Update()
@@ -126,7 +144,7 @@ namespace SpaceGraphicsToolkit
 				foreach (var chunk in chunks.Values)
 				{
 					// Needs collider?
-					if (chunk.Clones == null && chunk.Distance < radius * radius)
+					if (chunk.Clones == null)// && chunk.Distance < radius * radius)
 					{
 						if (bestChunk == null || chunk.Distance < bestChunk.Distance)
 						{
@@ -140,6 +158,11 @@ namespace SpaceGraphicsToolkit
 					Schedule(bestChunk);
 				}
 			}
+		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			MarkAsDirty();
 		}
 
 		private void Schedule(Chunk chunk)
@@ -372,23 +395,25 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainPrefabSpawner;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainPrefabSpawner))]
-	public class SgtTerrainPrefabSpawner_Editor : SgtEditor<SgtTerrainPrefabSpawner>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainPrefabSpawner_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var markAsDirty = false;
 
-			markAsDirty |= SgtTerrain_Editor<SgtTerrain>.DrawArea(serializedObject.FindProperty("area"), Target.GetComponent<SgtTerrain>());
+			markAsDirty |= SgtTerrain_Editor.DrawArea(serializedObject.FindProperty("area"), tgt.GetComponent<SgtTerrain>());
 			Draw("threshold", ref markAsDirty, "If the prefabs are set to spawn in a specific area, this allows you to specify how far into the area you must travel before prefabs begin spawning.");
 
 			Separator();
 
 			Draw("limit", ref markAsDirty, "The maximum amount of prefabs that can spawn per chunk.");
-			BeginError(Any(t => t.Resolution <= 0.0));
+			BeginError(Any(tgts, t => t.Resolution <= 0.0));
 				Draw("resolution", ref markAsDirty, "The terrain will be split into this many cells on each axis.");
 			EndError();
 			Draw("radius", ref markAsDirty, "The radius in chunks around the camera that will have colliders.\n\n1 = 3x3 chunks.\n\n2 = 5x5 chunks.\n\n3 = 7x7 chunks.");
@@ -397,13 +422,13 @@ namespace SpaceGraphicsToolkit
 
 			Draw("rotate", ref markAsDirty, "How should the spawned prefabs be rotated?");
 			Draw("sharedMaterial", ref markAsDirty, "If your terrain has an atmosphere/corona and your spawned objects are large enough to be covered by it, then specify its SgtSharedMaterial here.");
-			BeginError(Any(t => t.Prefabs.Count == 0 || t.Prefabs.Exists(p => p == null) == true));
+			BeginError(Any(tgts, t => t.Prefabs.Count == 0 || t.Prefabs.Exists(p => p == null) == true));
 				Draw("prefabs", ref markAsDirty, "The prefabs that will be spawned.");
 			EndError();
 
 			if (markAsDirty == true)
 			{
-				DirtyEach(t => t.MarkAsDirty());
+				Each(tgts, t => t.MarkAsDirty(), true, true);
 			}
 		}
 	}

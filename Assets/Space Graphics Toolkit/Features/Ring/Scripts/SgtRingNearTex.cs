@@ -171,17 +171,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtRingNearTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtRingNearTex))]
-	public class SgtRingNearTex_Editor : SgtEditor<SgtRingNearTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtRingNearTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
@@ -191,7 +193,7 @@ namespace SpaceGraphicsToolkit
 			Draw("ease", ref dirtyTexture, "The ease type used for the transition.");
 			Draw("sharpness", ref dirtyTexture, "The sharpness of the transition.");
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true, true);
 		}
 	}
 }

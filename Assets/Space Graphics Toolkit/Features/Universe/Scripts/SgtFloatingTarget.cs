@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -40,18 +40,20 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingTarget;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingTarget))]
-	public class SgtWarpTarget_Editor : SgtEditor<SgtFloatingTarget>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtWarpTarget_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => string.IsNullOrEmpty(t.WarpName)));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => string.IsNullOrEmpty(t.WarpName)));
 				Draw("warpName", "The shorthand name for this warp target.");
 			EndError();
-			BeginError(Any(t => t.WarpDistance < 0.0));
+			BeginError(Any(tgts, t => t.WarpDistance < 0.0));
 				Draw("warpDistance", "The distance from this SgtFloatingPoint we should warp to, to prevent you warping too close.");
 			EndError();
 		}

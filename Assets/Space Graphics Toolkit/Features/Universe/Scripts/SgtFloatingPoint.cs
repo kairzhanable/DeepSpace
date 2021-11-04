@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -44,19 +44,19 @@ namespace SpaceGraphicsToolkit
 
 		protected void CheckForPositionChanges()
 		{
-			var position = transform.position;
+			var currentPosition = transform.position;
 
 			if (expectedPositionSet == true)
 			{
-				if (expectedPosition.x != position.x || expectedPosition.y != position.y || expectedPosition.z != position.z)
+				if (expectedPosition.x != currentPosition.x || expectedPosition.y != currentPosition.y || expectedPosition.z != currentPosition.z)
 				{
-					this.position.LocalX += position.x - expectedPosition.x;
-					this.position.LocalY += position.y - expectedPosition.y;
-					this.position.LocalZ += position.z - expectedPosition.z;
+					position.LocalX += currentPosition.x - expectedPosition.x;
+					position.LocalY += currentPosition.y - expectedPosition.y;
+					position.LocalZ += currentPosition.z - expectedPosition.z;
 
-					this.position.SnapLocal();
+					position.SnapLocal();
 
-					expectedPosition = position;
+					expectedPosition = currentPosition;
 
 					PositionChanged();
 				}
@@ -64,7 +64,7 @@ namespace SpaceGraphicsToolkit
 			else
 			{
 				expectedPositionSet = true;
-				expectedPosition    = position;
+				expectedPosition    = currentPosition;
 			}
 		}
 
@@ -83,20 +83,21 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingPoint;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingPoint))]
-	public class SgtFloatingPoint_Editor<T> : SgtEditor<T>
-		where T : SgtFloatingPoint
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(SgtFloatingPoint))]
+	public class SgtFloatingPoint_Editor : SgtEditor
 	{
 		delegate void DoubleDel(ref SgtPosition position, double value);
 
 		protected override void OnInspector()
 		{
-			if (Any(t => t.GetComponentsInParent<SgtFloatingPoint>().Length > 1))
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			if (Any(tgts, t => t.GetComponentsInParent<SgtFloatingPoint>().Length > 1))
 			{
-				EditorGUILayout.HelpBox("This component is parented to a SgtFloatingObject/Camera, which will not work. Detach it, and use the SgtFollow component instead.", MessageType.Error);
+				Error("This component is parented to a SgtFloatingObject/Camera, which will not work. Detach it, and use the SgtFollow component instead.");
 			}
 
 			var modified = false;
@@ -110,9 +111,7 @@ namespace SpaceGraphicsToolkit
 
 			if (modified == true)
 			{
-				serializedObject.ApplyModifiedProperties();
-
-				DirtyEach(t => { t.PositionChanged(); });
+				Each(tgts, t => { t.PositionChanged(); }, true, true);
 			}
 		}
 	}

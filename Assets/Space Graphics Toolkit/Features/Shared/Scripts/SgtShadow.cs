@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace SpaceGraphicsToolkit
@@ -6,13 +6,13 @@ namespace SpaceGraphicsToolkit
 	/// <summary>This base class handles calculation of a shadow matrix and shadow texture.</summary>
 	public abstract class SgtShadow : SgtLinkedBehaviour<SgtShadow>
 	{
+		public const int MAX_SPHERE_SHADOWS = 16;
+
 		private static List<ShadowProperties> cachedShadowProperties = new List<ShadowProperties>();
 
 		private static List<string> cachedShadowKeywords = new List<string>();
 
 		private static List<SgtShadow> tempShadows = new List<SgtShadow>();
-
-		public abstract Texture GetTexture();
 
 		public abstract void CalculateShadow(SgtLight light);
 
@@ -23,13 +23,13 @@ namespace SpaceGraphicsToolkit
 		protected bool cachedActive;
 
 		[System.NonSerialized]
-		protected Texture cachedTexture;
-
-		[System.NonSerialized]
 		protected Matrix4x4 cachedMatrix;
 
 		[System.NonSerialized]
 		protected float cachedRatio;
+
+		[System.NonSerialized]
+		protected Vector4 cachedPower;
 
 		[System.NonSerialized]
 		protected float cachedRadius;
@@ -154,44 +154,105 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
-		public static void Write(bool lit, int maxShadows)
+		private static List<Matrix4x4> tempMatrix = new List<Matrix4x4>();
+		private static List<Vector4>   tempPower  = new List<Vector4>();
+		private static List<float>     tempRatio  = new List<float>();
+
+		public static void WriteSphere(int maxShadows)
 		{
 			var shadowCount = 0;
 
+			tempMatrix.Clear();
+			tempPower.Clear();
+
 			for (var i = 0; i < tempShadows.Count; i++)
 			{
-				var shadow     = tempShadows[i];
-				var properties = GetShadowProperties(shadowCount++);
-
-				for (var j = SgtHelper.tempMaterials.Count - 1; j >= 0; j--)
+				var shadow = tempShadows[i];
+				
+				if (shadow is SgtShadowSphere)
 				{
-					var tempMaterial = SgtHelper.tempMaterials[j];
+					shadowCount += 1;
 
-					if (tempMaterial != null)
+					for (var j = SgtHelper.tempMaterials.Count - 1; j >= 0; j--)
 					{
-						tempMaterial.SetTexture(properties.Texture, shadow.cachedTexture);
-						tempMaterial.SetMatrix(properties.Matrix, shadow.cachedMatrix);
-						tempMaterial.SetFloat(properties.Ratio, shadow.cachedRatio);
-					}
-				}
+						var tempMaterial = SgtHelper.tempMaterials[j];
 
-				if (shadowCount >= maxShadows)
-				{
-					break;
+						if (tempMaterial != null)
+						{
+							tempMatrix.Add(shadow.cachedMatrix);
+							tempPower.Add(shadow.cachedPower);
+						}
+					}
+
+					if (shadowCount >= maxShadows)
+					{
+						break;
+					}
 				}
 			}
 
-			for (var i = 0; i <= maxShadows; i++)
+			foreach (var tempMaterial in SgtHelper.tempMaterials)
 			{
-				var keyword = GetShadowKeyword(i);
+				if (tempMaterial != null)
+				{
+					tempMaterial.SetInt("_SphereShadowCount", shadowCount);
 
-				if (lit == true && i == shadowCount)
-				{
-					SgtHelper.EnableKeyword(keyword);
+					if (shadowCount > 0)
+					{
+						tempMaterial.SetMatrixArray("_SphereShadowMatrix", tempMatrix);
+						tempMaterial.SetVectorArray("_SphereShadowPower", tempPower);
+					}
 				}
-				else
+			}
+		}
+
+		public static void WriteRing(int maxShadows)
+		{
+			var shadowCount = 0;
+			var tempTexture = (Texture)Texture2D.whiteTexture;
+
+			tempMatrix.Clear();
+			tempRatio.Clear();
+
+			for (var i = 0; i < tempShadows.Count; i++)
+			{
+				var shadowRing = tempShadows[i] as SgtShadowRing;
+				
+				if (shadowRing != null)
 				{
-					SgtHelper.DisableKeyword(keyword);
+					shadowCount += 1;
+
+					for (var j = SgtHelper.tempMaterials.Count - 1; j >= 0; j--)
+					{
+						var tempMaterial = SgtHelper.tempMaterials[j];
+
+						if (tempMaterial != null)
+						{
+							tempTexture = shadowRing.Texture;
+							tempMatrix.Add(shadowRing.cachedMatrix);
+							tempRatio.Add(shadowRing.cachedRatio);
+						}
+					}
+
+					if (shadowCount >= maxShadows)
+					{
+						break;
+					}
+				}
+			}
+
+			foreach (var tempMaterial in SgtHelper.tempMaterials)
+			{
+				if (tempMaterial != null)
+				{
+					tempMaterial.SetInt("_RingShadowCount", shadowCount);
+
+					if (shadowCount > 0)
+					{
+						tempMaterial.SetTexture("_RingShadowTexture", tempTexture);
+						tempMaterial.SetMatrixArray("_RingShadowMatrix", tempMatrix);
+						tempMaterial.SetFloatArray("_RingShadowRatio", tempRatio);
+					}
 				}
 			}
 		}

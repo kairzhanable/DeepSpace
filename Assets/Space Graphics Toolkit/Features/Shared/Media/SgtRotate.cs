@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -24,15 +24,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtRotate;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtRotate))]
-	public class SgtRotate_Editor : SgtEditor<SgtRotate>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtRotate_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.AngularVelocity.magnitude == 0.0f));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.AngularVelocity.magnitude == 0.0f));
 				Draw("angularVelocity", "The speed of the rotation in degrees per second.");
 			EndError();
 			Draw("relativeTo", "The rotation space.");

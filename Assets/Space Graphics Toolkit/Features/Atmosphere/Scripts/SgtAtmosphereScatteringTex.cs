@@ -172,7 +172,7 @@ namespace SpaceGraphicsToolkit
 			color.b = SgtEase.Evaluate(sunsetEase, 1.0f - SgtHelper.Sharpness(sunsetU, sunsetSharpnessB));
 			color.a = (color.r + color.g + color.b) / 3.0f;
 
-			generatedTexture.SetPixel(x, 0, SgtHelper.Saturate(color));
+			generatedTexture.SetPixel(x, 0, SgtHelper.ToGamma(SgtHelper.Saturate(color)));
 		}
 	}
 }
@@ -180,17 +180,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtAtmosphereScatteringTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtAtmosphereScatteringTex))]
-	public class SgtAtmosphereScatteringTex_Editor : SgtEditor<SgtAtmosphereScatteringTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtAtmosphereScatteringTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The width of the generated texture. A higher value can result in a smoother transition.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
@@ -198,7 +200,7 @@ namespace SpaceGraphicsToolkit
 			Separator();
 
 			Draw("sunsetEase", ref dirtyTexture, "The transition style between the day and night.");
-			BeginError(Any(t => t.SunsetStart >= t.SunsetEnd));
+			BeginError(Any(tgts, t => t.SunsetStart >= t.SunsetEnd));
 				Draw("sunsetStart", ref dirtyTexture, "The start point of the day/sunset transition (0 = dark side, 1 = light side).");
 				Draw("sunsetEnd", ref dirtyTexture, "The end point of the sunset/night transition (0 = dark side, 1 = light side).");
 			EndError();
@@ -206,7 +208,7 @@ namespace SpaceGraphicsToolkit
 			Draw("sunsetSharpnessG", ref dirtyTexture, "The sharpness of the sunset green channel transition.");
 			Draw("sunsetSharpnessB", ref dirtyTexture, "The sharpness of the sunset blue channel transition.");
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true, true);
 		}
 	}
 }

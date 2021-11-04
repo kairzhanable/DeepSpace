@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 #if UNITY_EDITOR
@@ -86,7 +86,7 @@ namespace SpaceGraphicsToolkit
 		{
 			for (var i = 0; i < 9; i++)
 			{
-				if (Input.GetKeyDown(KeyCode.F1 + i) == true)
+				if (SgtInputManager.WentDown(KeyCode.F1 + i) == true)
 				{
 					GoToState(i);
 				}
@@ -114,14 +114,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCameraPath;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCameraPath))]
-	public class SgtCameraPath_Editor : SgtEditor<SgtCameraPath>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCameraPath_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("target");
 			Draw("dampening");
 			Draw("thresholdPosition");

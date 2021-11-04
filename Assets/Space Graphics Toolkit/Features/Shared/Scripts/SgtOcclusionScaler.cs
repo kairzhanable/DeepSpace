@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
@@ -74,14 +74,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtOcclusionScaler;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtOcclusionScaler))]
-	public class SgtDepthScale_Editor : SgtEditor<SgtOcclusionScaler>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtDepthScale_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			Draw("layers", "The layers that will be sampled when calculating the occlusion."); // Updated automatically
 			Draw("radius", "This allows you to set the radius of the object that will be scaled (e.g. light flare). This changes how it get occluded by objects that pass in front."); // Updated automatically
 			Draw("maxScale", "This allows you to set the maximum scale when there is no depth."); // Updated automatically

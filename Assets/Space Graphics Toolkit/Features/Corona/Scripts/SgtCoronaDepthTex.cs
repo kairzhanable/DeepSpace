@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -249,7 +249,7 @@ namespace SpaceGraphicsToolkit
 			color.b = Mathf.Clamp01(color.b);
 			color.a = Mathf.Clamp01(color.a);
 
-			texture2D.SetPixel(x, 0, SgtHelper.Saturate(color));
+			texture2D.SetPixel(x, 0, SgtHelper.ToGamma(SgtHelper.Saturate(color)));
 		}
 	}
 }
@@ -257,17 +257,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtCoronaDepthTex;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtCoronaDepthTex))]
-	public class SgtCoronaDepthTex_Editor : SgtEditor<SgtCoronaDepthTex>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtCoronaDepthTex_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var dirtyTexture = false;
 
-			BeginError(Any(t => t.Width < 1));
+			BeginError(Any(tgts, t => t.Width < 1));
 				Draw("width", ref dirtyTexture, "The resolution of the surface/space optical thickness transition in pixels.");
 			EndError();
 			Draw("format", ref dirtyTexture, "The format of the generated texture.");
@@ -287,7 +289,7 @@ namespace SpaceGraphicsToolkit
 			Draw("outerColorSharpness", ref dirtyTexture, "The strength of the outer texture transition.");
 			Draw("outerAlphaSharpness", ref dirtyTexture, "The strength of the outer texture transition.");
 
-			if (dirtyTexture == true) DirtyEach(t => t.DirtyTextures());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTextures(), true);
 		}
 	}
 }

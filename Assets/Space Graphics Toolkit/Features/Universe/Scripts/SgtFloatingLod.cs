@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -84,15 +84,19 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingLod;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingLod))]
-	public class SgtFloatingLod_Editor : SgtEditor<SgtFloatingLod>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtFloatingLod_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			Draw("prefab", "The prefab that will be spawned.");
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Prefab == null));
+				Draw("prefab", "The prefab that will be spawned.");
+			EndError();
 			Draw("distanceMin", "If the camera is closer than this distance, then the LOD will disappear.");
 			Draw("distanceMax", "If the camera is farther than this distance, then the LOD will disappear.");
 		}

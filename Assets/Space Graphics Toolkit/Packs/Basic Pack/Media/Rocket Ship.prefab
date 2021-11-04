@@ -28,7 +28,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8937690999713561845}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -3000}
+  m_LocalPosition: {x: -4, y: -2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 8935396113856948075}
@@ -50,7 +50,7 @@ Rigidbody:
   m_AngularDrag: 0.1
   m_UseGravity: 0
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 3
 --- !u!114 &9049879709718162665
@@ -86,7 +86,7 @@ MonoBehaviour:
     GlobalX: 0
     GlobalY: 0
     GlobalZ: 0
-  expectedPosition: {x: 0, y: 0, z: -3000}
+  expectedPosition: {x: -4, y: -2, z: 0}
   expectedPositionSet: 1
   positionSet: 1
   seed: 0
@@ -164,7 +164,6 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -189,7 +188,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!64 &9001316684582561037
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -250,7 +248,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -384,7 +381,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -448,7 +444,7 @@ Transform:
   m_GameObject: {fileID: 8939579533220809485}
   m_LocalRotation: {x: -0.46469933, y: 0.53296775, z: -0.46469927, w: -0.53296775}
   m_LocalPosition: {x: 0.0011, y: 0.008, z: 0}
-  m_LocalScale: {x: 4.807929, y: 0.96158576, z: 0.96158576}
+  m_LocalScale: {x: 4.7085624, y: 0.9417125, z: 0.9417125}
   m_Children:
   - {fileID: 8939579533684914468}
   m_Father: {fileID: 8939579532424044169}
@@ -469,7 +465,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -585,7 +580,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -668,7 +662,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -750,7 +743,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -796,6 +788,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8939579533932143839}
   - component: {fileID: 8939579533932143838}
+  - component: {fileID: 5402736736907402943}
   - component: {fileID: 8939579533932143837}
   m_Layer: 4
   m_Name: Point Light
@@ -811,7 +804,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8939579533932143824}
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -1.359}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -830,7 +823,7 @@ Light:
   m_Type: 2
   m_Shape: 0
   m_Color: {r: 0.427451, g: 0.9333334, b: 0.97647065, a: 1}
-  m_Intensity: 7.2
+  m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -877,9 +870,26 @@ Light:
   m_UseColorTemperature: 0
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
-  m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!114 &5402736736907402943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8939579533932143824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e37c2a965976004183aefdd3b15ac31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  treatAsPoint: 0
+  multiplier: 1
+  intensityInSGT: 0
+  intensityInStandard: 1
+  intensityInURP: 1
+  intensityInHDRP: 120000
 --- !u!114 &8939579533932143837
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -892,8 +902,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af2acaa0e01171e40b274e9528654490, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  intensityMin: 5
-  intensityMax: 8
+  multiplierMin: 3
+  multiplierMax: 5
   offset: 0
   speed: 20
 --- !u!1 &8939579534012405994
@@ -942,7 +952,6 @@ SpriteRenderer:
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

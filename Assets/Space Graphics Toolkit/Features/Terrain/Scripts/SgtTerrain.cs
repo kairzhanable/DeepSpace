@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
@@ -14,14 +14,14 @@ namespace SpaceGraphicsToolkit
 		public delegate void BuildHeightsDelegate(NativeArray<double3> points, NativeArray<double> heights, ref JobHandle handle);
 
 		/// <summary>The distance between the center and edge of the planet in local space before it's deformed.</summary>
-		public double Radius { set { radius = value; MarkAsDirty(); } get { return radius; } } [SerializeField] protected double radius = 1.0;
+		public double Radius { set { if (radius != value) { radius = value; MarkAsDirty(); } } get { return radius; } } [SerializeField] protected double radius = 1.0;
 
 		/// <summary>When at the surface of the planet, how big should each triangle be?
 		/// NOTE: This is an approximation. The final size of the triangle will depend on your planet radius, and will be a power of two.</summary>
 		public double SmallestTriangleSize { set { smallestTriangleSize = value; } get { return smallestTriangleSize; } } [SerializeField] private double smallestTriangleSize = 1.0;
 
 		/// <summary>The base resolution of the planet before LOD is used.</summary>
-		public long Resolution { set { resolution = value; MarkAsDirty(); } get { return resolution; } } [SerializeField] protected long resolution = 128;
+		public long Resolution { set { if (resolution != value) { resolution = value; MarkAsDirty(); } } get { return resolution; } } [SerializeField] protected long resolution = 128;
 
 		/// <summary>The higher this value, the more triangles will be in view.</summary>
 		public double Detail { set { detail = value; } get { return detail; } } [Range(0.2f, 5.0f)] [SerializeField] protected double detail = 1.0;
@@ -53,6 +53,8 @@ namespace SpaceGraphicsToolkit
 		/// int = Render layer.</summary>
 		public event System.Action<Camera, SgtTerrainQuad, Matrix4x4, int> OnDrawQuad;
 
+		public event System.Action OnDisabled;
+
 		private bool dirty;
 
 		private LinkedListNode<SgtTerrain> node;
@@ -69,6 +71,8 @@ namespace SpaceGraphicsToolkit
 		private static LinkedList<SgtTerrain> instances = new LinkedList<SgtTerrain>();
 
 		private static Stack<Mesh> meshPool = new Stack<Mesh>();
+
+		private List<System.IDisposable> pendingDisposal = new List<System.IDisposable>();
 
 		public static void DespawnMesh(Mesh mesh)
 		{
@@ -88,6 +92,18 @@ namespace SpaceGraphicsToolkit
 			}
 
 			return new Mesh();
+		}
+
+		public void ScheduleDispose(System.IDisposable disposable)
+		{
+			if (disabled == true)
+			{
+				disposable.Dispose();
+			}
+			else
+			{
+				pendingDisposal.Add(disposable);
+			}
 		}
 
 		/// <summary>This method will cause the whole terrain mesh to be rebuilt.</summary>
@@ -112,7 +128,7 @@ namespace SpaceGraphicsToolkit
 				if (distance < bestDistance)
 				{
 					bestDistance = distance;
-					bestTerrain    = terrain;
+					bestTerrain  = terrain;
 				}
 			}
 
@@ -273,8 +289,13 @@ namespace SpaceGraphicsToolkit
 			}
 		}
 
+		[System.NonSerialized]
+		private bool disabled = true;
+
 		protected virtual void OnEnable()
 		{
+			disabled = false;
+
 			SgtCamera.OnCameraDraw += HandleCameraDraw;
 
 			SgtHelper.OnCalculateDistance += HandleCalculateDistance;
@@ -297,7 +318,12 @@ namespace SpaceGraphicsToolkit
 
 			SgtHelper.OnCalculateDistance -= HandleCalculateDistance;
 
-			instances.Remove(node);
+			instances.Remove(node); node = null;
+
+			if (OnDisabled != null)
+			{
+				OnDisabled.Invoke();
+			}
 
 			onePoint.Dispose();
 			oneHeight.Dispose();
@@ -309,10 +335,19 @@ namespace SpaceGraphicsToolkit
 				Dispose(cube);
 			}
 
-			if (IsRunning == true)
+			foreach (var disposable in pendingDisposal)
 			{
-				Complete();
+				disposable.Dispose();
 			}
+
+			pendingDisposal.Clear();
+
+			disabled = true;
+		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			MarkAsDirty();
 		}
 
 		protected abstract bool IsRunning
@@ -541,11 +576,18 @@ namespace SpaceGraphicsToolkit
 
 			if (OnDrawQuad != null)
 			{
+				var matrix = transform.localToWorldMatrix;
+
 				foreach (var cube in cubes)
 				{
 					foreach (var quad in cube.Quads)
 					{
-						OnDrawQuad.Invoke(camera, quad, transform.localToWorldMatrix, gameObject.layer);
+						if (quad.Points.Length > 0)
+						{
+							var matrix2 = matrix * Matrix4x4.Translate(quad.CurrentCorner);
+
+							OnDrawQuad.Invoke(camera, quad, matrix2, gameObject.layer);
+						}
 					}
 				}
 			}
@@ -654,16 +696,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrain;
 
-	public abstract class SgtTerrain_Editor<T> : SgtEditor<T>
-		where T : SgtTerrain
+	public abstract class SgtTerrain_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var markAsDirty = false;
 
-			BeginError(Any(t => t.Radius <= 0.0));
+			BeginError(Any(tgts, t => t.Radius <= 0.0));
 				Draw("radius", ref markAsDirty, "The distance between the center and edge of the planet in local space before it's deformed.");
 			EndError();
 			Draw("smallestTriangleSize", "When at the surface of the planet, how big should each triangle be?\n\nNOTE: This is an approximation. The final size of the triangle will depend on your planet radius, and will be a power of two.");
@@ -673,31 +716,31 @@ namespace SpaceGraphicsToolkit
 			Draw("areas", ref markAsDirty, "This allows you to control which areas certain terrain features appear on the mesh.");
 			Draw("autoPreview", "If you enable this then the mesh will automatically update in edit mode.\n\nNOTE: Enabling this may cause your editor to run slow.");
 
-			if (Any(t => t.AutoPreview == false))
+			if (Any(tgts, t => t.AutoPreview == false))
 			{
 				if (GUILayout.Button("Complete (Preview Mesh)") == true)
 				{
-					DirtyEach(t => t.Complete());
+					Each(tgts, t => t.Complete(), true);
 				}
 			}
 
 			if (markAsDirty == true)
 			{
-				Each(t => t.MarkAsDirty());
+				Each(tgts, t => t.MarkAsDirty());
 			}
 		}
 
-		public static bool DrawArea(SerializedProperty property, SgtTerrain terrain)
+		public static bool DrawArea(UnityEditor.SerializedProperty property, SgtTerrain terrain)
 		{
 			var names    = GetAreaNames(terrain);
 			var modified = false;
 			var content  = new GUIContent("Area", "This allows you to control where this biome appears based on the SgtTerrainTerra component's Biomes splatmap.");
 
-			EditorGUI.BeginChangeCheck();
+			UnityEditor.EditorGUI.BeginChangeCheck();
 
-			var newValue = EditorGUILayout.Popup(content, property.intValue + 1, names) - 1;
+			var newValue = UnityEditor.EditorGUILayout.Popup(content, property.intValue + 1, names) - 1;
 
-			if (EditorGUI.EndChangeCheck() == true)
+			if (UnityEditor.EditorGUI.EndChangeCheck() == true)
 			{
 				property.intValue = newValue;
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
 {
@@ -10,19 +11,19 @@ namespace SpaceGraphicsToolkit
 	public class SgtShadowRingFilter : MonoBehaviour
 	{
 		/// <summary>The source ring texture that will be filtered.</summary>
-		public Texture2D Source;
+		public Texture2D Source { set { if (source != value) { source = value; DirtyTexture(); } } get { return source; } } [FSA("Source")] [SerializeField] private Texture2D source;
 
 		/// <summary>The format of the generated texture.</summary>
-		public TextureFormat Format = TextureFormat.ARGB32;
+		public TextureFormat Format { set { if (format != value) { format = value; DirtyTexture(); } } get { return format; } } [FSA("Format")] [SerializeField] private TextureFormat format = TextureFormat.ARGB32;
 
 		/// <summary>The amount of blur iterations.</summary>
-		public int Iterations = 1;
+		public int Iterations { set { if (iterations != value) { iterations = value; DirtyTexture(); } } get { return iterations; } } [FSA("Iterations")] [SerializeField] private int iterations = 1;
 
 		/// <summary>Overwrite the RGB channels with the alpha?</summary>
-		public bool ShareRGB;
+		public bool ShareRGB { set { if (shareRGB != value) { shareRGB = value; DirtyTexture(); } } get { return shareRGB; } } [FSA("ShareRGB")] [SerializeField] private bool shareRGB;
 
 		/// <summary>Invert the alpha channel?</summary>
-		public bool Invert;
+		public bool Invert { set { if (invert != value) { invert = value; DirtyTexture(); } } get { return invert; } } [FSA("Invert")] [SerializeField] private bool invert;
 
 		[System.NonSerialized]
 		private Texture2D generatedTexture;
@@ -83,24 +84,29 @@ namespace SpaceGraphicsToolkit
 		}
 #endif
 
+		public void DirtyTexture()
+		{
+			UpdateTexture();
+		}
+
 		[ContextMenu("Update Texture")]
 		public void UpdateTexture()
 		{
-			if (Source == null)
+			if (source == null)
 			{
-				Source = CachedShadowRing.Texture as Texture2D;
+				source = CachedShadowRing.Texture as Texture2D;
 			}
 
-			if (Source != null)
+			if (source != null)
 			{
-				var width = Source.width;
+				var width = source.width;
 #if UNITY_EDITOR
-				SgtHelper.MakeTextureReadable(Source);
+				SgtHelper.MakeTextureReadable(source);
 #endif
 				// Destroy if invalid
 				if (generatedTexture != null)
 				{
-					if (generatedTexture.width != width || generatedTexture.height != 1 || generatedTexture.format != Format)
+					if (generatedTexture.width != width || generatedTexture.height != 1 || generatedTexture.format != format)
 					{
 						generatedTexture = SgtHelper.Destroy(generatedTexture);
 					}
@@ -109,7 +115,7 @@ namespace SpaceGraphicsToolkit
 				// Create?
 				if (generatedTexture == null)
 				{
-					generatedTexture = SgtHelper.CreateTempTexture2D("Ring Shadow (Generated)", width, 1, Format);
+					generatedTexture = SgtHelper.CreateTempTexture2D("Ring Shadow (Generated)", width, 1, format);
 
 					generatedTexture.wrapMode = TextureWrapMode.Clamp;
 
@@ -124,10 +130,10 @@ namespace SpaceGraphicsToolkit
 
 				for (var x = 0; x < width; x++)
 				{
-					bufferA[x] = bufferB[x] = Source.GetPixel(x, 0);
+					bufferA[x] = bufferB[x] = source.GetPixel(x, 0);
 				}
 
-				if (Invert == true)
+				if (invert == true)
 				{
 					for (var x = 0; x < width; x++)
 					{
@@ -137,7 +143,7 @@ namespace SpaceGraphicsToolkit
 					}
 				}
 
-				if (ShareRGB == true)
+				if (shareRGB == true)
 				{
 					for (var x = 0; x < width; x++)
 					{
@@ -147,7 +153,7 @@ namespace SpaceGraphicsToolkit
 					}
 				}
 
-				for (var i = 0 ; i < Iterations; i++)
+				for (var i = 0 ; i < iterations; i++)
 				{
 					SwapBuffers();
 
@@ -178,7 +184,7 @@ namespace SpaceGraphicsToolkit
 			}
 			else
 			{
-				CachedShadowRing.Texture = Source;
+				CachedShadowRing.Texture = source;
 			}
 		}
 
@@ -190,7 +196,7 @@ namespace SpaceGraphicsToolkit
 
 		protected virtual void OnDisable()
 		{
-			CachedShadowRing.Texture = Source;
+			CachedShadowRing.Texture = source;
 		}
 
 		protected virtual void OnDestroy()
@@ -220,30 +226,32 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtShadowRingFilter;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtShadowRingFilter))]
-	public class SgtShadowRingFilter_Editor : SgtEditor<SgtShadowRingFilter>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtShadowRingFilter_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			var updateTexture = false;
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
 
-			BeginError(Any(t => t.Source == null));
-				Draw("Source", ref updateTexture, "The source ring texture that will be filtered.");
+			var dirtyTexture = false;
+
+			BeginError(Any(tgts, t => t.Source == null));
+				Draw("source", ref dirtyTexture, "The source ring texture that will be filtered.");
 			EndError();
-			Draw("Format", ref updateTexture, "The format of the generated texture.");
+			Draw("format", ref dirtyTexture, "The format of the generated texture.");
 
 			Separator();
 
-			BeginError(Any(t => t.Iterations <= 0));
-				Draw("Iterations", ref updateTexture, "The amount of blur iterations.");
+			BeginError(Any(tgts, t => t.Iterations <= 0));
+				Draw("iterations", ref dirtyTexture, "The amount of blur iterations.");
 			EndError();
-			Draw("ShareRGB", ref updateTexture, "Overwrite the RGB channels with the alpha?");
-			Draw("Invert", ref updateTexture, "Invert the alpha channel?");
+			Draw("shareRGB", ref dirtyTexture, "Overwrite the RGB channels with the alpha?");
+			Draw("invert", ref dirtyTexture, "Invert the alpha channel?");
 
-			if (updateTexture == true) DirtyEach(t => t.UpdateTexture());
+			if (dirtyTexture == true) Each(tgts, t => t.DirtyTexture(), true, true);
 		}
 	}
 }

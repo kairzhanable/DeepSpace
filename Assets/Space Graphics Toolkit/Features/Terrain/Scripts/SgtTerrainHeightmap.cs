@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
@@ -22,14 +22,14 @@ namespace SpaceGraphicsToolkit
 		/// <summary>The heightmap texture used to displace the mesh.
 		/// NOTE: The height data should be stored in the alpha channel.
 		/// NOTE: This should use the equirectangular cylindrical projection.</summary>
-		public Texture2D Heightmap { set { heightmap = value; PrepareTexture(); } get { return heightmap; } } [SerializeField] private Texture2D heightmap;
+		public Texture2D Heightmap { set { if (heightmap != value) { heightmap = value; PrepareTexture(); } } get { return heightmap; } } [SerializeField] private Texture2D heightmap;
 
 		/// <summary>This allows you to choose which color channel from the heightmap texture will be used.
 		/// NOTE: If your texture uses a 1 byte per channel format like Alpha8/R8, then this setting will be ignored.</summary>
-		public ChannelType Channel { set { channel = value; MarkAsDirty(); } get { return channel; } } [SerializeField] private ChannelType channel;
+		public ChannelType Channel { set { if (channel != value) { channel = value; MarkAsDirty(); } } get { return channel; } } [SerializeField] private ChannelType channel;
 
 		/// <summary>This allows you to control the maximum height displacement applied to the terrain.</summary>
-		public double Displacement { set { displacement = value; MarkAsDirty(); } get { return displacement; } } [SerializeField] private double displacement = 0.25;
+		public double Displacement { set { if (displacement != value) { displacement = value; MarkAsDirty(); } } get { return displacement; } } [SerializeField] private double displacement = 0.25;
 
 		private SgtTerrain cachedTerrain;
 
@@ -57,6 +57,11 @@ namespace SpaceGraphicsToolkit
 			cachedTerrain.OnScheduleCombinedHeights -= HandleScheduleHeights;
 
 			cachedTerrain.MarkAsDirty();
+		}
+
+		protected virtual void OnDidApplyAnimationProperties()
+		{
+			MarkAsDirty();
 		}
 
 		private void PrepareTexture()
@@ -113,27 +118,29 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtTerrainHeightmap;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtTerrainHeightmap))]
-	public class SgtTerrainHeightmap_Editor : SgtEditor<SgtTerrainHeightmap>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtTerrainHeightmap_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			var markAsDirty = false;
 
-			BeginError(Any(t => t.Heightmap == null));
+			BeginError(Any(tgts, t => t.Heightmap == null));
 				Draw("heightmap", ref markAsDirty, "The heightmap texture used to displace the mesh.\n\nNOTE: The height data should be stored in the alpha channel.\n\nNOTE: This should use the equirectangular cylindrical projection.");
 			EndError();
 			Draw("channel", ref markAsDirty, "This allows you to choose which color channel from the heightmap texture will be used.");
-			BeginError(Any(t => t.Displacement == 0.0));
+			BeginError(Any(tgts, t => t.Displacement == 0.0));
 				Draw("displacement", ref markAsDirty, "This allows you to control the maximum height displacement applied to the terrain.");
 			EndError();
 
 			if (markAsDirty == true)
 			{
-				Each(t => t.MarkAsDirty());
+				Each(tgts, t => t.MarkAsDirty());
 			}
 		}
 	}

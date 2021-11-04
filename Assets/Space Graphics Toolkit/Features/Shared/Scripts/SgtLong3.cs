@@ -1,4 +1,4 @@
-﻿namespace SpaceGraphicsToolkit
+namespace SpaceGraphicsToolkit
 {
 	/// <summary>This implements Vector3 using the long data type.</summary>
 	[System.Serializable]

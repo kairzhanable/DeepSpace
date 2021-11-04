@@ -1,0 +1,90 @@
+﻿BEGIN_OPTIONS
+	Workflow "Unlit"
+	Tags { "Queue" = "Transparent" }
+END_OPTIONS
+
+BEGIN_PASS("All")
+	Blend[_SrcMode][_DstMode]
+	ZWrite[_ZWriteMode]
+	ZTest LEqual
+	Cull Off
+END_PASS
+
+BEGIN_PROPERTIES
+	_MainTex("Main Tex", 2D) = "white" {}
+	_Color("Color", Color) = (1, 1, 1, 1)
+
+	_SrcMode("Src Mode", Float) = 1 // 1 = One
+	_DstMode("Dst Mode", Float) = 1 // 1 = One
+	_ZWriteMode("ZWrite Mode", Float) = 8 // 8 = Always
+
+	_ClampSizeMin("Clamp Size Min", Float) = 0
+END_PROPERTIES
+
+BEGIN_DEFINES
+	#pragma multi_compile_local __ _ALPHA_TEST
+	#pragma multi_compile_local __ _POWER_RGB
+	#pragma multi_compile_local __ _CLAMP_SIZE
+END_DEFINES
+
+BEGIN_SUBSHADERS
+	"../../Shared/Shaders/SGT_Output.surfshader"
+END_SUBSHADERS
+
+BEGIN_CBUFFER
+	sampler2D _MainTex;
+	float4    _Color;
+	float     _ClampSizeMin;
+	float     _ClampSizeScale;
+END_CBUFFER
+
+BEGIN_CODE
+	void ModifyVertex(inout VertexData v, inout ExtraV2F e)
+	{
+		float3 wcam = _WorldSpaceCameraPos;
+
+		#if _CLAMP_SIZE
+			float3 center    = v.texcoord1;
+			float3 direction = v.vertex.xyz - center.xyz;
+			float  size      = length(direction);
+
+			// Normalize
+			direction /= size;
+
+			float sizeMin = _ClampSizeMin / _ScreenParams.y * _ClampSizeScale;
+			float scale   = saturate(size / sizeMin);
+			size /= scale; // Scale up to min size
+			v.vertexColor.a *= scale; // Darken by shrunk amount
+			v.vertex.xyz = center.xyz + direction * size;
+		#endif
+
+		v.vertexColor *= _Color;
+	}
+
+	void SurfaceFunction(inout Surface o, inout ShaderData d)
+	{
+		float4 finalColor = tex2D(_MainTex, d.texcoord0.xy);
+
+		#if _POWER_RGB
+			finalColor.rgb = pow(finalColor.rgb, float3(1.0f, 1.0f, 1.0f) + (1.0f - d.vertexColor.rgb) * 10.0f);
+		#else
+			finalColor *= d.vertexColor;
+		#endif
+
+		finalColor.a = saturate(finalColor.a);
+		finalColor *= d.vertexColor.a;
+
+		#if _ALPHA_TEST
+			if (finalColor.a < 0.5f)
+			{
+				finalColor.a = 0.0f; discard;
+			}
+			else
+			{
+				finalColor.a = 1.0f;
+			}
+		#endif
+
+		OutputWithAlpha(o, ModifyUnlitOutput(finalColor));
+	}
+END_CODE

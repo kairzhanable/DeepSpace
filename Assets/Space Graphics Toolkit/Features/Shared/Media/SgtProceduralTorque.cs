@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -30,14 +30,16 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtProceduralTorque;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtProceduralTorque))]
-	public class SgtProceduralTorque_Editor : SgtProcedural_Editor<SgtProceduralTorque>
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(TARGET))]
+	public class SgtProceduralTorque_Editor : SgtProcedural_Editor
 	{
 		protected override void OnInspector()
 		{
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
 			base.OnInspector();
 
 			Draw("speedMin", "Minimum degrees per second.");

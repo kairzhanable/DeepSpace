@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using FSA = UnityEngine.Serialization.FormerlySerializedAsAttribute;
 
 namespace SpaceGraphicsToolkit
@@ -8,6 +8,15 @@ namespace SpaceGraphicsToolkit
 	{
 		/// <summary>The point that will be warped.</summary>
 		public SgtFloatingPoint Point { set { point = value; } get { return point; } } [FSA("Point")] [SerializeField] protected SgtFloatingPoint point;
+
+		/// <summary>Allows you to warp to the target object.</summary>
+		public void WarpTo(SgtFloatingTarget target)
+		{
+			if (target != null)
+			{
+				WarpTo(target.CachedPoint.Position, target.WarpDistance);
+			}
+		}
 
 		/// <summary>Allows you to warp to the target point with the specified separation distance.</summary>
 		public void WarpTo(SgtPosition position, double distance)
@@ -37,16 +46,17 @@ namespace SpaceGraphicsToolkit
 #if UNITY_EDITOR
 namespace SpaceGraphicsToolkit
 {
-	using UnityEditor;
+	using TARGET = SgtFloatingWarp;
 
-	[CanEditMultipleObjects]
-	[CustomEditor(typeof(SgtFloatingWarp))]
-	public abstract class SgtFloatingWarp_Editor<T> : SgtEditor<T>
-		where T : SgtFloatingWarp
+	[UnityEditor.CanEditMultipleObjects]
+	[UnityEditor.CustomEditor(typeof(SgtFloatingWarp))]
+	public abstract class SgtFloatingWarp_Editor : SgtEditor
 	{
 		protected override void OnInspector()
 		{
-			BeginError(Any(t => t.Point == null));
+			TARGET tgt; TARGET[] tgts; GetTargets(out tgt, out tgts);
+
+			BeginError(Any(tgts, t => t.Point == null));
 				Draw("point", "The point that will be warped.");
 			EndError();
 		}
