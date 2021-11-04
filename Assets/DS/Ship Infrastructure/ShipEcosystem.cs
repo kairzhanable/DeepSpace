@@ -1,73 +1,105 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace DeepSpace
 {
     public class ShipEcosystem : MonoBehaviour
     {
-        private List<ShipSystem> systems;
+        private Dictionary<Type, ShipSystem> systems;
+
         private List<Slot> engineSlots;
         private List<Slot> externalModuleSlots;
         private List<Slot> internalModuleSlots;
 
         void Awake()
         {
-            systems = new List<ShipSystem>(gameObject.GetComponents<ShipSystem>());
-            Slot[] allSlots = gameObject.GetComponentsInChildren<Slot>();
+            systems = new Dictionary<Type, ShipSystem>();
 
             engineSlots = new List<Slot>();
             externalModuleSlots = new List<Slot>();
             internalModuleSlots = new List<Slot>();
 
-            foreach(ShipSystem system in systems){
-                system.sendEvent = SendEvent;
-            }
+            addSystems(new List<ShipSystem>(gameObject.GetComponents<ShipSystem>()));
+            addSlots(new List<Slot>(gameObject.GetComponentsInChildren<Slot>()));
+        }
 
-            foreach(Slot slot in allSlots){
-                switch(slot.moduleType){
-                    case ModuleType.ENGINE:
-                        engineSlots.Add(slot);
-                        break;
-                    case ModuleType.EXTERNAL:
-                        externalModuleSlots.Add(slot);
-                        break;
-                    case ModuleType.INTERNAL:
-                        internalModuleSlots.Add(slot);
-                        break;
-                    default:
-                        Debug.LogError("Неизвестный модуль.");
-                        break;
-                }
+        public T GetSystem<T>() where T : ShipSystem
+        {
+            var systemType = typeof(T);
+            return (T)systems[systemType];
+        }
+
+        private void addSystems(List<ShipSystem> systems)
+        {
+            foreach (var system in systems)
+            {
+                addSystem(system);
             }
         }
 
-        public void SendEvent(ShipEvent _event){
-            foreach(ShipSystem system in systems){
+        private void addSystem(ShipSystem system)
+        {
+            system.sendEvent = SendEvent;
+            Type systemType = system.GetSystemType();
+            this.systems[systemType] = system;
+        }
+
+        private void addSlots(List<Slot> allSlots)
+        {
+            foreach (Slot slot in allSlots)
+            {
+                addSlot(slot);
+            }
+        }
+
+        private void addSlot(Slot slot)
+        {
+            switch (slot.moduleType)
+            {
+                case ModuleType.ENGINE:
+                    engineSlots.Add(slot);
+                    break;
+                case ModuleType.EXTERNAL:
+                    externalModuleSlots.Add(slot);
+                    break;
+                case ModuleType.INTERNAL:
+                    internalModuleSlots.Add(slot);
+                    break;
+                default:
+                    Debug.LogError("Неизвестный модуль.");
+                    break;
+            }
+        }
+
+        public void SendEvent(ShipEvent _event)
+        {
+            foreach (ShipSystem system in systems.Values)
+            {
                 system.ApplyEvent(_event);
             }
         }
 
-        void Update()
+        public void AddModule(Module module, Slot slot)
         {
-            
-        }
-
-        public void AddModule(Module module, Slot slot) 
-        {
-            if(!slot.InstallModule(module))
+            if (!slot.InstallModule(module))
                 return;
-            foreach(ShipSystem sys in systems)
+            bool added = false;
+            foreach (ShipSystem sys in systems.Values)
             {
-                sys.AddModule(module);
+                added = added || sys.AddModule(module);
             }
+            if (added)
+                module.shipEcosystem = this;
         }
 
-        public void AddModule(GameObject module, Slot _slot){
+        public void AddModule(GameObject module, Slot _slot)
+        {
             Module _module = module.GetComponent<Module>();
             AddModule(_module, _slot);
         }
 
-        public void AddModule(GameObject module, GameObject slot) 
+        public void AddModule(GameObject module, GameObject slot)
         {
             Module _module = module.GetComponent<Module>();
             Slot _slot = slot.GetComponent<Slot>();
@@ -75,16 +107,16 @@ namespace DeepSpace
         }
 
         public void RemoveModule(Module module)
-        {                       
-            if(!module.detachable)    
-                return;         
-            foreach(ShipSystem sys in systems)
+        {
+            if (!module.detachable)
+                return;
+            foreach (ShipSystem sys in systems.Values)
             {
                 sys.RemoveModule(module);
             }
         }
 
-        public void RemoveModule(GameObject module) 
+        public void RemoveModule(GameObject module)
         {
             Module _module = module.GetComponent<Module>();
             RemoveModule(_module);

@@ -1,9 +1,11 @@
+using System;
+
 namespace DeepSpace
 {
     public class ArmorySystem : ShipSystem
     {
         private SystemElements<IShooter> shooters;
-        public ArmorySystem ()
+        public ArmorySystem()
         {
             this.shooters = new SystemElements<IShooter>();
         }

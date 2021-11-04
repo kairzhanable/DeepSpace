@@ -22,6 +22,7 @@ public class TMP_INPUT : MonoBehaviour
     private Vector3 desired_rotation;
 
     private void Awake() {
+        Cursor.visible = false;
         // Get the Rewired Player object for this player and keep it for the duration of the character's lifetime
         player = ReInput.players.GetPlayer(playerId);
     }
@@ -56,9 +57,7 @@ public class TMP_INPUT : MonoBehaviour
 
     private void GetInput()
     {
-        // Get the input from the Rewired Player. All controllers that the Player owns will contribute, so it doesn't matter
-        // whether the input is coming from a joystick, the keyboard, mouse, or a custom controller.
-        desired_speed.x += player.GetAxis("RightLeft") * acceleration_step * Time.deltaTime; // get input by name or action id
+        desired_speed.x += player.GetAxis("RightLeft") * acceleration_step * Time.deltaTime;
         desired_speed.y += player.GetAxis("UpDown") * acceleration_step * Time.deltaTime;
         desired_speed.z += player.GetAxis("ForwardBack") * acceleration_step * Time.deltaTime;
         
@@ -73,8 +72,6 @@ public class TMP_INPUT : MonoBehaviour
 
     private void ProcessInput() 
     {
-        
-        
         camera.transform.Rotate(desired_rotation);
         camera.transform.position = Ship.transform.position;
         Quaternion desiredRotation = camera.transform.rotation;

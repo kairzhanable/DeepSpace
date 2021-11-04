@@ -1,4 +1,6 @@
 using UnityEngine;
+using System;
+
 namespace DeepSpace
 {
     public abstract class ShipSystem : MonoBehaviour
@@ -7,7 +9,13 @@ namespace DeepSpace
         public abstract bool RemoveModule(Module module);
         public SendEvent sendEvent;
 
-        public virtual void ApplyEvent(ShipEvent _event){
+        public virtual Type GetSystemType()
+        {
+            return this.GetType();
+        }
+
+        public virtual void ApplyEvent(ShipEvent _event)
+        {
             _event.Apply(this);
         }
     }

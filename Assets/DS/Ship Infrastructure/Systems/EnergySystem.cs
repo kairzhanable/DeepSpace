@@ -1,3 +1,5 @@
+using System;
+
 namespace DeepSpace
 {
     public class EnergySystem : ShipSystem
@@ -5,14 +7,14 @@ namespace DeepSpace
         private SystemElements<IEConsumer> e_consumers;
         private SystemElements<IEGenerator> e_generators;
         private SystemElements<IEStorage> e_storages;
-        
+
         public EnergySystem()
         {
             this.e_consumers = new SystemElements<IEConsumer>();
             this.e_generators = new SystemElements<IEGenerator>();
             this.e_storages = new SystemElements<IEStorage>();
         }
-        
+
         public override bool AddModule(Module module)
         {
             bool res = false;
@@ -25,7 +27,7 @@ namespace DeepSpace
 
         private void Connect(Module module)
         {
-            if(!(module is IActiveEElement))
+            if (!(module is IActiveEElement))
                 return;
             IActiveEElement element = (IActiveEElement)module;
             element.ConnectToESystem(this);
@@ -58,7 +60,7 @@ namespace DeepSpace
 
     public interface IEStorage
     {
-        float maxCapacity {get;}
-        float currentCapacity {get; set;}
+        float maxCapacity { get; }
+        float currentCapacity { get; set; }
     }
 }

@@ -1,3 +1,5 @@
+using System;
+
 namespace DeepSpace
 {
     public class HeatSystem : ShipSystem
@@ -12,7 +14,7 @@ namespace DeepSpace
             this.h_generators = new SystemElements<IHGenerator>();
             this.h_storages = new SystemElements<IHStorage>();
         }
-        
+
         public override bool AddModule(Module module)
         {
             bool res = false;
@@ -25,7 +27,7 @@ namespace DeepSpace
 
         private void Connect(Module module)
         {
-            if(!(module is IActiveHElement))
+            if (!(module is IActiveHElement))
                 return;
             IActiveHElement element = (IActiveHElement)module;
             element.ConnectToHSystem(this);
@@ -58,7 +60,7 @@ namespace DeepSpace
 
     public interface IHStorage
     {
-        float maxCapacity {get;}
-        float currentCapacity {get; set;}
+        float maxCapacity { get; }
+        float currentCapacity { get; set; }
     }
 }
