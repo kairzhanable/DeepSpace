@@ -14,19 +14,26 @@ public class TMP_INPUT : MonoBehaviour
 
     public GameObject Ship;
     public GameObject engine;
-    public GameObject camera; 
+    public GameObject camera;
 
     private ManeurSystem SAS;
     private List<Slot> slots;
     private Vector3 desired_speed;
     private Vector3 desired_rotation;
 
-    private void Awake() {
-        Cursor.visible = false;
+    [SerializeField]
+    private Buff buff;
+    [SerializeField]
+    private Rewired.UI.ControlMapper.ControlMapper CM;
+
+    private void Awake()
+    {
+        //Cursor.visible = false;
+
         // Get the Rewired Player object for this player and keep it for the duration of the character's lifetime
         player = ReInput.players.GetPlayer(playerId);
     }
-    
+
     void Start()
     {
         slots = new List<Slot>();
@@ -34,8 +41,10 @@ public class TMP_INPUT : MonoBehaviour
         SAS = Ship.GetComponent<ManeurSystem>();
         ShipEcosystem main = Ship.GetComponent<ShipEcosystem>();
 
-        foreach(Slot slot in slots){
-            if(slot.moduleType == ModuleType.ENGINE){
+        foreach (Slot slot in slots)
+        {
+            if (slot.moduleType == ModuleType.ENGINE)
+            {
                 GameObject new_engine = Instantiate(engine, Vector3.zero, Quaternion.identity);
                 main.AddModule(new_engine, slot);
             }
@@ -46,7 +55,28 @@ public class TMP_INPUT : MonoBehaviour
 
     void Update()
     {
-        GetInput();
+
+        if (Input.GetKeyDown(KeyCode.V))
+        {
+            ShipEcosystem main = Ship.GetComponent<ShipEcosystem>();
+            main.sendBuff(buff);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (CM.isOpen)
+                CM.Close(false);
+            else
+                CM.Open();
+        }
+
+        if (!CM.isOpen)
+        {
+            Time.timeScale = 1;
+            GetInput();
+        } else {
+            Time.timeScale = 0;
+        }
         ProcessInput();
     }
 
@@ -60,17 +90,17 @@ public class TMP_INPUT : MonoBehaviour
         desired_speed.x += player.GetAxis("RightLeft") * acceleration_step * Time.deltaTime;
         desired_speed.y += player.GetAxis("UpDown") * acceleration_step * Time.deltaTime;
         desired_speed.z += player.GetAxis("ForwardBack") * acceleration_step * Time.deltaTime;
-        
-        if(player.GetButton("ResetSpeed"))
+
+        if (player.GetButton("ResetSpeed"))
             desired_speed = Vector3.zero;
 
         desired_rotation.z = player.GetAxis("Roll") * roll_step * Time.deltaTime;
 
-        desired_rotation.y =  player.GetAxis("Yaw") * yaw_step * Time.deltaTime;
-        desired_rotation.x =  player.GetAxis ("Pitch") * pitch_step * Time.deltaTime;
+        desired_rotation.y = player.GetAxis("Yaw") * yaw_step * Time.deltaTime;
+        desired_rotation.x = player.GetAxis("Pitch") * pitch_step * Time.deltaTime;
     }
 
-    private void ProcessInput() 
+    private void ProcessInput()
     {
         camera.transform.Rotate(desired_rotation);
         camera.transform.position = Ship.transform.position;

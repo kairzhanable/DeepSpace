@@ -10,7 +10,7 @@ namespace DeepSpace
         ENGINE
     }
 
-    public class SystemElements<T>
+    public class SystemElements<T> 
     {
         private List<T> elements {get; set;}
 

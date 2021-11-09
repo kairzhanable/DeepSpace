@@ -20,7 +20,7 @@ namespace DeepSpace
             rcs = new MyRCS(rigidbody);
             qPID = new QPID(rigidbody);
             vPID = new VPID(rigidbody);
-            IEngins = new SystemElements<IEngine>();
+            IEngins = new SystemElements<IEngine>();     
         }
 
         public void ApplyManeur(Vector3 desired_speed, Quaternion desiredRotation)
@@ -76,6 +76,10 @@ namespace DeepSpace
         void ApplyForce(float force_coefficient, float throttle_coefficient);
         void Recalculation();
 
+        void applyEffect(Color color);
+        void removeEffect();
+
+        EngineComponent engineComponent { get; }
         float force_coefficient { get; }
 
         Vector3 possible_force(float coefficient);
@@ -134,7 +138,15 @@ namespace DeepSpace
                 rigidbody.velocity = desired_speed;
                 return Vector3.zero;
             }
-            return (desired_speed - rigidbody.transform.InverseTransformDirection(rigidbody.velocity));
+
+            Vector3 res = (desired_speed - rigidbody.transform.InverseTransformDirection(rigidbody.velocity));
+
+            float max_force = 500;
+
+            if(res.sqrMagnitude > max_force * max_force)
+                res = res.normalized * max_force;
+
+            return res;
         }
     }
 
@@ -183,10 +195,21 @@ namespace DeepSpace
 
         private void initEngine()
         {
+            float max = 1;
+            float min = float.MaxValue;
+            for (int i = 0; i < IEngins.Length; i++)
+            {
+                if(coefs[i] > max)
+                    max = coefs[i];
+                if(coefs[i] < min)
+                    min = coefs[i];
+            }
+            if (min < 0)
+                min = 0; 
             for (int i = 0; i < IEngins.Length; i++)
             {
                 IEngine engine = IEngins.get(i);
-                engine.ApplyForce(coefs[i], coefs[i]);
+                engine.ApplyForce(coefs[i], (coefs[i] - min) / max);
             }
         }
 

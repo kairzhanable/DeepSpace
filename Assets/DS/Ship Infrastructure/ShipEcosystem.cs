@@ -1,27 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 namespace DeepSpace
 {
     public class ShipEcosystem : MonoBehaviour
     {
         private Dictionary<Type, ShipSystem> systems;
+        private List<IBuffableModule> buffableModules;
 
-        private List<Slot> engineSlots;
-        private List<Slot> externalModuleSlots;
-        private List<Slot> internalModuleSlots;
+        private Dictionary<Module, List<Type>> moduleI;
 
         void Awake()
         {
+            buffableModules = new List<IBuffableModule>();
             systems = new Dictionary<Type, ShipSystem>();
-
-            engineSlots = new List<Slot>();
-            externalModuleSlots = new List<Slot>();
-            internalModuleSlots = new List<Slot>();
-
+            moduleI = new Dictionary<Module, List<Type>>();
             addSystems(new List<ShipSystem>(gameObject.GetComponents<ShipSystem>()));
-            addSlots(new List<Slot>(gameObject.GetComponentsInChildren<Slot>()));
         }
 
         public T GetSystem<T>() where T : ShipSystem
@@ -40,43 +36,21 @@ namespace DeepSpace
 
         private void addSystem(ShipSystem system)
         {
-            system.sendEvent = SendEvent;
             Type systemType = system.GetSystemType();
             this.systems[systemType] = system;
         }
 
-        private void addSlots(List<Slot> allSlots)
-        {
-            foreach (Slot slot in allSlots)
-            {
-                addSlot(slot);
-            }
-        }
 
-        private void addSlot(Slot slot)
+        public void sendBuff(Buff buff)
         {
-            switch (slot.moduleType)
+            buff.init(this);
+            foreach (var module in buffableModules)
             {
-                case ModuleType.ENGINE:
-                    engineSlots.Add(slot);
-                    break;
-                case ModuleType.EXTERNAL:
-                    externalModuleSlots.Add(slot);
-                    break;
-                case ModuleType.INTERNAL:
-                    internalModuleSlots.Add(slot);
-                    break;
-                default:
-                    Debug.LogError("Неизвестный модуль.");
-                    break;
-            }
-        }
-
-        public void SendEvent(ShipEvent _event)
-        {
-            foreach (ShipSystem system in systems.Values)
-            {
-                system.ApplyEvent(_event);
+                /*List<Type> a = moduleI[(Module)module];
+                List<Type> b = buff.targetTypes;
+                if(a.Any(b.Contains)){*/
+                module.ApplyBuff(buff);
+                //}
             }
         }
 
@@ -90,7 +64,16 @@ namespace DeepSpace
                 added = added || sys.AddModule(module);
             }
             if (added)
+            {
+                if (module is IBuffableModule)
+                {
+                    buffableModules.Add((IBuffableModule)module);
+                }
+
+                List<Type> types = new List<Type>(module.GetType().GetInterfaces());
+                moduleI[module] = types;
                 module.shipEcosystem = this;
+            }
         }
 
         public void AddModule(GameObject module, Slot _slot)

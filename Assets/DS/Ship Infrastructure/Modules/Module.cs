@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 namespace DeepSpace
 {
@@ -12,6 +13,11 @@ namespace DeepSpace
         public bool detachable { get { return _detachable; } }
         private ShipEcosystem _shipEcosystem;
         public ShipEcosystem shipEcosystem { get { return _shipEcosystem; } set { _shipEcosystem = value; } }
+
+        public virtual Type GetModuleType()
+        {
+            return this.GetType();
+        }
 
         public void init(ModuleType moduleType, int moduleSize)
         {
