@@ -175,7 +175,9 @@ namespace DeepSpace
 
         public void FixedUpdate()
         {
-            rigidbody.AddForceAtPosition(final_force, gameObject.transform.position);
+            //rigidbody.AddForceAtPosition(final_force, gameObject.transform.position);
+            rigidbody.AddForce(_force * _force_coefficient);
+            rigidbody.AddTorque(_torque * _force_coefficient);
         }
     }
 }
