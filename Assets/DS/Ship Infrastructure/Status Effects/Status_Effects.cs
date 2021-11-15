@@ -7,61 +7,65 @@ namespace DeepSpace
 {
 
 
-
-
-
-
-
     public interface IBuffableModule
     {
+        List<Buff> buffs { get; }
+
         void ApplyBuff(Buff buff);
         void CeaseBuff(Buff buff);
     }
 
 
 
-
-
-
-
-
-
     public abstract class Buff : ScriptableObject
     {
-        protected IEnumerator cancel(float duration, Module module)
+
+        protected IEnumerator cancel(float duration, IBuffableModule module)
         {
             yield return new WaitForSeconds(duration);
-            this.cease(module);
+            this.cease();
+            module.CeaseBuff(this);
         }
 
         protected MonoBehaviour mono;
-        protected List<Modifire> mods;
-
+        protected List<Pair> pairs;
+        protected void AddMod(BuffableStat stat, Modifire mod){
+            pairs.Add(new Pair( stat, stat.ApplyMod(mod)));
+        }
 
         public abstract void init(MonoBehaviour mono);
-        public abstract void apply(Module module);
-        public abstract void cease(Module module);
+        public abstract bool apply(IBuffableModule module);
+        
+        public void cease(){
+            foreach(var pair in pairs){
+                pair.stat.CeaseMod(pair.mod);
+            }
+        }
     }
 
-
-
-
-
+    public class Pair{
+        public BuffableStat stat;
+        public Modifire mod;
+        public Pair(BuffableStat stat, Modifire mod){
+            this.stat = stat;
+            this.mod = mod;
+        }
+    }
 
 
 
     public class MultiplyModifire : Modifire
     {
-        public MultiplyModifire(float value, Type type_buff)
+        public MultiplyModifire(float value, Buff buff)
         {
-            this._type_buff = type_buff;
+            this._buff = buff;
             this.value = value;
         }
 
 
         private float value;
-        private Type _type_buff;
-        public override Type type_buff { get { return  _type_buff; } }
+        private Buff _buff;
+        public override Buff buff { get { return  _buff; } }
 
         public override float getEffect(float defult)
         {
@@ -71,19 +75,11 @@ namespace DeepSpace
 
 
 
-
-
-
-
     public abstract class Modifire
     {
-        public abstract Type type_buff{ get; }
+        public abstract Buff buff{ get; }
         public abstract float getEffect(float defult);
     }
-
-
-
-
 
 
     public class BuffableStat
@@ -113,14 +109,12 @@ namespace DeepSpace
                 }
                 refresh = false;
             }
-            Debug.Log(_buffedValue);
             return _buffedValue;
         }
 
         public Modifire ApplyMod(Modifire modifire)
         {
             if(contain(modifire)){
-                Debug.Log("дубликат");
                 return modifire;
             }
             refresh = true;
@@ -129,9 +123,9 @@ namespace DeepSpace
         }
 
         private bool contain(Modifire modifire){
-            Type type = modifire.type_buff;
+            Buff buff = modifire.buff;
             foreach(var mod in _modifires){
-                if (mod.type_buff == type){
+                if (mod.buff == buff){
                     return true;
                 }
             }
@@ -141,7 +135,6 @@ namespace DeepSpace
         public void CeaseMod(Modifire modifire)
         {
             if(!contain(modifire)){
-                Debug.Log("не найден");
                 return;
             }
             refresh = true;

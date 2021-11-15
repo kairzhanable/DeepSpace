@@ -16,6 +16,7 @@ public class TMPVelIND : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        gameObject.transform.rotation = Quaternion.LookRotation(rigidbody.velocity, Vector3.up);
+        if(rigidbody.velocity.sqrMagnitude != 0)
+            gameObject.transform.rotation = Quaternion.LookRotation(rigidbody.velocity, Vector3.up);
     }
 }

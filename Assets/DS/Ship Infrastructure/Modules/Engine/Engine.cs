@@ -10,14 +10,23 @@ namespace DeepSpace
 
         [SerializeField]
         private EngineStat statsData;
-        private EngineComponent _engineComponent;
 
+        private EngineComponent _engineComponent;
         private EngineEffect _effect;
+
         public EngineEffect effect { get { return _effect; } }
 
         public EngineComponent engineComponent { get { return _engineComponent; } }
         public float force_coefficient => _engineComponent.force_coefficient;
-        public void ApplyForce(float force_coefficient, float throttle_coefficient) { _engineComponent.ApplyForce(force_coefficient, throttle_coefficient); }
+
+        private List<Buff> _buffs;
+        public List<Buff> buffs { get { return _buffs; } }
+
+        public void ApplyForce(float force_coefficient, float throttle_coefficient)
+        {
+            effect.ApplyThrottle(Mathf.Clamp01(throttle_coefficient));
+            _engineComponent.ApplyForce(force_coefficient, throttle_coefficient);
+        }
         public void Recalculation() { _engineComponent.Recalculation(); }
         public void SetRigidbody(Rigidbody rigidbody) { _engineComponent.SetRigidbody(rigidbody); }
         public Vector3 possible_force(float coefficient) { return _engineComponent.possible_force(coefficient); }
@@ -25,17 +34,10 @@ namespace DeepSpace
 
         void Awake()
         {
+            this._buffs = new List<Buff>();
             this._effect = new EngineEffect(this);
-            _engineComponent = new EngineComponent(this, statsData, effect);
+            _engineComponent = new EngineComponent(this, statsData);
             base.init(statsData.moduleType, statsData.moduleSize);
-        }
-
-        public void applyEffect(Color color){
-            this.effect.ApplyEffect(color);
-        }
-
-        public void removeEffect(){
-            this.effect.removeEffect();
         }
 
         private void FixedUpdate()
@@ -45,12 +47,24 @@ namespace DeepSpace
 
         public void ApplyBuff(Buff buff)
         {
-            buff.apply(this);
+            if (buff.apply(this))
+            {
+                this._buffs.Add(buff);
+                this._effect.ApplyEffect();
+            }
         }
 
         public void CeaseBuff(Buff buff)
         {
-            buff.cease(this);
+            if (this._buffs.Contains(buff))
+            {
+                buff.cease();
+                _buffs.Remove(buff);
+                if (_buffs.Count == 0)
+                {
+                    this._effect.removeEffect();
+                }
+            }
         }
     }
 
@@ -62,6 +76,8 @@ namespace DeepSpace
         private List<SpriteRenderer> sprites;
         private SgtThruster throttleController;
         private Color defultColor;
+        private Color buffedColor;
+        private bool on = false;
 
         public EngineEffect(MonoBehaviour initializator)
         {
@@ -71,21 +87,30 @@ namespace DeepSpace
             this.sprites = initializator.gameObject.transform.GetComponentsInChildrenRecursively<SpriteRenderer>(this.sprites);
             this.throttleController = initializator.gameObject.GetComponentInChildren<SgtThruster>();
             defultColor = Color.green;
+            buffedColor = Color.red;
+            changeColor(defultColor);
         }
 
-        public void removeEffect(){
-            Debug.Log("OFF");
-            ApplyEffect(defultColor);
+        public void removeEffect()
+        {
+            on = false;
+            changeColor(defultColor);
         }
 
         public void ApplyThrottle(float throttle)
         {
-            throttleController.Throttle = throttle;
+            throttleController.Throttle = throttle * (on ? 2f : 1f);
             foreach (var light in lights)
                 light.intensity = throttle;
         }
 
-        public void ApplyEffect(Color color)
+        public void ApplyEffect()
+        {
+            on = true;
+            changeColor(buffedColor);
+        }
+
+        private void changeColor(Color color)
         {
             foreach (var light in lights)
                 light.color = color;
@@ -102,7 +127,6 @@ namespace DeepSpace
         private Vector3 _torque;
         private float _throttle;
         private Vector3 final_force;
-        private EngineEffect effect;
 
         private float _force_coefficient;
         private BuffableStat _maxTrust;
@@ -116,9 +140,8 @@ namespace DeepSpace
         public Vector3 possible_force(float coefficient) { return _force * coefficient; }
         public Vector3 possible_torque(float coefficient) { return _torque * coefficient; }
 
-        public EngineComponent(MonoBehaviour initializator, EngineStat statsData, EngineEffect effect)
+        public EngineComponent(MonoBehaviour initializator, EngineStat statsData)
         {
-            this.effect = effect;
             _maxTrust = new BuffableStat(statsData.maxTrust);
             this.gameObject = initializator.gameObject;
 
@@ -138,10 +161,7 @@ namespace DeepSpace
             Vector3 direction = gameObject.transform.forward;
             Vector3 position = gameObject.transform.position;
             Vector3 force = -direction * (_maxTrust.buffedValue * _force_coefficient);
-            effect.ApplyThrottle(Mathf.Clamp01(throttle_coefficient * (_maxTrust.buffedValue / _maxTrust.defultValue)));
-
-            final_force = old_force * (1-alpha) + force * alpha;
-
+            final_force = old_force * (1 - alpha) + force * alpha;
             old_force = final_force;
         }
 

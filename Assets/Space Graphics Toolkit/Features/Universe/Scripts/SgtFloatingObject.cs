@@ -137,8 +137,24 @@ namespace SpaceGraphicsToolkit
 
 		private void HandleSnap(SgtFloatingCamera floatingCamera, Vector3 delta)
 		{
+			/*Debug.Log("MOVE!");
+			Vector3 av = Vector3.zero;
+			Vector3 lv = Vector3.zero;
+			Quaternion rot = Quaternion.identity;
+			if(gameObject.GetComponent<Rigidbody>()){
+				av = gameObject.GetComponent<Rigidbody>().angularVelocity;
+				lv = gameObject.GetComponent<Rigidbody>().velocity;
+				rot = gameObject.transform.rotation;
+			}*/
+			
 			CheckForPositionChanges();
 			UpdatePositionNow(floatingCamera);
+			
+			/*if(gameObject.GetComponent<Rigidbody>()){
+				gameObject.GetComponent<Rigidbody>().angularVelocity = av;
+				gameObject.GetComponent<Rigidbody>().velocity = lv; 
+				gameObject.transform.rotation = rot;
+			}*/
 		}
 
 		private void UpdatePositionNow()

@@ -76,9 +76,6 @@ namespace DeepSpace
         void ApplyForce(float force_coefficient, float throttle_coefficient);
         void Recalculation();
 
-        void applyEffect(Color color);
-        void removeEffect();
-
         EngineComponent engineComponent { get; }
         float force_coefficient { get; }
 

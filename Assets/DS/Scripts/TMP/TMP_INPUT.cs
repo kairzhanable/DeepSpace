@@ -103,7 +103,7 @@ public class TMP_INPUT : MonoBehaviour
     private void ProcessInput()
     {
         camera.transform.Rotate(desired_rotation);
-        camera.transform.position = Ship.transform.position;
+        //camera.transform.position = Ship.transform.position;
         Quaternion desiredRotation = camera.transform.rotation;
 
         SAS.ApplyManeur(desired_speed, desiredRotation);

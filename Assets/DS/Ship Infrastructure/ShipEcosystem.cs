@@ -46,11 +46,7 @@ namespace DeepSpace
             buff.init(this);
             foreach (var module in buffableModules)
             {
-                /*List<Type> a = moduleI[(Module)module];
-                List<Type> b = buff.targetTypes;
-                if(a.Any(b.Contains)){*/
                 module.ApplyBuff(buff);
-                //}
             }
         }
 
